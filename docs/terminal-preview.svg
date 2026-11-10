@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="888.0" height="630" viewBox="0 0 888.0 630" role="img" aria-label="Aperçu généré à partir de l’écran AlignView">
+<rect width="888.0" height="630" rx="12" fill="#0d1729"/>
+<text x="14" y="28" fill="#70dfc0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> AlignView / Alignement</text>
+<text x="14" y="50" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> 4 séquences × 11 colonnes · vue 1–11 · curseur 1</text>
+<text x="14" y="72" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> Vue globale [████████████████████████████████████████████████████████████████████████████████████]</text>
+<text x="14" y="94" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> Coord. ×10                │          1 </text>
+<text x="14" y="116" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> Coord. unités             │ 12345678901</text>
+<text x="14" y="138" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> CURSEUR                   │ ▲          </text>
+<rect x="8" y="143" width="872.0" height="22" rx="4" fill="#19354a"/>
+<text x="14" y="160" fill="#70dfc0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ›seq_1                    │ ATGCA-TACCG</text>
+<text x="14" y="182" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  seq_2                    │ ATGCG-TACCG</text>
+<text x="14" y="204" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  seq_3                    │ ATGCGTTACGG</text>
+<text x="14" y="226" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  seq_4                    │ ATGCA-TACGG</text>
+<text x="14" y="248" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="270" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="292" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="314" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="336" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="358" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="380" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="402" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="424" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ──────────────────────────────────────────────────────────────────────────────────────────────────</text>
+<text x="14" y="446" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> CONSENSUS                 │ ATGCATTACCG</text>
+<text x="14" y="468" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> VARIABLES                 │ ····▲····▲·</text>
+<text x="14" y="490" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> CONSERVATION              │ ████▒████▒█</text>
+<text x="14" y="512" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> Ligne 1/4 · seq_1 · toutes colonnes · gaps 0.0%</text>
+<text x="14" y="534" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ←→ colonnes · ↑↓ séquences · [ ] écran · PgUp/PgDn lignes</text>
+<text x="14" y="556" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> g position · s séquence · / motif · v variables · d différences</text>
+<text x="14" y="578" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ? toutes les commandes · Échap/q retour · F2 accueil</text>
+<text x="14" y="600" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> </text>
+</svg>

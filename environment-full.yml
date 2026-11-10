@@ -1,0 +1,16 @@
+name: alignview-full
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python>=3.10
+  - pip
+  - blast
+  - diamond
+  - mafft
+  - emboss
+  - alv
+  - mmseqs2
+  - muscle>=5
+  - clustalo
+  - fasttree

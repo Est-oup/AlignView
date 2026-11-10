@@ -1,0 +1,39 @@
+{% set name = "alignview" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/REPLACE_OWNER/REPLACE_REPO/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: REPLACE_WITH_RELEASE_ARCHIVE_SHA256
+
+build:
+  noarch: python
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python >=3.10
+    - pip
+    - setuptools >=77
+    - wheel
+  run:
+    - python >=3.10
+
+test:
+  commands:
+    - alignview --version
+    - alignview --help
+
+about:
+  home: https://github.com/REPLACE_OWNER/REPLACE_REPO
+  license: MIT
+  license_file: LICENSE
+  summary: Interactive FASTA/BLAST/MSA explorer and standalone HTML report
+
+extra:
+  recipe-maintainers:
+    - REPLACE_GITHUB_HANDLE

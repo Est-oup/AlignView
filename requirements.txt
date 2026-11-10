@@ -1,0 +1,2 @@
+# Le noyau AlignView ne requiert aucune dépendance Python tierce.
+# Les outils BLAST/MAFFT/DIAMOND sont des exécutables séparés, installables avec Conda.

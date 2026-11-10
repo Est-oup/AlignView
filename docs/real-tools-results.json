@@ -1,0 +1,664 @@
+[
+  {
+    "tool": "mafft",
+    "executable": "/tmp/alignview-params-tools/bin/mafft",
+    "version": "v7.526 (2024/Apr/26)",
+    "status": "passed",
+    "tuned": false,
+    "elapsed_s": 0.3235,
+    "command": [
+      "/usr/bin/python3",
+      "/home/pestoup/T\u00e9l\u00e9chargements/AlignView/alignview/alignview.py",
+      "/tmp/alignview_real_jgwx429b/proteins.faa",
+      "--msa",
+      "align",
+      "--aligner",
+      "mafft",
+      "--module-policy",
+      "never",
+      "--threads",
+      "1",
+      "--no-menu",
+      "--save",
+      "--out",
+      "/tmp/alignview_real_jgwx429b/result_mafft"
+    ],
+    "calculation_runs": {
+      "msa": {
+        "parameters": {
+          "threads": 1,
+          "mafft": "auto",
+          "mafft_op": null,
+          "mafft_ep": null,
+          "mafft_maxiterate": null,
+          "aligner": "mafft",
+          "strategy": "all",
+          "mode": "msa"
+        },
+        "preparation": {
+          "genetic_code": 1,
+          "stop_handling": "STOP remplac\u00e9s par X pour les s\u00e9quences traduites et HSP"
+        },
+        "output_sha256": "391f7cec34a5b62b6f34365e27686b91c7892d39537aeea1bff1fca74fcf16bd",
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/mafft --auto --thread 1 /tmp/alignview_z2jhe760/results/query_active.fasta",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/mafft",
+              "--auto",
+              "--thread",
+              "1",
+              "/tmp/alignview_z2jhe760/results/query_active.fasta"
+            ],
+            "cwd": "/tmp/alignview_z2jhe760/results",
+            "stdout": "/tmp/alignview_z2jhe760/results/alignment_all.fasta",
+            "version": "v7.526 (2024/Apr/26)",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/mafft_alignment_all.log"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "blastn",
+    "executable": "/tmp/alignview-params-tools/bin/blastn",
+    "version": "blastn: 2.17.0+",
+    "status": "passed",
+    "tuned": false,
+    "elapsed_s": 0.616,
+    "command": [
+      "/usr/bin/python3",
+      "/home/pestoup/T\u00e9l\u00e9chargements/AlignView/alignview/alignview.py",
+      "/tmp/alignview_real_jgwx429b/query.fna",
+      "/tmp/alignview_real_jgwx429b/refs.fna",
+      "--mode",
+      "blastn",
+      "--task",
+      "blastn",
+      "--module-policy",
+      "never",
+      "--threads",
+      "1",
+      "--no-menu",
+      "--save",
+      "--out",
+      "/tmp/alignview_real_jgwx429b/result_blastn"
+    ],
+    "calculation_runs": {
+      "search": {
+        "parameters": {
+          "evalue": 1e-05,
+          "threads": 1,
+          "search_candidates": null,
+          "task": "blastn",
+          "blast_word_size": null,
+          "blast_masking": "native",
+          "blast_soft_masking": "native",
+          "blast_max_hsps": null,
+          "blast_strand": "both",
+          "blast_reward": null,
+          "blast_penalty": null,
+          "blast_gapopen": null,
+          "blast_gapextend": null,
+          "candidate_limit": 1000,
+          "mode": "blastn"
+        },
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/makeblastdb -in /tmp/alignview_6up1quse/results/references_active.fasta -dbtype nucl -parse_seqids -out /tmp/alignview_6up1quse/results/database",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/makeblastdb",
+              "-in",
+              "/tmp/alignview_6up1quse/results/references_active.fasta",
+              "-dbtype",
+              "nucl",
+              "-parse_seqids",
+              "-out",
+              "/tmp/alignview_6up1quse/results/database"
+            ],
+            "cwd": "/tmp/alignview_6up1quse/results",
+            "stdout": null,
+            "version": "makeblastdb: 2.17.0+",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/blast_db.log"
+          },
+          {
+            "command": "/tmp/alignview-params-tools/bin/blastn -query /tmp/alignview_6up1quse/results/query_active.fasta -db /tmp/alignview_6up1quse/results/database -num_threads 1 -evalue 1e-05 -max_target_seqs 1000 -outfmt '6 qseqid sseqid pident length qstart qend sstart send evalue bitscore qcovhsp qframe sframe qseq sseq' -out /tmp/alignview_6up1quse/results/raw_hsps.tsv -task blastn -strand both",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/blastn",
+              "-query",
+              "/tmp/alignview_6up1quse/results/query_active.fasta",
+              "-db",
+              "/tmp/alignview_6up1quse/results/database",
+              "-num_threads",
+              "1",
+              "-evalue",
+              "1e-05",
+              "-max_target_seqs",
+              "1000",
+              "-outfmt",
+              "6 qseqid sseqid pident length qstart qend sstart send evalue bitscore qcovhsp qframe sframe qseq sseq",
+              "-out",
+              "/tmp/alignview_6up1quse/results/raw_hsps.tsv",
+              "-task",
+              "blastn",
+              "-strand",
+              "both"
+            ],
+            "cwd": "/tmp/alignview_6up1quse/results",
+            "stdout": null,
+            "version": "blastn: 2.17.0+",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/blast_search.log"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "diamond",
+    "executable": "/tmp/alignview-params-tools/bin/diamond",
+    "version": "diamond version 2.2.8",
+    "status": "passed",
+    "tuned": false,
+    "elapsed_s": 0.4475,
+    "command": [
+      "/usr/bin/python3",
+      "/home/pestoup/T\u00e9l\u00e9chargements/AlignView/alignview/alignview.py",
+      "/tmp/alignview_real_jgwx429b/proteins.faa",
+      "/tmp/alignview_real_jgwx429b/proteins.faa",
+      "--query-id",
+      "p1",
+      "--mode",
+      "diamond-blastp",
+      "--module-policy",
+      "never",
+      "--threads",
+      "1",
+      "--no-menu",
+      "--save",
+      "--out",
+      "/tmp/alignview_real_jgwx429b/result_diamond"
+    ],
+    "calculation_runs": {
+      "search": {
+        "parameters": {
+          "evalue": 1e-05,
+          "threads": 1,
+          "search_candidates": null,
+          "sensitivity": "sensitive",
+          "diamond_matrix": null,
+          "diamond_gapopen": null,
+          "diamond_gapextend": null,
+          "diamond_masking": "native",
+          "diamond_comp_stats": "native",
+          "diamond_max_hsps": null,
+          "candidate_limit": 1000,
+          "mode": "diamond-blastp"
+        },
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/diamond makedb --in /tmp/alignview_o09pwl8o/results/references_active.fasta --db /tmp/alignview_o09pwl8o/results/database",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/diamond",
+              "makedb",
+              "--in",
+              "/tmp/alignview_o09pwl8o/results/references_active.fasta",
+              "--db",
+              "/tmp/alignview_o09pwl8o/results/database"
+            ],
+            "cwd": "/tmp/alignview_o09pwl8o/results",
+            "stdout": null,
+            "version": "diamond version 2.2.8",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/diamond_db.log"
+          },
+          {
+            "command": "/tmp/alignview-params-tools/bin/diamond blastp --query /tmp/alignview_o09pwl8o/results/query_active.fasta --db /tmp/alignview_o09pwl8o/results/database --threads 1 --evalue 1e-05 --max-target-seqs 1000 --sensitive --outfmt 6 qseqid sseqid pident length qstart qend sstart send evalue bitscore qframe qseq sseq --out /tmp/alignview_o09pwl8o/results/raw_hsps.tsv",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/diamond",
+              "blastp",
+              "--query",
+              "/tmp/alignview_o09pwl8o/results/query_active.fasta",
+              "--db",
+              "/tmp/alignview_o09pwl8o/results/database",
+              "--threads",
+              "1",
+              "--evalue",
+              "1e-05",
+              "--max-target-seqs",
+              "1000",
+              "--sensitive",
+              "--outfmt",
+              "6",
+              "qseqid",
+              "sseqid",
+              "pident",
+              "length",
+              "qstart",
+              "qend",
+              "sstart",
+              "send",
+              "evalue",
+              "bitscore",
+              "qframe",
+              "qseq",
+              "sseq",
+              "--out",
+              "/tmp/alignview_o09pwl8o/results/raw_hsps.tsv"
+            ],
+            "cwd": "/tmp/alignview_o09pwl8o/results",
+            "stdout": null,
+            "version": "diamond version 2.2.8",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/diamond_search.log"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "muscle",
+    "executable": "/tmp/alignview-params-tools/bin/muscle",
+    "version": "muscle 5.3.linux64 []",
+    "status": "passed",
+    "tuned": false,
+    "elapsed_s": 0.2884,
+    "command": [
+      "/usr/bin/python3",
+      "/home/pestoup/T\u00e9l\u00e9chargements/AlignView/alignview/alignview.py",
+      "/tmp/alignview_real_jgwx429b/proteins.faa",
+      "--msa",
+      "align",
+      "--aligner",
+      "muscle",
+      "--module-policy",
+      "never",
+      "--threads",
+      "1",
+      "--no-menu",
+      "--save",
+      "--out",
+      "/tmp/alignview_real_jgwx429b/result_muscle"
+    ],
+    "calculation_runs": {
+      "msa": {
+        "parameters": {
+          "threads": 1,
+          "muscle_method": "align",
+          "muscle_perturb": 0,
+          "muscle_perm": "none",
+          "muscle_refineiters": null,
+          "aligner": "muscle",
+          "strategy": "all",
+          "mode": "msa"
+        },
+        "preparation": {
+          "genetic_code": 1,
+          "stop_handling": "STOP remplac\u00e9s par X pour les s\u00e9quences traduites et HSP"
+        },
+        "output_sha256": "8c597d1260bc36e25dc57aa4375d480d6c21c49b6c7f3df8912bc13a03c9df23",
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/muscle -align /tmp/alignview_q9l73f9z/results/query_active.fasta -output /tmp/alignview_q9l73f9z/results/alignment_all.fasta -threads 1 -perturb 0 -perm none",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/muscle",
+              "-align",
+              "/tmp/alignview_q9l73f9z/results/query_active.fasta",
+              "-output",
+              "/tmp/alignview_q9l73f9z/results/alignment_all.fasta",
+              "-threads",
+              "1",
+              "-perturb",
+              "0",
+              "-perm",
+              "none"
+            ],
+            "cwd": "/tmp/alignview_q9l73f9z/results",
+            "stdout": null,
+            "version": "muscle 5.3.linux64 []",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/muscle.log"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "clustalo",
+    "executable": "/tmp/alignview-params-tools/bin/clustalo",
+    "version": "1.2.4",
+    "status": "passed",
+    "tuned": false,
+    "elapsed_s": 0.273,
+    "command": [
+      "/usr/bin/python3",
+      "/home/pestoup/T\u00e9l\u00e9chargements/AlignView/alignview/alignview.py",
+      "/tmp/alignview_real_jgwx429b/proteins.faa",
+      "--msa",
+      "align",
+      "--aligner",
+      "clustalo",
+      "--module-policy",
+      "never",
+      "--threads",
+      "1",
+      "--no-menu",
+      "--save",
+      "--out",
+      "/tmp/alignview_real_jgwx429b/result_clustalo"
+    ],
+    "calculation_runs": {
+      "msa": {
+        "parameters": {
+          "threads": 1,
+          "clustalo_iterations": 0,
+          "clustalo_full": false,
+          "clustalo_full_iter": false,
+          "aligner": "clustalo",
+          "strategy": "all",
+          "mode": "msa"
+        },
+        "preparation": {
+          "genetic_code": 1,
+          "stop_handling": "STOP remplac\u00e9s par X pour les s\u00e9quences traduites et HSP"
+        },
+        "output_sha256": "391f7cec34a5b62b6f34365e27686b91c7892d39537aeea1bff1fca74fcf16bd",
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/clustalo -i /tmp/alignview_5b4m711_/results/query_active.fasta -o /tmp/alignview_5b4m711_/results/alignment_all.fasta --force --outfmt=fasta --threads 1 --iterations 0",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/clustalo",
+              "-i",
+              "/tmp/alignview_5b4m711_/results/query_active.fasta",
+              "-o",
+              "/tmp/alignview_5b4m711_/results/alignment_all.fasta",
+              "--force",
+              "--outfmt=fasta",
+              "--threads",
+              "1",
+              "--iterations",
+              "0"
+            ],
+            "cwd": "/tmp/alignview_5b4m711_/results",
+            "stdout": null,
+            "version": "1.2.4",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/clustalo.log"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "needle",
+    "executable": "/tmp/alignview-params-tools/bin/needle",
+    "version": "EMBOSS:6.6.0.0",
+    "status": "passed",
+    "tuned": false,
+    "elapsed_s": 0.4463,
+    "command": [
+      "/usr/bin/python3",
+      "/home/pestoup/T\u00e9l\u00e9chargements/AlignView/alignview/alignview.py",
+      "/tmp/alignview_real_jgwx429b/query.fna",
+      "/tmp/alignview_real_jgwx429b/refs.fna",
+      "--mode",
+      "global-dna",
+      "--pairwise",
+      "global",
+      "--module-policy",
+      "never",
+      "--threads",
+      "1",
+      "--no-menu",
+      "--save",
+      "--out",
+      "/tmp/alignview_real_jgwx429b/result_needle"
+    ],
+    "calculation_runs": {
+      "needle": {
+        "parameters": {
+          "gapopen": 10,
+          "gapextend": 0.5,
+          "matrix": "",
+          "free_ends": false,
+          "needle_endopen": null,
+          "needle_endextend": null,
+          "mode": "global-dna"
+        },
+        "reference": "reference",
+        "query_frame": 1,
+        "reference_frame": 1,
+        "genetic_code": 1,
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/needle -asequence /tmp/alignview_t24eq2nt/results/emboss_query.fasta -bsequence /tmp/alignview_t24eq2nt/results/emboss_ref.fasta -gapopen 10 -gapextend 0.5 -auto -snucleotide1 -snucleotide2 -endweight -endopen 10 -endextend 0.5 -outfile /tmp/alignview_t24eq2nt/results/needle_reference.txt",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/needle",
+              "-asequence",
+              "/tmp/alignview_t24eq2nt/results/emboss_query.fasta",
+              "-bsequence",
+              "/tmp/alignview_t24eq2nt/results/emboss_ref.fasta",
+              "-gapopen",
+              "10",
+              "-gapextend",
+              "0.5",
+              "-auto",
+              "-snucleotide1",
+              "-snucleotide2",
+              "-endweight",
+              "-endopen",
+              "10",
+              "-endextend",
+              "0.5",
+              "-outfile",
+              "/tmp/alignview_t24eq2nt/results/needle_reference.txt"
+            ],
+            "cwd": "/tmp/alignview_t24eq2nt/results",
+            "stdout": null,
+            "version": "EMBOSS:6.6.0.0",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/emboss_pairwise.log"
+          },
+          {
+            "command": "/tmp/alignview-params-tools/bin/needle -asequence /tmp/alignview_t24eq2nt/results/emboss_query.fasta -bsequence /tmp/alignview_t24eq2nt/results/emboss_ref.fasta -gapopen 10 -gapextend 0.5 -auto -snucleotide1 -snucleotide2 -endweight -endopen 10 -endextend 0.5 -aformat3 fasta -outfile /tmp/alignview_t24eq2nt/results/needle_reference.fasta",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/needle",
+              "-asequence",
+              "/tmp/alignview_t24eq2nt/results/emboss_query.fasta",
+              "-bsequence",
+              "/tmp/alignview_t24eq2nt/results/emboss_ref.fasta",
+              "-gapopen",
+              "10",
+              "-gapextend",
+              "0.5",
+              "-auto",
+              "-snucleotide1",
+              "-snucleotide2",
+              "-endweight",
+              "-endopen",
+              "10",
+              "-endextend",
+              "0.5",
+              "-aformat3",
+              "fasta",
+              "-outfile",
+              "/tmp/alignview_t24eq2nt/results/needle_reference.fasta"
+            ],
+            "cwd": "/tmp/alignview_t24eq2nt/results",
+            "stdout": null,
+            "version": "EMBOSS:6.6.0.0",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/emboss_pairwise_fasta.log"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "FastTree",
+    "executable": "/tmp/alignview-params-tools/bin/FastTree",
+    "version": "FastTree 2.2.0 Double precision:",
+    "status": "passed",
+    "tuned": false,
+    "elapsed_s": 0.4648,
+    "command": [
+      "/usr/bin/python3",
+      "/home/pestoup/T\u00e9l\u00e9chargements/AlignView/alignview/alignview.py",
+      "/tmp/alignview_real_jgwx429b/proteins.faa",
+      "--msa",
+      "align",
+      "--tree",
+      "--module-policy",
+      "never",
+      "--threads",
+      "1",
+      "--no-menu",
+      "--save",
+      "--out",
+      "/tmp/alignview_real_jgwx429b/result_FastTree"
+    ],
+    "calculation_runs": {
+      "msa": {
+        "parameters": {
+          "threads": 1,
+          "mafft": "auto",
+          "mafft_op": null,
+          "mafft_ep": null,
+          "mafft_maxiterate": null,
+          "aligner": "mafft",
+          "strategy": "all",
+          "mode": "msa"
+        },
+        "preparation": {
+          "genetic_code": 1,
+          "stop_handling": "STOP remplac\u00e9s par X pour les s\u00e9quences traduites et HSP"
+        },
+        "output_sha256": "391f7cec34a5b62b6f34365e27686b91c7892d39537aeea1bff1fca74fcf16bd",
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/mafft --auto --thread 1 /tmp/alignview_44vav2ji/results/query_active.fasta",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/mafft",
+              "--auto",
+              "--thread",
+              "1",
+              "/tmp/alignview_44vav2ji/results/query_active.fasta"
+            ],
+            "cwd": "/tmp/alignview_44vav2ji/results",
+            "stdout": "/tmp/alignview_44vav2ji/results/alignment_all.fasta",
+            "version": "v7.526 (2024/Apr/26)",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/mafft_alignment_all.log"
+          }
+        ]
+      },
+      "tree": {
+        "parameters": {
+          "fasttree_model": "auto",
+          "fasttree_gamma": false,
+          "fasttree_boot": null,
+          "fasttree_seed": null,
+          "mode": "msa"
+        },
+        "model": "JTT",
+        "alignment_sha256": "391f7cec34a5b62b6f34365e27686b91c7892d39537aeea1bff1fca74fcf16bd",
+        "output_sha256": "6e57ea2689b7e40462bb6b10ac636d5b531a014782c227ffc81d509e588417a1",
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/FastTree /tmp/alignview_44vav2ji/results/alignment_all.fasta",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/FastTree",
+              "/tmp/alignview_44vav2ji/results/alignment_all.fasta"
+            ],
+            "cwd": "/tmp/alignview_44vav2ji/results",
+            "stdout": "/tmp/alignview_44vav2ji/results/tree_fasttree.nwk",
+            "version": "FastTree 2.2.0 Double precision:",
+            "duration_s": 0.15,
+            "exit_code": 0,
+            "stderr_log": "logs/fasttree.log"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "mmseqs",
+    "executable": "/tmp/alignview-params-tools/bin/mmseqs",
+    "version": "18.8cc5c",
+    "status": "passed",
+    "tuned": false,
+    "elapsed_s": 3.4305,
+    "command": [
+      "/usr/bin/python3",
+      "/home/pestoup/T\u00e9l\u00e9chargements/AlignView/alignview/alignview.py",
+      "/tmp/alignview_real_jgwx429b/proteins.faa",
+      "/tmp/alignview_real_jgwx429b/proteins.faa",
+      "--query-id",
+      "p1",
+      "--mode",
+      "mmseqs-blastp",
+      "--module-policy",
+      "never",
+      "--threads",
+      "1",
+      "--no-menu",
+      "--save",
+      "--out",
+      "/tmp/alignview_real_jgwx429b/result_mmseqs"
+    ],
+    "calculation_runs": {
+      "search": {
+        "parameters": {
+          "evalue": 1e-05,
+          "threads": 1,
+          "search_candidates": null,
+          "mmseqs_sensitivity": null,
+          "mmseqs_mask": "native",
+          "mmseqs_comp_bias": "native",
+          "candidate_limit": 1000,
+          "mode": "mmseqs-blastp"
+        },
+        "commands": [
+          {
+            "command": "/tmp/alignview-params-tools/bin/mmseqs easy-search /tmp/alignview_f9n3xdk4/results/query_active.fasta /tmp/alignview_f9n3xdk4/results/references_active.fasta /tmp/alignview_f9n3xdk4/results/raw_hsps.tsv /tmp/alignview_f9n3xdk4/results/mmseqs_tmp --format-output query,target,pident,alnlen,qstart,qend,tstart,tend,evalue,bits,qaln,taln -a --max-seqs 1000 -e 1e-05 --threads 1",
+            "argv": [
+              "/tmp/alignview-params-tools/bin/mmseqs",
+              "easy-search",
+              "/tmp/alignview_f9n3xdk4/results/query_active.fasta",
+              "/tmp/alignview_f9n3xdk4/results/references_active.fasta",
+              "/tmp/alignview_f9n3xdk4/results/raw_hsps.tsv",
+              "/tmp/alignview_f9n3xdk4/results/mmseqs_tmp",
+              "--format-output",
+              "query,target,pident,alnlen,qstart,qend,tstart,tend,evalue,bits,qaln,taln",
+              "-a",
+              "--max-seqs",
+              "1000",
+              "-e",
+              "1e-05",
+              "--threads",
+              "1"
+            ],
+            "cwd": "/tmp/alignview_f9n3xdk4/results",
+            "stdout": null,
+            "version": "18.8cc5c",
+            "duration_s": 3.3,
+            "exit_code": 0,
+            "stderr_log": "logs/mmseqs_search.log"
+          }
+        ]
+      }
+    }
+  }
+]

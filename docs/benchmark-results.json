@@ -1,0 +1,30 @@
+{
+  "version": "0.1.0",
+  "python": "3.12.3",
+  "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.39",
+  "synthetic_rows": 100,
+  "synthetic_columns": 10000,
+  "note": "Local synthetic timings, no biological accuracy or competitor performance claim.",
+  "alignview": {
+    "initialization_s": 0.200245,
+    "render_median_ms": 1.2241,
+    "render_p95_ms": 1.5264,
+    "maximum_frame_lines": 23,
+    "maximum_visible_line_cells": 79,
+    "maximum_terminal_rows_including_wrapping": 23,
+    "terminal_rows": 24,
+    "terminal_columns": 80,
+    "repeats": 100
+  },
+  "baseline_v6": {
+    "initialization_s": 0.19305,
+    "render_median_ms": 0.1283,
+    "render_p95_ms": 0.275,
+    "maximum_frame_lines": 24,
+    "maximum_visible_line_cells": 139,
+    "maximum_terminal_rows_including_wrapping": 25,
+    "terminal_rows": 24,
+    "terminal_columns": 80,
+    "repeats": 100
+  }
+}

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alignview"
+dynamic = ["version"]
+description = "Terminal alignment workbench and self-contained bioinformatics reports"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = ["bioinformatics", "alignment", "FASTA", "BLAST", "MSA", "HPC"]
+authors = [{name = "AlignView contributors"}]
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: POSIX :: Linux", "Topic :: Scientific/Engineering :: Bio-Informatics"]
+dependencies = []
+
+[project.scripts]
+alignview = "alignview:main"
+
+[project.optional-dependencies]
+dev = ["build>=1", "twine>=5"]
+
+[tool.setuptools]
+py-modules = ["alignview", "av_core", "av_tools", "av_ui", "av_start", "av_msa_tui", "av_visual", "av_report_v4", "av_report_v5", "av_exports", "av_units", "av_report_v6", "av_version", "av_terminal", "av_setup", "av_project", "av_demo", "av_navigation", "av_defaults", "av_parameters", "av_tree", "av_docs"]
+packages = ["alignview_docs"]
+
+[tool.setuptools.package-dir]
+alignview_docs = "docs"
+
+[tool.setuptools.package-data]
+alignview_docs = ["*.md"]
+
+[tool.setuptools.dynamic]
+version = {attr = "av_version.VERSION"}

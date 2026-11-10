@@ -1,0 +1,26 @@
+name: Validate real scientific engines
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  engines:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install representative engines
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mafft fasttree ncbi-blast+ diamond-aligner emboss clustalo
+      - run: python scripts/validate_real_tools.py --require mafft blastn diamond needle clustalo FastTree --output real-tools-results.json
+      - run: python scripts/validate_real_tools.py --tuned --require mafft blastn diamond needle clustalo FastTree --output tuned-tools-results.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: real-engine-results
+          path: |
+            real-tools-results.json
+            tuned-tools-results.json

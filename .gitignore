@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+build/
+dist/
+*.pyz
+alignview_[0-9]*/
+*.log
+.DS_Store
+archives/
+tools/
