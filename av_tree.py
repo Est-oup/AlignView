@@ -190,4 +190,5 @@ def tree_svg(source: str) -> str:
         f'<text x="28" y="{height-15}" fill="#9fb4ce" font-size="11">Interprétation exploratoire ; dépend de la qualité du MSA et du modèle choisi.</text>',
         '</g></svg>',
     ])
-    return '\n'.join(parts)
+    from av_i18n import localize_svg
+    return localize_svg('\n'.join(parts))

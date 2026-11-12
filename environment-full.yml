@@ -14,3 +14,4 @@ dependencies:
   - muscle>=5
   - clustalo
   - fasttree
+  - vsearch

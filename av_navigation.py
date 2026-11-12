@@ -74,6 +74,7 @@ class Workbench:
         if state.search_stale:results.append('Recherche à relancer : réglages modifiés')
         if state.searched:results.append(f'{state.hit_count} correspondances')
         if state.aligned:results.append(f'alignement prêt ({len(s.msa_records[0].seq):,} colonnes)')
+        if getattr(s,'vsearch_results',{}):results.append(f'VSEARCH : {len(s.vsearch_results)} analyses')
         run=getattr(s,'calculation_runs',{}).get('msa',{}).get('parameters',{})
         if run and run!=snapshot('msa',s.a,s.mode,run.get('strategy','')):
             results.append('alignement calculé avec les anciens réglages')
@@ -114,10 +115,11 @@ class Workbench:
             state=self.state
             hint=('L’alignement est prêt : ouvrir Explorer pour le lire.' if state.aligned else
                   'La recherche est terminée : ouvrir Explorer pour examiner les correspondances.' if state.searched else
+                  'Les analyses VSEARCH sont prêtes : ouvrir Explorer pour les consulter.' if self.s.vsearch_results else
                   'Commencer par Analyser, ou consulter les séquences dans Explorer.')
             try:
                 choice=self.choose('Projet',[item(*entry) for entry in HOME_ITEMS],hint=hint,
-                    default='1' if state.aligned or state.searched else '2',
+                    default='1' if state.aligned or state.searched or self.s.vsearch_results else '2',
                     shortcuts={'v':'view','s':'save','c':'data','t':'software','h':'help','x':'exit'})
                 if choice in (None,'exit'):
                     if self.confirm_exit():return
@@ -150,10 +152,12 @@ class Workbench:
                     item('4','Qualité des séquences','Longueur, composition et caractères ambigus'),
                     item('5','Statistiques de l’alignement','Conservation, distances et arbre exploratoire',enabled=state.aligned,
                          reason='Créer ou ouvrir un alignement avant de calculer ses statistiques.'),
+                    item('6','Résultats VSEARCH','Recherche globale, groupes, séquences uniques et chimères',enabled=bool(self.s.vsearch_results),
+                         reason='Lancer une analyse VSEARCH dans Analyser.'),
                 ],default='1' if ready else '2' if state.searched else '3')
                 if choice is None:return
                 actions={'1':self.view_alignment,'2':self.search_results,'3':self.sequences,
-                         '4':self.s.show_stats,'5':self.alignment_statistics}
+                         '4':self.s.show_stats,'5':self.alignment_statistics,'6':self.vsearch_results}
                 self.run_action(actions[choice])
 
     def view_alignment(self):
@@ -240,9 +244,11 @@ class Workbench:
                     item('3','Comparer deux séquences','Alignement global ou local avec Needle / Water',enabled=not self.s.single,
                          reason='Ajouter des références dans Données pour comparer deux séquences.'),
                     item('4','Autres analyses','Motifs, traduction, ORF et profils de composition'),
+                    item('5','Analyses VSEARCH','Recherche globale, déduplication, groupes et chimères',
+                         enabled=all(sequence_type(r.seq)=='ADN/ARN' for r in self.s.query_list),reason='VSEARCH nécessite des séquences nucléotidiques.'),
                 ])
                 if choice is None:return
-                action={'1':self.align,'2':self.search,'3':self.pairwise,'4':self.other_analyses}[choice]
+                action={'1':self.align,'2':self.search,'3':self.pairwise,'4':self.other_analyses,'5':self.vsearch}[choice]
                 if self.run_action(action):return
 
     def align(self):
@@ -262,7 +268,7 @@ class Workbench:
                     item('4','Paramètres de calcul',self.parameter_summary('msa',strategy=strategy)),
                     item('5','Voir les commandes et la préparation','Inspecter les arguments avant de lancer le moteur'),
                     item('6','Profils de calcul','Charger ou enregistrer ses réglages pour les réutiliser'),
-                ],hint=('Fragments : références alignées avec la stratégie choisie, puis ajout MAFFT --addfragments --auto.' if strategy=='fragments' else
+                ],subtitle=self.s.tools.engine_info('muscle5' if engine=='muscle' and not self.s.tools.has('muscle') else engine),hint=('Fragments : références alignées avec la stratégie choisie, puis ajout MAFFT --addfragments --auto.' if strategy=='fragments' else
                     'Les paramètres de calcul changent l’alignement. Le résultat sera ouvert dans la visionneuse.'))
                 if choice is None:return False
                 if choice=='2':self.choose_aligner();continue
@@ -316,7 +322,7 @@ class Workbench:
         qtype=sequence_type(self.s.query.seq)
         rtype=Counter(sequence_type(r.seq) for r in self.s.references).most_common(1)[0][0]
         default,_,_=suggest_modes(qtype,rtype)
-        allowed={'blastn':('blastn','tblastx'),'blastp':('blastp','diamond-blastp','mmseqs-blastp'),
+        allowed={'blastn':('blastn','tblastx','vsearch'),'blastp':('blastp','diamond-blastp','mmseqs-blastp'),
                  'blastx':('blastx','diamond-blastx'),'tblastn':('tblastn',)}.get(default,())
         return self.choose('Méthode de recherche',[item(mode,MODES[mode][0],MODES[mode][1],
             enabled=not allowed or mode in allowed,reason=f'Incompatible avec les types détectés : {qtype} → {rtype}.')
@@ -328,6 +334,7 @@ class Workbench:
             if not mode:mode=self.choose_search_method()
             if not mode:return False
             while True:
+                if mode=='vsearch':return self.vsearch(action='search')
                 choice=self.choose('Rechercher des similarités',[
                     item('1','Lancer la recherche',f'{mode.upper()} · {self.s.a.preset} · jusqu’à {self.s.a.hits} références'),
                     item('2','Choisir la méthode',f'Actuellement : {mode.upper()}'),
@@ -335,7 +342,7 @@ class Workbench:
                     item('4','Paramètres du moteur',self.parameter_summary('search',mode)),
                     item('5','Voir les commandes','Indexation et recherche ; aucun moteur lancé par l’aperçu'),
                     item('6','Profils de calcul','Réutiliser ou partager ses paramètres'),
-                ],hint='Calcul : graines, masquage, score. Filtres : sélection après calcul. Les deux peuvent changer les hits retenus.')
+                ],subtitle=self.s.tools.engine_info('diamond' if mode.startswith('diamond-') else 'mmseqs' if mode=='mmseqs-blastp' else mode),hint='Calcul : graines, masquage, score. Filtres : sélection après calcul. Les deux peuvent changer les hits retenus.')
                 if choice is None:return False
                 if choice=='2':
                     selected=self.choose_search_method()
@@ -378,6 +385,61 @@ class Workbench:
                     setup_tools(self.ui,profile,install=True);self.s.tools.refresh_managed()
                     return any(self.s.tools.available(command) for command in aliases)
 
+    def vsearch(self,action=None):
+        from av_vsearch import ACTIONS
+        with self.ui.section('VSEARCH'):
+            if action is None:
+                action=self.choose('Quelle analyse VSEARCH ?',[
+                    item(key,title,description,enabled=key!='search' or not self.s.single,
+                         reason='Charger des références pour une recherche globale.')
+                    for key,(title,description) in ACTIONS.items()],
+                    hint='ADN/ARN uniquement · recherche globale distincte de BLAST · aucun E-value ou bitscore calculé')
+            if action is None:return False
+            while True:
+                choice=self.choose('Préparer VSEARCH : '+action,[
+                    item('1','Lancer l’analyse',ACTIONS[action][0]),
+                    item('2','Paramètres VSEARCH','Identité, brins, couvertures, abondances et limites'),
+                    item('3','Voir les commandes et la préparation','Moteur, chemins, normalisation et paramètres réels'),
+                    item('4','Logiciels et installation','Vérifier VSEARCH et sa version'),
+                    item('5','Nombre maximal de références',str(self.s.a.hits),enabled=action=='search',
+                         reason='La limite de références rapportées concerne la recherche globale.'),
+                ],subtitle=self.s.tools.engine_info('vsearch'),
+                    hint=('La recherche utilise la requête active : '+self.s.query.id if action=='search' else
+                          f'Toutes les {len(self.s.query_list)} séquences du premier FASTA ; gaps retirés et U→T.'))
+                if choice is None:return False
+                if choice=='2':self.edit_parameters('vsearch',strategy=action)
+                elif choice=='3':self.preview(lambda:self.s.vsearch_run(action,preview=True))
+                elif choice=='4':self.software()
+                elif choice=='5':self.s._change_numeric('hits','Nombre maximal de références',int,1)
+                elif self.ensure_engine(('vsearch',),'vsearch'):
+                    self.run_action(lambda:self.s.vsearch_run(action),changes=True)
+                    self.vsearch_results();return True
+
+    def vsearch_results(self):
+        from av_vsearch import ACTIONS
+        if not self.s.vsearch_results:return
+        labels={'input_sequences':'Séquences en entrée','eligible_sequences':'Dans les limites de longueur',
+                'excluded_by_length':'Exclues par longueur','matches':'Correspondances',
+                'matched_references':'Références correspondantes','representatives':'Représentants',
+                'total_abundance':'Abondance totale','unique':'Séquences uniques','chimeras':'Chimères',
+                'nonchimeras':'Non chimériques','borderline':'Indéterminées'}
+        while True:
+            action=self.choose('Résultats VSEARCH',[item(key,ACTIONS[key][0],
+                ' · '.join(labels.get(name,name)+' : '+str(value) for name,value in result['summary'].items()))
+                for key,result in self.s.vsearch_results.items()])
+            if action is None:return
+            result=self.s.vsearch_results[action]
+            lines=[ACTIONS[action][0],'Outil : VSEARCH','']
+            lines.extend(labels.get(key,key)+' : '+str(value) for key,value in result['summary'].items())
+            lines+=['','Aperçu limité à 200 lignes ; fichiers complets : vsearch/'+action+'/','']
+            rows=result.get('preview',[])
+            if rows:
+                columns=list(rows[0]);lines.append(' | '.join(columns))
+                lines.extend(' | '.join(str(row.get(key,'')) for key in columns) for row in rows)
+            lines+=['','Paramètres : '+json.dumps(result['settings'],ensure_ascii=False),
+                    *[str(command.get('version',''))+'\n'+command.get('command','') for command in result['commands']]]
+            self.ui.page('\n'.join(lines),ACTIONS[action][0])
+
     def pairwise(self):
         with self.ui.section('Deux séquences'):
             choice=self.choose('Comment comparer les deux séquences ?',[
@@ -393,7 +455,7 @@ class Workbench:
                         item('2','Paramètres de calcul',self.parameter_summary(choice)),
                         item('3','Voir les commandes','Matrice, pénalités, extrémités et traduction'),
                         item('4','Profils de calcul','Charger ou enregistrer les paramètres'),
-                    ],hint='Needle : extrémités pénalisées par défaut AlignView ; option extrémités libres pour les relâcher.' if choice=='needle' else 'Water optimise un segment local ; les pénalités d’extrémités ne s’appliquent pas.')
+                    ],subtitle=self.s.tools.engine_info(choice),hint='Needle : extrémités pénalisées par défaut AlignView ; option extrémités libres pour les relâcher.' if choice=='needle' else 'Water optimise un segment local ; les pénalités d’extrémités ne s’appliquent pas.')
                     if action is None:return
                     if action=='2':self.edit_parameters(choice)
                     elif action=='3':self.preview(lambda:self.s.run_pairwise(choice,reference=ref,preview=True))
@@ -408,7 +470,7 @@ class Workbench:
                     item('2','Paramètres de calcul','Modèle, Gamma20, support local et graine'),
                     item('3','Voir la commande','Inspecter les options FastTree avant le calcul'),
                     item('4','Profils de calcul','Charger ou enregistrer les paramètres'),
-                ],hint='Arbre approximatif ; le support SH-like ne constitue pas un bootstrap d’arbres.')
+                ],subtitle=self.s.tools.engine_info('FastTree' if self.s.tools.has('FastTree') else 'fasttree'),hint='Arbre approximatif ; le support SH-like ne constitue pas un bootstrap d’arbres.')
                 if choice is None:return
                 if choice=='2':self.edit_parameters('tree')
                 elif choice=='3':self.preview(lambda:self.s.make_tree(preview=True))
@@ -436,11 +498,13 @@ class Workbench:
 
     def coding_tools(self):
         choice=self.choose('Traduction et régions',[
-            item('1','Traduire les six cadres','Code génétique standard ; export des séquences protéiques'),
+            item('1','Traduire les six cadres',f'Table NCBI {self.s.a.genetic_code} ; export des séquences protéiques'),
             item('2','Rechercher des ORF simples','Segments ATG → STOP ; analyse exploratoire'),
             item('3','Extraire une région','Choisir ses coordonnées et son orientation'),
+            item('4','Choisir la table de traduction',f'QUERY : table NCBI {self.s.a.genetic_code} · départs ORF : {self.s.a.orf_starts}'),
         ])
-        if choice:self.run_action({'1':self.s.translate_frames,'2':self.s.find_orfs,'3':self.s.extract_region}[choice],changes=True)
+        if choice=='4':self.edit_parameters('translation')
+        elif choice:self.run_action({'1':self.s.translate_frames,'2':self.s.find_orfs,'3':self.s.extract_region}[choice],changes=True)
 
     def composition_tools(self):
         choice=self.choose('Composition',[
@@ -527,10 +591,18 @@ class Workbench:
                     item('5','Calculs effectués et provenance','Paramètres réellement utilisés, versions et commandes'),
                     item('6','Profils de calcul','Charger ou enregistrer des réglages réutilisables'),
                     item('7','Documentation complète','Guides de toutes les fonctions, sorties, HTML, options et dépannage'),
+                    item('8','Langue / Language','Français / English · menus, HTML et documentation'),
                 ])
                 if choice is None:return
                 self.run_action({'1':self.software,'2':self.search_settings,'3':self.alignment_settings,
-                                 '4':self.help,'5':self.provenance,'6':self.profiles,'7':self.documentation}[choice])
+                                 '4':self.help,'5':self.provenance,'6':self.profiles,'7':self.documentation,'8':self.choose_language}[choice])
+
+    def choose_language(self):
+        from av_i18n import set_language
+        selected=self.choose('Langue / Language',[item('fr','Français'),item('en','English')])
+        if selected:
+            set_language(selected);self.s.a.lang=selected
+            self.ui.notice='Language: English' if selected=='en' else 'Langue : français'
 
     def documentation(self):
         from av_docs import documentation_menu
@@ -626,7 +698,7 @@ class Workbench:
                 choice=self.choose('Paramètres de calcul · '+engine,
                     [item(str(i),p.label,p.display(self.s.a)+' · '+p.effect) for i,p in enumerate(fields,1)]+
                     [item('r','Rétablir les valeurs de départ','Réinitialiser uniquement les paramètres de ce calcul')],
-                    hint=('Traduction : code génétique standard (1) uniquement. ' if mode in ('blastx','diamond-blastx','tblastn','tblastx') else '')+
+                    hint=(f'Traduction : table NCBI {self.s.a.genetic_code}. ' if mode in ('blastx','diamond-blastx','tblastn','tblastx') else '')+
                         'F1 : effet du paramètre. / : rechercher. Défaut du moteur = option non transmise, selon sa version.')
                 if choice is None:return
                 if choice=='r':
@@ -634,7 +706,14 @@ class Workbench:
                     self.s.save_settings();self.ui.notice='Valeurs de départ rétablies pour '+engine;continue
                 p=fields[int(choice)-1]
                 old=getattr(self.s.a,p.name)
-                if p.choices or p.kind is bool:
+                if p.name in ('genetic_code','reference_genetic_code'):
+                    from av_genetics import TABLES
+                    options=[item(str(identifier),f'Table {identifier} · {data[0]}','Code NCBI pour la traduction') for identifier,data in TABLES.items()]
+                    if p.name=='reference_genetic_code':options.insert(0,item('auto','Même table que QUERY','Hériter de la table de la requête'))
+                    picked=self.choose(p.label,options)
+                    if picked is None:continue
+                    value=None if picked=='auto' else int(picked)
+                elif p.choices or p.kind is bool:
                     values=p.choices if p.choices else (True,False)
                     picked=self.choose(p.label,[item(str(i),('Oui' if value else 'Non') if p.kind is bool else str(value),
                         'Valeur de départ' if value==p.default else p.effect) for i,value in enumerate(values,1)]+
@@ -644,9 +723,9 @@ class Workbench:
                 else:
                     answer=self.ui.ask(p.label,str(old) if old is not None else 'défaut',
                         p.effect+'\nEntrée : conserver · défaut : réinitialiser · q : annuler')
-                    if answer.casefold() in ('q','annuler'):continue
+                    if answer.casefold() in ('q','annuler','cancel'):continue
                     try:
-                        value=p.default if answer.casefold() in ('défaut','defaut','native','auto') else p.kind(answer)
+                        value=p.default if answer.casefold() in ('défaut','defaut','default','native','auto') else p.kind(answer)
                         p.check(value)
                     except ValueError as exc:
                         self.ui.page(str(exc)+'\n\nLe paramètre est conservé.','Valeur invalide');continue
@@ -695,6 +774,10 @@ class Workbench:
         with self.ui.section('Logiciels'):software_hub(self.ui,self.s.tools)
 
     def help(self):
+        from av_i18n import language
+        if language()=='en':
+            from av_docs import read_document
+            self.ui.page(read_document('glossaire'),'Understanding AlignView');return
         self.ui.page('Un FASTA contient des séquences ; il ne constitue pas nécessairement un alignement.\n\n'
             'ALIGNEMENT MULTIPLE\nComparer les positions de séquences déjà supposées homologues.\n'
             'MAFFT, MUSCLE et Clustal Omega construisent cet alignement.\n\n'

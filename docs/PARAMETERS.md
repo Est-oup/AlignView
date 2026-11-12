@@ -34,7 +34,7 @@ Needle et Water ont leurs propres coûts et matrice. Les pénalités terminales 
 
 FastTree choisit JC pour l’ADN et JTT pour les protéines en mode `auto`. GTR s’applique à l’ADN ; JTT, WAG et LG aux protéines. Gamma20 réévalue et redimensionne les branches après l’optimisation CAT ; ce n’est pas une nouvelle recherche de topologie sous Gamma. Les rééchantillonnages du support local SH-like ne constituent pas un bootstrap d’arbres.
 
-Les traductions utilisent uniquement le **code génétique standard (1)**. `--frame` choisit le cadre de QUERY dans les analyses complètes traduites, pas les cadres recherchés par BLASTX. `--sframe` choisit celui de la référence pour Needle/Water. Sans cadre forcé : meilleur HSP, sinon +1. Pour un autre code génétique, fournir des protéines traduites avec le code approprié. Le détecteur d’ORF reste un détecteur simple ATG→STOP.
+Les traductions utilisent la table NCBI sélectionnée (1 par défaut). `--genetic-code` règle la requête et `--reference-genetic-code` les références, avec héritage par défaut. `--frame` et `--sframe` sélectionnent les cadres internes ; ils ne limitent pas les cadres recherchés par BLASTX. `--orf-starts atg|table` choisit les initiateurs du détecteur simple. Les tables à arrêts contextuels nécessitent une prudence spécifique : lire [Tables de traduction](GENETIC_CODES.md).
 
 ## Profils portables
 
@@ -120,8 +120,6 @@ Les options d’un autre moteur ne sont pas transmises au calcul courant. `--hel
 | `--fasttree-boot` | Défaut natif / automatique | Support SH-like, pas un bootstrap d’arbres. 0 : désactive les supports locaux. |
 | `--fasttree-seed` | Défaut natif / automatique | Fixe la graine aléatoire pour les calculs stochastiques. |
 
-## Sources des moteurs
-
 ## Modifier les réglages avec méthode
 
 1. Vérifier les séquences, les alphabets et le résultat attendu avant de modifier un score.
@@ -146,3 +144,7 @@ En reprise, une option explicite telle que `--mafft-op 2` modifie les réglages 
 [BLAST+ NCBI](https://www.ncbi.nlm.nih.gov/books/NBK279684/) · [DIAMOND](https://github.com/bbuchfink/diamond/wiki/3.-Command-line-options) · [MMseqs2](https://github.com/soedinglab/MMseqs2/wiki) · [MAFFT](https://mafft.ddbj.nig.ac.jp/alignment/software/manual/manual.html) · [MUSCLE align](https://www.drive5.com/muscle5/manual/cmd_align.html) · [MUSCLE Super5](https://www.drive5.com/muscle5/manual/cmd_super5.html) · [Clustal Omega](https://github.com/GSLBiotech/clustal-omega/blob/master/README) · [EMBOSS Needle](https://www.bioinformatics.nl/cgi-bin/emboss/help/needle) · [FastTree](https://morgannprice.github.io/fasttree/).
 
 Le périmètre et les limites de validation sont décrits dans la [revue des calculs](CALCULATION_REVIEW.md).
+
+## VSEARCH et nouvelles options
+
+Les réglages VSEARCH sont détaillés dans [VSEARCH](VSEARCH.md). L’identité est une fraction 0–1 ; les couvertures et les limites de candidats sont propres au moteur, sans E-value/bitscore BLAST. Les nouvelles options de langue, de table génétique et de VSEARCH figurent dans la [référence CLI générée](CLI.md), qui reste la liste exhaustive des options.

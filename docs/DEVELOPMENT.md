@@ -5,6 +5,8 @@
 - `alignview.py` : CLI, sessions et calculs ; `av_navigation.py` : parcours, prérequis et présentation.
 - `av_defaults.py` : limite commune de 100 références et profils indépendants de cette limite.
 - `av_parameters.py` : paramètres typés par moteur, validation, profils portables et instantanés de calcul.
+- `av_vsearch.py` : commandes et résultats natifs VSEARCH ; `av_genetics.py` : tables NCBI hors ligne.
+- `av_i18n.py`, `av_locale_en.py` : présentation français/anglais ; `av_docs.py` : guides hors ligne.
 - `av_tree.py` : lecture Newick et figure SVG FastTree autonome, sans dépendance Python tierce.
 - `av_core.py`, `av_units.py` : séquences, HSP, statistiques et unités.
 - `av_ui.py`, `av_terminal.py`, `av_start.py`, `av_msa_tui.py` : menus, saisie UTF-8/CSI, sélecteurs, pager et visionneuse.
@@ -17,6 +19,9 @@
 
 ```bash
 python3 -m unittest discover -s tests -v
+python3 scripts/generate_cli_docs.py --check
+python3 scripts/check_docs.py
+python3 scripts/validate_vsearch.py --output docs/vsearch-tools-results.json
 python3 scripts/validate_real_tools.py --require mafft
 python3 scripts/validate_real_tools.py --tuned --require mafft blastn diamond mmseqs muscle clustalo needle FastTree
 python3 scripts/benchmark.py --rows 100 --columns 10000 --repeats 100
@@ -44,7 +49,9 @@ python -m pip install '.[dev]'
 python -m build
 python scripts/build_pyz.py
 python alignview.pyz --demo --no-menu
-python -m twine check dist/*
+python -m twine check dist/*.whl dist/*.tar.gz
+python scripts/build_portable.py
+python scripts/checksums.py
 ```
 
 Sans le module `build`, avec les backends déjà présents :
@@ -63,3 +70,11 @@ Les paramètres scientifiques restent distincts des filtres appliqués aux résu
 Une sauvegarde prépare le projet dans un dossier voisin, puis le renomme après une copie complète. Elle ne fusionne pas avec un dossier existant. La reprise valide les chemins du manifeste et les empreintes des entrées. Les anciens chemins exécutables ne sont pas réutilisés automatiquement sur la nouvelle machine.
 
 Les projets chargent les FASTA et les alignements en mémoire. Un stockage indexé et une analyse incrémentale de jeux très volumineux restent un chantier distinct ; cette version n’annonce pas une capacité illimitée.
+
+## Manuels et langues
+
+Les guides source sont dans `docs/` et `docs/en/`, avec un index dans chaque langue. `scripts/generate_cli_docs.py` reconstruit les deux références CLI depuis le parseur. `scripts/check_docs.py` vérifie liens locaux, blocs de code et présence des ressources attendues. La construction du wheel installe ces guides dans `alignview_docs` ; le zipapp embarque les mêmes fichiers.
+
+`tests/test_workflows.py` couvre notamment les chemins depuis le dossier de lancement, le HTML seul sans écrasement, la reprise avec paramètres explicites, les tables NCBI et leurs initiateurs/arrêts, les commandes VSEARCH natives et le sélecteur de requête dans un vrai terminal anglais. La vérification Chrome couvre aussi la traduction dynamique du HTML, la vue VSEARCH et la conservation des identifiants. Les logs bruts et arguments des moteurs ne sont pas traduits.
+
+L’archive portable contient un seul dossier `AlignView/` avec sources, guides, exemples et outils de développement. Elle exclut archives historiques, préfixes scientifiques, Git, caches et sorties. Tester son extraction et son lancement depuis un autre dossier après toute modification du lanceur.

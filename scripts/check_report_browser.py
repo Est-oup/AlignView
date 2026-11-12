@@ -72,6 +72,7 @@ with tempfile.TemporaryDirectory(prefix='alignview_browser_') as tmp:
     page.write_text(markup.replace('</body>',checks+'</body>'),encoding='utf-8')
     command=[browser,'--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
         '--disable-background-networking','--no-first-run','--window-size=1200,900',
+        '--virtual-time-budget=1500',
         '--user-data-dir='+str(tmp/'profile'),'--dump-dom',page.as_uri()]
     run=subprocess.run(command,capture_output=True,text=True,timeout=30)
     marker=re.search(r'<pre id="alignview-browser-check">([^<]+)</pre>',run.stdout)
@@ -120,5 +121,46 @@ try {
     run=subprocess.run([*command[:-1],report.as_uri()],capture_output=True,text=True,timeout=30)
     marker=re.search(r'<pre id="alignview-full-report-check">([^<]+)</pre>',run.stdout)
     if run.returncode or not marker:raise SystemExit('Full report check could not complete: '+run.stderr[-1500:])
+    print(marker[1])
+    if not marker[1].startswith('PASS:'):raise SystemExit(1)
+
+    # English presentation must preserve scientific identifiers and native
+    # VSEARCH metrics, and must not expose the unrelated local-search tab.
+    from av_i18n import set_language
+    set_language('en')
+    english=tmp/'english';english.mkdir()
+    identifier='Données_gene_42'
+    translated=[Seq(identifier,identifier,'ACGTACGT'),*tiny[1:]]
+    (english/'tree_fasttree.nwk').write_text("(('"+identifier+"':0.1,b:0.2)0.97:0.3,c:0.4);")
+    (english/'vsearch').mkdir()
+    (english/'vsearch/analyses.json').write_text(json.dumps({'search':{
+        'summary':{'matches':1,'matched_references':1},'settings':{'vsearch_id':.97},'commands':[],
+        'preview':[{'query':identifier,'target':'Réglages_gene','id':100,'qcov':100,'tcov':100,'qstrand':'+'}]
+    }},ensure_ascii=False))
+    report=build_report_v6(english,translated[0],translated[1:],[],'vsearch',{'hits':100},[],msa_seqs=translated)
+    english_checks=r'''<script>window.addEventListener('DOMContentLoaded',async ()=>{
+const result=document.createElement('pre');result.id='alignview-english-check';document.body.appendChild(result);
+try{
+ const assert=(ok,why)=>{if(!ok)throw Error(why);};
+ assert(document.documentElement.lang==='en','document language must be English');
+ assert(document.querySelector('[data-tab="overview"]').textContent==='Overview','navigation must be translated');
+ assert(document.querySelector('#readingGuide h2').textContent==='Where should I start?','reading guide must be translated');
+ assert(document.querySelector('[data-tab="coverage"]').hidden,'VSEARCH must not pretend to be a local HSP search');
+ const open=document.getElementById('openTree');assert(open.textContent==='View the tree','tree shortcut must be translated');
+ open.click();
+ assert(document.querySelector('.tree-tip').textContent==='Données_gene_42','tree identifier must be preserved');
+ assert(document.querySelector('.tree-scale').nextElementSibling.textContent.includes('substitutions/site'),'branch scale must remain present');
+ tab('vsearch');await new Promise(resolve=>setTimeout(resolve,0));
+ assert(document.getElementById('pageTitle').textContent==='VSEARCH analyses','dynamic page title must be translated');
+ assert(document.querySelector('#vsearch td').textContent==='Données_gene_42','query identifier must be preserved');
+ assert(document.querySelector('#vsearch td:nth-child(2)').textContent==='Réglages_gene','target identifier must be preserved');
+ assert(document.querySelector('#vsearch h2').textContent==='VSEARCH analyses','VSEARCH heading must be translated');
+ result.textContent='PASS: English report, dynamic translation, native VSEARCH view, identifiers and tree';
+}catch(error){result.textContent='FAIL: '+error.message;}
+});</script>'''
+    report.write_text(report.read_text().replace('</body>',english_checks+'</body>'),encoding='utf-8')
+    run=subprocess.run([*command[:-1],report.as_uri()],capture_output=True,text=True,timeout=30)
+    marker=re.search(r'<pre id="alignview-english-check">([^<]+)</pre>',run.stdout)
+    if run.returncode or not marker:raise SystemExit('English browser check could not complete: '+run.stderr[-1500:])
     print(marker[1])
     raise SystemExit(0 if marker[1].startswith('PASS:') else 1)

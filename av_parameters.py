@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 
 from av_version import VERSION
+from av_genetics import TABLES
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,24 @@ def P(name,label,effect,default=None,kind=float,lo=None,hi=None,choices=()):
 
 
 PARAMETERS = [
+    P('genetic_code','Table de traduction QUERY (NCBI)','Code utilisé pour les traductions internes et les recherches traduites de la requête.',1,int,choices=tuple(TABLES)),
+    P('reference_genetic_code','Table de traduction des références','Vide : même table que QUERY ; transmis à TBLASTN/TBLASTX et aux traductions des références.',None,int,choices=tuple(TABLES)),
+    P('orf_starts','Codons de départ des ORF','atg : ATG uniquement ; table : tous les initiateurs de la table NCBI choisie.','atg',str,choices=('atg','table')),
+    P('vsearch_id','Identité minimale VSEARCH','Fraction de 0 à 1, distincte du filtre d’identité locale BLAST.',.97,float,0,1),
+    P('vsearch_iddef','Définition d’identité VSEARCH','0 à 4 ; 2 : exclut les gaps terminaux. Lire la documentation VSEARCH.',2,int,choices=(0,1,2,3,4)),
+    P('vsearch_strand','Brins VSEARCH','both : recherche et regroupement sur les deux brins ; UCHIME de novo travaille sur le brin plus.','both',str,choices=('plus','both')),
+    P('vsearch_query_cov','Couverture minimale de la requête VSEARCH','Fraction de 0 à 1, calculée par VSEARCH.',0.,float,0,1),
+    P('vsearch_target_cov','Couverture minimale des références VSEARCH','Fraction de 0 à 1, calculée par VSEARCH.',0.,float,0,1),
+    P('vsearch_maxaccepts','Candidats acceptés avant arrêt','0 : pas de plafond de candidats acceptés ; distinct du maximum de références rapportées.',0,int,0),
+    P('vsearch_maxrejects','Candidats rejetés avant arrêt','0 : pas d’arrêt sur rejets ; mettre aussi maxaccepts et minwordmatches à 0 pour une recherche exhaustive.',32,int,0),
+    P('vsearch_minwordmatches','Mots communs minimum VSEARCH','0 désactive ce préfiltre ; utile aux séquences courtes, avec un coût plus élevé.',10,int,0),
+    P('vsearch_masking','Masquage VSEARCH','dust : faible complexité ; none : aucun. Les entrées internes sont normalisées en majuscules.','dust',str,choices=('none','dust')),
+    P('vsearch_n_mismatch','Compter les ambiguïtés comme différences','Évite qu’un N soit traité comme une identité avec toute base compatible.',False,bool),
+    P('vsearch_sizein','Lire les abondances des en-têtes','Utiliser les annotations ;size=N; existantes. Sinon chaque entrée compte pour une séquence.',False,bool),
+    P('vsearch_min_length','Longueur minimale VSEARCH','Les séquences plus courtes sont exclues et comptées dans le résumé.',1,int,1),
+    P('vsearch_max_length','Longueur maximale VSEARCH','Les séquences plus longues sont exclues et comptées dans le résumé.',50000,int,1),
+    P('vsearch_abskew','Rapport d’abondance UCHIME','Abondance minimale des parents relativement à la chimère candidate.',2.,float,1),
+    P('vsearch_minh','Score minimal de chimère UCHIME','Plus grand : détection plus stricte, avec moins de candidats détectés.',.28,float,1e-12),
     P('threads','CPU','Ressources des moteurs qui acceptent des threads ; FastTree standard reste monothread.',4,int,1),
     P('evalue','E-value maximale','Seuil transmis au moteur. Le modifier nécessite une nouvelle recherche.',1e-5,float,1e-300),
     P('search_candidates','Limite de candidats du moteur','Auto = max(100, 10 × références retenues). Ce plafond peut changer les résultats ; distinct des 100 hits affichés.',None,int,1),
@@ -147,6 +166,8 @@ def validate(args,*,context=None,mode=None):
         except ValueError as exc:raise ValueError(f'{p.flag} : {exc}') from exc
     if context=='msa' and args.aligner=='mafft' and args.mafft=='auto' and args.mafft_maxiterate is not None:
         raise ValueError('--mafft-maxiterate nécessite --mafft global, local ou fast : --auto choisit lui-même la stratégie.')
+    if context=='vsearch' and args.vsearch_min_length>args.vsearch_max_length:
+        raise ValueError('VSEARCH : la longueur minimale dépasse la longueur maximale.')
     if context=='msa' and args.aligner=='clustalo' and args.clustalo_full_iter and not args.clustalo_iterations:
         raise ValueError('--clustalo-full-iter nécessite --clustalo-iterations > 0.')
     if context=='search' and mode in ('blastn','blastp','blastx','tblastn','tblastx') and args.task:
@@ -185,14 +206,29 @@ def relevant(context,args,mode='',*,strategy=''):
         if mode in ('blastx','diamond-blastx','tblastx'):names+=['frame']
         if mode in ('tblastn','tblastx'):names+=['sframe']
     elif context=='tree':names=['fasttree_model','fasttree_gamma','fasttree_boot','fasttree_seed']
+    elif context=='translation':names=['genetic_code','reference_genetic_code','orf_starts']
+    elif context=='vsearch':
+        common=['vsearch_min_length','vsearch_max_length']
+        selections={
+            'search':['threads','vsearch_id','vsearch_iddef','vsearch_strand','vsearch_query_cov','vsearch_target_cov',
+                      'vsearch_maxaccepts','vsearch_maxrejects','vsearch_minwordmatches','vsearch_masking','vsearch_n_mismatch'],
+            'cluster':['threads','vsearch_id','vsearch_iddef','vsearch_strand','vsearch_masking','vsearch_n_mismatch','vsearch_sizein'],
+            'dereplicate':['vsearch_strand','vsearch_sizein'],
+            'chimeras':['vsearch_strand','vsearch_sizein','vsearch_masking','vsearch_abskew','vsearch_minh'],
+        }
+        names=selections.get(strategy,['threads',*[p.name for p in PARAMETERS if p.name.startswith('vsearch_')]])+common
+        names=list(dict.fromkeys(names))
+    if (context=='search' and mode in ('blastx','tblastn','tblastx','diamond-blastx')) or (context in ('msa','needle','water') and mode in ('blastx','diamond-blastx','tblastn','tblastx')):
+        names+=['genetic_code','reference_genetic_code']
     return [BY_NAME[name] for name in names]
 
 
 def snapshot(context,args,mode='',strategy=''):
     result={p.name:getattr(args,p.name,p.default) for p in relevant(context,args,mode,strategy=strategy)}
     if context=='search':result['candidate_limit']=args.search_candidates or max(100,args.hits*10)
-    if context=='search' and mode in ('blastx','tblastn','tblastx','diamond-blastx'):result['genetic_code']=1
+    if context=='search' and mode in ('blastx','tblastn','tblastx','diamond-blastx'):result['genetic_code']=getattr(args,'genetic_code',1)
     if context=='msa':result.update(aligner='mafft' if strategy=='fragments' else args.aligner,strategy=strategy)
+    if context=='vsearch':result['reported_limit']=args.hits
     result['mode']=mode
     return result
 

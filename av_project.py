@@ -12,7 +12,7 @@ from av_core import HSP, read_fasta, sha256
 from av_version import VERSION
 
 SCHEMA = 1
-IGNORE = shutil.ignore_patterns('database*', 'mmseqs_tmp', 'raw_hsps.tsv', 'history','pending_msa','pending_tree')
+IGNORE = shutil.ignore_patterns('database*', 'mmseqs_tmp', 'raw_hsps.tsv', 'history','pending_msa','pending_tree','pending_vsearch_*')
 
 
 def local_path(root, value):
@@ -75,6 +75,7 @@ def save_project(session, destination, include_history=True):
                    active_query_id=session.query.id,mode=session.mode,search_completed=session.search_completed,
                    search_parameters=session.search_parameters,
                    calculation_runs=session.calculation_runs,
+                   vsearch_results=getattr(session,'vsearch_results',{}),
                    hsps=[asdict(h) for h in session.hsps],msa=msa,
                    dot=session.dot_data,motifs=session.motif_rows,orfs=session.orf_rows,
                    commands=session.tools.history,started_utc=session.start)
@@ -92,7 +93,7 @@ def resume_project(folder, cli_args, ui):
     root,data=read_project(folder)
     args=argparse.Namespace(**vars(cli_args))
     runtime={'query','references','resume','save','out','no_menu','simple_ui','no_color','no_open',
-             'executable','tools_dir','module_policy','diagnose','diagnose_json','setup','install_tools','tools_prefix','export_dir','html_out','docs','load_profile','write_profile'}
+             'executable','tools_dir','module_policy','diagnose','diagnose_json','setup','install_tools','tools_prefix','export_dir','html_out','docs','lang','load_profile','write_profile'}
     overrides={name:getattr(cli_args,name) for name in getattr(cli_args,'_explicit',set()) if hasattr(cli_args,name)}
     for name,value in data.get('args',{}).items():
         if name not in runtime and hasattr(args,name):setattr(args,name,value)
@@ -123,6 +124,7 @@ def resume_project(folder, cli_args, ui):
         session.search_completed=data.get('search_completed',bool(session.hsps) or any('search' in row.get('stderr_log','') and row.get('exit_code')==0 for row in data.get('commands',[])))
         session.search_parameters=data.get('search_parameters',{})
         session.calculation_runs=data.get('calculation_runs',{})
+        session.vsearch_results=data.get('vsearch_results',{})
         session.dot_data=data.get('dot');session.motif_rows=data.get('motifs',[]);session.orf_rows=data.get('orfs',[])
         session.tools.history=data.get('commands',[]);session.start=data.get('started_utc',session.start)
         if data.get('msa'):

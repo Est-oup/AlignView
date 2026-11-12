@@ -105,7 +105,7 @@ def _clustal(records:list[Seq],path:Path):
         while name in used:name=(base[:33]+f'_{k}');k+=1
         used.add(name);names.append(name)
     with path.open('w',encoding='utf-8') as f:
-        f.write('CLUSTAL AlignView 5.0 multiple sequence alignment\n\n')
+        f.write(f'CLUSTAL AlignView {VERSION} multiple sequence alignment\n\n')
         for start in range(0,length,70):
             for name,s in zip(names,records):f.write(f'{name:<40}{s.seq[start:start+70].replace(".","-")}\n')
             f.write('\n')
@@ -126,6 +126,7 @@ def generate_exports(session,profile='standard'):
     rich=profile in ('publication','complete')
     extended=profile=='complete'
     a=session
+    if (a.work/'vsearch').is_dir():shutil.copytree(a.work/'vsearch',folder/'vsearch')
     query=a.query
     allseq=[*a.query_list,*a.references] if not a.single else list(a.query_list)
     qc=[]
@@ -228,8 +229,9 @@ def generate_exports(session,profile='standard'):
                   'blastx':'Les coordonnées QUERY sont nucléotidiques et les coordonnées de la référence protéiques',
                   'msa_distance':'Distance p avec suppression des colonnes à gap ou ? par paire'})
     _json(folder/'provenance.json',meta)
-    (folder/'README_exports.txt').write_text(
-        'ALIGNVIEW 6 — EXPORTS\n\n'
+    from av_i18n import language
+    explanation=(
+        f'ALIGNVIEW {VERSION} — EXPORTS\n\n'
         'Les fichiers BED utilisent des coordonnées 0-based / end-exclusive.\n'
         'coordinate_units.tsv décrit les unités nt/aa en fonction du mode BLAST.\n'
         'coordinate_audit.tsv compare les étendues nucléotidiques avec les résidus alignés.\n'
@@ -238,7 +240,21 @@ def generate_exports(session,profile='standard'):
         'Les régions sans HSP ne prouvent pas une absence d’homologie.\n'
         'Les distances p du MSA ignorent les positions avec gaps pour la paire concernée.\n'
         'Les fichiers NEXUS/PHYLIP nécessitent un MSA et leur présence est conditionnelle.\n'
-        'Les profils publication/complete incluent le rapport HTML autonome et le dossier figures/ si calculés.\n',encoding='utf-8')
+        'Les profils publication/complete incluent le rapport HTML autonome et le dossier figures/ si calculés.\n'
+        'vsearch/ conserve les résultats globaux, groupes, uniques et chimères disponibles, sans E-value/bitscore fictifs.\n'
+        'Les tables NCBI sélectionnées et les paramètres historiques sont dans provenance.json.\n')
+    if language()=='en':
+        explanation=(f'ALIGNVIEW {VERSION} — EXPORTS\n\n'
+            'BED uses 0-based, half-open coordinates. TSV/GFF3 coordinates are 1-based inclusive.\n'
+            'coordinate_units.tsv documents native nt/aa units; coordinate_audit.tsv checks translated coordinates.\n'
+            'HSP identity is local, not whole-sequence identity. Coverage is an interval union.\n'
+            'An uncovered region is not proof of non-homology. MSA p-distances exclude gaps per pair.\n'
+            'Alignment exchange files require a valid MSA; some empty tables retain their column headers.\n'
+            'Publication/complete profiles include standalone HTML and generated SVG figures.\n'
+            'vsearch/ retains native global-search, clustering, dereplication and chimera results when available.\n'
+            'VSEARCH nucleotide results do not have invented BLAST E-values or bitscores.\n'
+            'Selected NCBI tables and historical calculation parameters are recorded in provenance.json.\n')
+    (folder/'README_exports.txt').write_text(explanation,encoding='utf-8')
     files=sorted((x for x in folder.rglob('*') if x.is_file()),key=lambda p:str(p.relative_to(folder)))
     with (folder/'MANIFEST.tsv').open('w',encoding='utf-8') as f:
         writer=csv.writer(f,delimiter='\t');writer.writerow(['file','bytes','sha256'])

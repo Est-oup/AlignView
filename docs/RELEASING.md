@@ -16,14 +16,18 @@ Le nom public et la commande sont `AlignView` / `alignview`. La version publique
 
 ```bash
 python -m unittest discover -s tests -v
+python scripts/generate_cli_docs.py --check
+python scripts/check_docs.py
+python scripts/validate_vsearch.py
 python scripts/validate_real_tools.py --require mafft blastn diamond
 python -m build
 python scripts/build_pyz.py
-python -m twine check dist/*
+python -m twine check dist/*.whl dist/*.tar.gz
+python scripts/build_portable.py
 python scripts/checksums.py
 ```
 
-Le workflow `artifacts.yml`, déclenché par tag ou manuellement, construit les fichiers et les conserve comme artefacts Actions. Il ne crée pas de release publique et ne téléverse rien sur PyPI. Les fichiers sont `dist/alignview-0.1.0.tar.gz`, `dist/alignview-0.1.0-py3-none-any.whl`, `alignview.pyz` et `dist/SHA256SUMS`.
+Le workflow `artifacts.yml`, déclenché par tag ou manuellement, construit les fichiers et les conserve comme artefacts Actions. Il ne crée pas de release publique et ne téléverse rien sur PyPI. Les fichiers sont `dist/alignview-0.1.0.tar.gz`, `dist/alignview-0.1.0-py3-none-any.whl`, `alignview.pyz`, `dist/AlignView-0.1.0-portable.zip` et `dist/SHA256SUMS`.
 
 ## PyPI
 
@@ -38,3 +42,7 @@ Les moteurs restent facultatifs pour permettre une installation légère et les 
 ## Vers 1.0
 
 La désignation 1.0 viendra après validation des parcours sur plusieurs postes et clusters, des moteurs annoncés, de l’interopérabilité des exports dans des outils tiers et de jeux biologiques de référence. Les limites connues sont maintenues dans l’audit. Une numérotation « 1.0 » seule ne remplace pas ces validations.
+
+## Vérifier le dossier portable et les langues
+
+L’archive portable doit extraire un unique dossier `AlignView/`. Le copier seul puis lancer son `alignview.sh` depuis un dossier de données distinct : entrées relatives, projet, HTML seul et exports doivent respecter ce dossier de lancement. Vérifier `--lang en --docs quickstart` et `--docs demarrage` depuis le wheel et le zipapp hors de l’arbre source. Les moteurs installés localement dans `tools/` et les anciens prototypes dans `archives/` ne sont pas redistribués dans ces artefacts.

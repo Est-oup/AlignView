@@ -9,6 +9,7 @@ import json
 import math
 import re
 from pathlib import Path
+from av_i18n import figure_title
 from av_core import Seq,HSP,coverage_data,merge_intervals,interval_length,msa_metrics,sequence_stats
 from av_units import units_for,coord_audit
 from av_report_v5 import build_report_v5
@@ -131,10 +132,23 @@ def build_report_v6(out:Path,query:Seq,ref_seqs:list[Seq],hsps:list[HSP],mode:st
                 'Racine de dessin arbitraire, sans enracinement biologique. Supports locaux SH-like, pas des bootstraps.'}
         except (ValueError,OSError) as exc:
             tree_error='Figure d’arbre indisponible : '+str(exc)
-    for name,svg in figures.items():(figdir/(name+'.svg')).write_text(svg,encoding='utf-8')
+    from av_i18n import localize_svg
+    for name,svg in list(figures.items()):
+        figures[name]=localize_svg(svg)
+        (figdir/(name+'.svg')).write_text(figures[name],encoding='utf-8')
     page=report.read_text(encoding='utf-8')
+    from av_vsearch import report_section
+    vsearch_section=report_section(out)
+    if vsearch_section:
+        page=page.replace('</nav>','<button data-tab="vsearch">VSEARCH</button></nav>',1)
+        page=page.replace('<footer class="footer">',vsearch_section+'<footer class="footer">',1)
+        page=page.replace('</body>','''<script>
+titles.vsearch='Analyses VSEARCH';
+const openVsearch=document.createElement('button');openVsearch.textContent='Voir les analyses VSEARCH';
+openVsearch.onclick=()=>tab('vsearch');document.getElementById('readingActions').appendChild(openVsearch);
+</script></body>''',1)
     cards=''.join('<article class="panel figcard" data-group="'+html.escape(m['group'],quote=True)+'" data-figure="'+html.escape(name,quote=True)+'">'
-        +'<div class="row"><h2>'+html.escape(name[3:].replace('_',' ').capitalize())+'</h2><button class="downloadSvg right" data-fig="'+html.escape(name,quote=True)+'">Télécharger SVG</button></div>'
+        +'<div class="row"><h2>'+html.escape(figure_title(figures[name],name))+'</h2><button class="downloadSvg right" data-fig="'+html.escape(name,quote=True)+'">Télécharger SVG</button></div>'
         +'<div class="figure-svg">'+figures[name]+'</div><p class="hint"><b>'+html.escape(m['group'])+'.</b> '+html.escape(m['description'])+'</p></article>'
         for name,m in meta.items())
     page=page.replace('</div></section><section id="exports"',cards+'</div></section><section id="exports"',1)
@@ -143,7 +157,7 @@ def build_report_v6(out:Path,query:Seq,ref_seqs:list[Seq],hsps:list[HSP],mode:st
     n=page.count('class="panel figcard"')
     page=re.sub(r'\d+ figures SVG vectorielles',f'{n} figures SVG vectorielles',page,count=1)
     # Replacement of the original misleading mixed-reference HSP mapping.
-    replacement=tracks_svg(hsps,len(query.seq),{r.id:len(r.seq) for r in ref_seqs},mode) if hsps else None
+    replacement=localize_svg(tracks_svg(hsps,len(query.seq),{r.id:len(r.seq) for r in ref_seqs},mode)) if hsps else None
     if replacement:
         old=(figdir/'23_cartographie_hsp.svg')
         if old.exists():old.write_text(replacement,encoding='utf-8')
@@ -195,14 +209,16 @@ def build_report_v6(out:Path,query:Seq,ref_seqs:list[Seq],hsps:list[HSP],mode:st
 })();</script></body>''',1)
     # Track sequence and graphics units for subsequent PDF / figure export.
     catalog=[]
+    from av_i18n import translate
     for group,name in re.findall(r'<article class="panel figcard" data-group="([^"]+)" data-figure="([^"]+)"',page):
         m=meta.get(name,{})
-        catalog.append(dict(file=f'figures/{name}.svg',category=group,
-            description=m.get('description','Figure descriptive : consulter sa légende dans le rapport HTML'),
+        catalog.append(dict(file=f'figures/{name}.svg',category=translate(group),
+            description=translate(m.get('description','Figure descriptive : consulter sa légende dans le rapport HTML')),
             coordinate_query='NA' if name==TREE_FIGURE else u.query,
             coordinate_subject='NA' if name==TREE_FIGURE else u.subject,
             alignment_columns='NA' if name==TREE_FIGURE else u.aligned))
     (out/'figures_catalog.tsv').write_text('file\tcategory\tdescription\tquery_unit\tsubject_unit\talignment_unit\n'+
         ''.join(f"{v['file']}\t{v['category']}\t{v['description']}\t{v['coordinate_query']}\t{v['coordinate_subject']}\t{v['alignment_columns']}\n" for v in catalog),encoding='utf-8')
     page=page.replace('Sequence explorer · v5.0','Sequence explorer · v6.0')
-    report.write_text(page,encoding='utf-8');return report
+    from av_i18n import localize_html
+    report.write_text(localize_html(page),encoding='utf-8');return report

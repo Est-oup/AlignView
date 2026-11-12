@@ -217,27 +217,35 @@ def coverage_data(hsps, query_len, ref_lengths:dict):
 def reverse_complement(seq): return seq.translate(COMPLEMENT)[::-1].replace('U','T')
 
 
-def translate_nt(seq, frame=1):
+def translate_nt(seq, frame=1, table=1):
+    from av_genetics import code_table, translate_codon
+    code_table(table)
     if frame not in (1,2,3,-1,-2,-3): raise ValueError('Cadre de traduction invalide')
     seq=seq.upper().replace('U','T').replace('-','').replace('.','')
     if frame<0: seq=reverse_complement(seq)
     offset=abs(frame)-1
-    return ''.join(CODON.get(seq[i:i+3],'X') for i in range(offset,len(seq)-2,3))
+    return ''.join(translate_codon(seq[i:i+3],table) for i in range(offset,len(seq)-2,3))
 
 
-def orfs(seq:Seq,min_aa=60,include_partial=False):
+def orfs(seq:Seq,min_aa=60,include_partial=False,table=1,starts='atg'):
+    from av_genetics import stop_codons, start_codons, context_dependent
+    stops=stop_codons(table)
+    if context_dependent(table):raise ValueError(f'Table {table} : arrêts contextuels ; la détection simple d’ORF nécessite un contexte CDS absent ici.')
+    if starts not in ('atg','table'):raise ValueError('Politique de démarrage ORF invalide.')
+    initiators={'ATG'} if starts=='atg' else start_codons(table)
     if sequence_type(seq.seq)!='ADN/ARN': raise ValueError('Détection d’ORF : fichier nucléotidique requis')
-    found=[]; n=len(seq.seq.replace('-',''))
+    found=[]; normalized=seq.seq.upper().replace('-','').replace('.','').replace('U','T');n=len(normalized)
     for strand in (1,-1):
-        dna=seq.seq.replace('-','').replace('U','T') if strand==1 else reverse_complement(seq.seq.replace('-',''))
+        dna=normalized if strand==1 else reverse_complement(normalized)
         for frame in range(3):
             start=None
             for pos in range(frame,len(dna)-2,3):
                 codon=dna[pos:pos+3]
-                if start is None and codon=='ATG': start=pos
-                if codon in ('TAA','TAG','TGA'):
+                if start is None and codon in initiators: start=pos
+                if codon in stops:
                     if start is not None:
-                        aa=translate_nt(dna[start:pos],1)
+                        aa=translate_nt(dna[start:pos],1,table)
+                        if starts=='table' and aa:aa='M'+aa[1:]
                         if len(aa)>=min_aa:
                             left,right=(start+1,pos+3) if strand==1 else (n-pos-2,n-start)
                             found.append(dict(seqid=seq.id,start=left,end=right,frame=(frame+1)*strand,
@@ -245,7 +253,8 @@ def orfs(seq:Seq,min_aa=60,include_partial=False):
                     start=None
             if include_partial and start is not None:
                 end=len(dna)-(len(dna)-start)%3
-                aa=translate_nt(dna[start:end],1)
+                aa=translate_nt(dna[start:end],1,table)
+                if starts=='table' and aa:aa='M'+aa[1:]
                 if len(aa)>=min_aa:
                     left,right=(start+1,end) if strand==1 else (n-end+1,n-start)
                     found.append(dict(seqid=seq.id,start=left,end=right,frame=(frame+1)*strand,

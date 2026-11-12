@@ -50,7 +50,7 @@ Commande :
 
 ```bash
 python3 scripts/benchmark.py --rows 100 --columns 10000 --repeats 100 \
-  --baseline ../AlignView_Pro_v6 --output docs/benchmark-results.json
+  --baseline archives/AlignView_Pro_v6 --output docs/benchmark-results.json
 ```
 
 Jeu synthétique de 100 séquences × 10 000 colonnes, terminal fixé à 80×24, message d’état actif. Les [résultats bruts](benchmark-results.json) conservent plateforme, Python et temps.
@@ -82,3 +82,7 @@ Le wheel, le sdist et le zipapp doivent être reconstruits après tout changemen
 - ORF ATG→STOP et FastTree restent exploratoires ; les distances p ne sont pas un modèle évolutif corrigé.
 - Les modules HTML historiques sont maintenus. Une refonte ultérieure de leur construction devra préserver les calculs et formats déjà vérifiés.
 - Les versions finales de tous les moteurs, le cluster cible, macOS et les logiciels tiers recevant les exports restent à valider avant de présenter une version 1.0 stabilisée.
+
+## Révision complémentaire : utilisation et moteurs
+
+La révision complémentaire ajoute les guides français/anglais embarqués, le sélecteur de requête avant comparaison guidée, les actions VSEARCH natives, les 27 tables NCBI hors ligne et un export HTML explicite. Les rapports historiques de moteurs ci-dessus décrivent leurs passages d’origine ; ils ne prétendent pas tester toutes les tables ni tous les nouveaux réglages. Voir [VSEARCH](VSEARCH.md), [codes de traduction](GENETIC_CODES.md) et [règles de fichiers](FILES.md).

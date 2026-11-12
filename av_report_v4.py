@@ -11,6 +11,7 @@ from pathlib import Path
 from av_core import Seq,HSP,sequence_stats,msa_metrics,distance_matrix,sliding_scores,coverage_data
 from av_units import units_for
 from av_visual import build_report,plot_svg
+from av_i18n import figure_title
 
 INK='#cfe0f2'; MUTED='#8da5c1'; BLUE='#6d9ef6'; TEAL='#54d2b5'; ORANGE='#ffc47f'; RED='#f48d9b'
 
@@ -52,8 +53,8 @@ def bars_svg(items,title,nmax=18):
     peak=max(float(k) for _,k in items) or 1
     for i,(name,val) in enumerate(items):
         y=46+i*31
-        parts.append(f'<text x="20" y="{y+13}" fill="{INK}" font-family="monospace" font-size="11">{txt(str(name)[:20])}</text>')
-        parts.append(f'<rect x="185" y="{y}" width="{max(2,float(val)/peak*500):.2f}" height="18" rx="3" fill="{BLUE}"><title>{txt(name)} : {val}</title></rect>')
+        parts.append(f'<text class="data-label" x="20" y="{y+13}" fill="{INK}" font-family="monospace" font-size="11">{txt(str(name)[:20])}</text>')
+        parts.append(f'<rect x="185" y="{y}" width="{max(2,float(val)/peak*500):.2f}" height="18" rx="3" fill="{BLUE}"><title class="data-label">{txt(name)} : {val}</title></rect>')
         parts.append(f'<text x="700" y="{y+14}" fill="{MUTED}" font-size="12" font-family="monospace">{float(val):,.1f}</text>')
     return finish(parts)
 
@@ -146,8 +147,11 @@ def build_report_v4(out:Path,query:Seq,ref_seqs:list[Seq],hsps:list[HSP],mode:st
     if motifs:figures['14_motifs']=bars_svg(collections.Counter(r.get('seqid','?') for r in motifs).items(),'Occurrences de motifs par séquence')
     if orf_rows:figures['15_orfs']=hist_svg([r['length_aa'] for r in orf_rows],'Longueurs des ORF détectées','Acides aminés')
     directory=out/'figures';directory.mkdir(exist_ok=True)
-    for name,svg in figures.items():(directory/(name+'.svg')).write_text(svg,encoding='utf-8')
-    cards=''.join(f'<article class="panel figcard" data-figure="{txt(k)}"><div class="row"><h2>{txt(k[3:].replace("_"," ").capitalize())}</h2><button type="button" class="downloadSvg right" data-fig="{txt(k)}" aria-label="Exporter SVG">Télécharger SVG</button></div><div class="figure-svg">{svg}</div></article>' for k,svg in figures.items())
+    from av_i18n import localize_svg
+    for name,svg in list(figures.items()):
+        figures[name]=localize_svg(svg)
+        (directory/(name+'.svg')).write_text(figures[name],encoding='utf-8')
+    cards=''.join(f'<article class="panel figcard" data-figure="{txt(k)}"><div class="row"><h2>{txt(figure_title(figures[k],k))}</h2><button type="button" class="downloadSvg right" data-fig="{txt(k)}" aria-label="Exporter SVG">Télécharger SVG</button></div><div class="figure-svg">{svg}</div></article>' for k,svg in figures.items())
     section=f'''<section id="figures" class="section"><div class="panel"><h2>Atlas des figures</h2>
 <p>Les figures sont calculées à partir des données de la session. Les statistiques des HSP représentent des <strong>alignements locaux</strong> et non l’identité globale des génomes ou protéines. Les données MSA sont disponibles après alignement.</p>
 <div class="row"><label>Filtrer les figures <input id="figFilter" type="search" placeholder="Ex. identité, conservation, gaps, GC" style="min-width:280px"></label><span class="pill">{len(figures)} figures SVG vectorielles</span><button id="printFigures" type="button">Imprimer / PDF</button></div></div>

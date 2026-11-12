@@ -34,6 +34,7 @@ def column_summary(seqs):
 
 
 def msa_static(seqs, width=88, limit=35, start=0, color=False):
+    from av_i18n import translate
     """Repli lisible quand il n'y a pas de TTY."""
     if not seqs:return 'Aucune séquence'
     ncol=len(seqs[0].seq)
@@ -43,7 +44,7 @@ def msa_static(seqs, width=88, limit=35, start=0, color=False):
          ' ' * 22+f'{start+1}'+(' ' * max(1,stop-start-8))+str(stop)]
     for s in seqs[:limit]:out.append(f'{s.id[:20]:20}  {s.seq[start:stop]}')
     out.append(f'{"CONSENSUS":20}  {consensus[start:stop]}')
-    out.append(f'{"VARIABLES":20}  '+''.join('^' if v else '·' for v in variable[start:stop]))
+    out.append(f'{translate("VARIABLES"):20}  '+''.join('^' if v else '·' for v in variable[start:stop]))
     if len(seqs)>limit:out.append(f'… {len(seqs)-limit} séquences supplémentaires')
     return '\n'.join(out)
 

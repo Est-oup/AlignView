@@ -90,17 +90,18 @@ class WorkflowStateTests(unittest.TestCase):
                 viewer.assert_not_called();aligner.assert_not_called()
         finally:session.close()
 
-    def test_guided_comparison_prepares_query_without_an_extra_engine_menu(self):
+    def test_guided_comparison_asks_which_query_before_calculation(self):
         args=parse_args([])
         _apply_start(args,StartRequest('compare',ROOT/'examples/example_msa.fasta',ROOT/'examples/example_msa.fasta'),Path('/tmp'))
         ui=UI(False);ui.tty=True
-        with patch.object(ui,'menu') as menu:
+        with patch.object(ui,'menu',return_value='3') as menu:
             session=Session(args,ui)
             try:
                 with patch.object(session.tools,'search') as search:session.initial();search.assert_not_called()
-                self.assertEqual(session.query.id,'seq_1')
+                self.assertEqual(session.query.id,'seq_3')
                 self.assertEqual(session.a.hits,100)
-                menu.assert_not_called()
+                menu.assert_called_once()
+                self.assertEqual(menu.call_args.args[0],'Choisir la requête active')
             finally:session.close()
 
     def test_unaligned_file_opened_as_alignment_stays_available_for_alignment(self):

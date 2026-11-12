@@ -84,3 +84,7 @@ alignview --resume resultats/arbre_01 --html-out rapport_actualise.html --no-men
 `--no-menu` exécute puis termine. `--save` conserve le projet ; `--out` seul ne le fait pas. `--html-out` conserve le HTML sans sauvegarder un projet. Ces différences sont détaillées dans [Dossiers et sauvegardes](FILES.md).
 
 Pour continuer : [toutes les fonctions](USAGE.md), [les paramètres](PARAMETERS.md), [le dépannage](TROUBLESHOOTING.md).
+
+## Essayer VSEARCH avec les exemples fournis
+
+Depuis le dossier de l’application : `./alignview.sh examples/example_vsearch.fna --vsearch cluster --html-out vsearch_demo.html --no-menu`. Pour choisir une requête et la comparer : `./alignview.sh examples/example_vsearch.fna examples/example_vsearch_refs.fna --vsearch search`, puis choisir l’identifiant dans la liste. Ces données sont synthétiques et servent à découvrir le parcours.

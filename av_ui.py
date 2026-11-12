@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import os
 import re
 import shutil
@@ -11,6 +11,7 @@ import textwrap
 
 from av_terminal import draw, fit, read_key, screen
 from av_version import VERSION
+from av_i18n import translate as tr, language
 
 RESET='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'
 BLUE='\033[38;5;75m'; CYAN='\033[38;5;44m'; GREEN='\033[38;5;78m'
@@ -63,7 +64,7 @@ class UI:
         self.status=''; self.messages=[]
 
     def c(self, style, text):
-        return style+str(text)+RESET if self.color else str(text)
+        return style+tr(text)+RESET if self.color else tr(text)
 
     def size(self):
         size=shutil.get_terminal_size((104,32))
@@ -79,44 +80,46 @@ class UI:
 
     def banner(self, subtitle=''):
         print(self.c(CYAN+BOLD,'  AlignView')+'  '+self.c(GREY,VERSION))
-        if subtitle:print('  '+subtitle)
+        if subtitle:print('  '+tr(subtitle))
 
     def heading(self, text):
         print('\n  '+self.c(BLUE+BOLD,text))
 
-    def info(self, text):print('  '+str(text))
+    def info(self, text):print('  '+tr(text))
     def success(self, text):
-        self.notice=str(text)
-        print('  '+self.c(GREEN,'✓')+' '+str(text))
+        self.notice=tr(text)
+        print('  '+self.c(GREEN,'✓')+' '+tr(text))
     def warn(self, text):
-        self.notice=str(text)
-        print('  '+self.c(YELLOW,'!')+' '+str(text),file=sys.stderr)
+        self.notice=tr(text)
+        print('  '+self.c(YELLOW,'!')+' '+tr(text),file=sys.stderr)
     def error(self, text):
-        self.notice=str(text)
-        print('  '+self.c(RED,'✕')+' '+str(text),file=sys.stderr)
+        self.notice=tr(text)
+        print('  '+self.c(RED,'✕')+' '+tr(text),file=sys.stderr)
     def stage(self, text):print('\n  '+self.c(CYAN,text),flush=True)
 
     def ask(self, label, default='', hint=''):
         if hint:self.wrapped(hint)
         try:
-            value=input('  '+label+(f' [{default}]' if default!='' else '')+' : ').strip()
+            value=input('  '+tr(label)+(f' [{tr(default)}]' if default!='' else '')+' : ').strip()
         except EOFError:
             raise KeyboardInterrupt from None
         return value if value else default
 
     def yesno(self, label, default=False):
-        return self.ask(label+' (o/n)','o' if default else 'n').casefold() in ('o','oui','y','yes')
+        return self.ask(label+(' (y/n)' if language()=='en' else ' (o/n)'),('y' if language()=='en' else 'o') if default else 'n').casefold() in ('o','oui','y','yes')
 
     def pause(self):
         if not self.tty:return
-        try:input('\n  Entrée pour continuer… ')
+        try:input('\n  '+tr('Entrée pour continuer…')+' ')
         except (EOFError,KeyboardInterrupt):pass
 
     def wrapped(self, text, prefix='  ', width=None):
-        for line in textwrap.wrap(str(text),max(10,(width or self.size()[0]-2)-len(prefix))):print(prefix+line)
+        for line in textwrap.wrap(tr(text),max(10,(width or self.size()[0]-2)-len(prefix))):print(prefix+line)
 
     def menu(self, title, items, subtitle='', footer='', *, hint='', default=None, shortcuts=None):
         entries=[item if isinstance(item,MenuItem) else MenuItem(*map(str,item)) for item in items]
+        entries=[replace(item,label=tr(item.label),description=tr(item.description),category=tr(item.category),reason=tr(item.reason)) for item in entries]
+        title,subtitle,footer,hint=map(tr,(title,subtitle,footer,hint))
         if self.simple:return self._menu_simple(title,entries,subtitle,hint,shortcuts or {})
         return self._menu_keys(title,entries,subtitle,footer,hint,default,shortcuts or {})
 
@@ -151,8 +154,10 @@ class UI:
                 '  '+self.c(GREY,' › '.join(self.route)), '  '+self.c(BOLD,title)]
         if not compact:
             header.extend('  '+self.c(GREY,line) for line in self.context[:2])
-            explanation=hint or subtitle
-            header.extend('  '+line for line in textwrap.wrap(explanation,max(10,width-4))[:2])
+            if subtitle and hint:
+                header.extend('  '+fit(value,max(10,width-4)) for value in (subtitle,hint))
+            else:
+                header.extend('  '+line for line in textwrap.wrap(hint or subtitle,max(10,width-4))[:2])
             header.append('')
         selected=entries[active] if entries else None
         detail=notice or (('' if rich else selected.description) if selected and selected.enabled else selected.reason if selected else 'Aucun résultat. Échap pour effacer la recherche.')
@@ -160,7 +165,7 @@ class UI:
         details+=['']*(2-len(details))
         if typing:control='Recherche : '+phrase+'▏ · Entrée ouvre le résultat'
         elif digits:control='Choix : '+digits+' · Entrée pour ouvrir'
-        else:control=('↑↓ choisir · Entrée ouvrir · q quitter' if self.route==['Accueil'] and title=='Projet'
+        else:control=('↑↓ choisir · Entrée ouvrir · q quitter' if self.route==['Accueil'] and title==tr('Projet')
                       else '↑↓ choisir · Entrée ouvrir · ←/Échap retour · F2 accueil')
         footer=['  '+self.c(YELLOW if notice or (selected and not selected.enabled) else GREY,line) for line in details]
         footer.extend(['', '  '+control, ''])
@@ -268,6 +273,7 @@ class UI:
         return result
 
     def page(self,text,title='Résultats'):
+        text,title=tr(text),tr(title)
         if self.simple:print(text);return
         content=[re.sub(r'\x1b\[[0-9;]*m','',line) for line in str(text).expandtabs(4).splitlines()] or ['Aucun résultat.']
         row=col=0;phrase='';typing=False

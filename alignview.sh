@@ -15,7 +15,7 @@ if [[ ${1:-} == --classic ]]; then
   exec bash "$ALIGNVIEW_ROOT/archives/alignview_legacy.sh" "$@"
 fi
 if ! command -v python3 >/dev/null; then echo 'Python 3.10+ requis' >&2; exit 127; fi
-# An optional local Conda prefix moves with the application folder. An explicit
+# Detect an optional local Conda prefix. An explicit
 # environment variable or --tools-prefix still takes priority.
 if [[ -z ${ALIGNVIEW_TOOLS_PREFIX:-} && -d "$ALIGNVIEW_ROOT/tools/conda-meta" ]]; then
   export ALIGNVIEW_TOOLS_PREFIX="$ALIGNVIEW_ROOT/tools"

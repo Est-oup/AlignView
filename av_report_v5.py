@@ -4,6 +4,7 @@ import collections
 import html
 import math
 from pathlib import Path
+from av_i18n import figure_title
 from av_core import Seq,HSP,coverage_data,msa_metrics,sequence_stats,merge_intervals
 from av_report_v4 import build_report_v4, bars_svg, hist_svg, plot_svg, scatter_svg
 
@@ -84,8 +85,11 @@ def build_report_v5(out:Path,query:Seq,ref_seqs:list[Seq],hsps:list[HSP],mode:st
     if not figures:
         figures['16_ambiguite_sequences']=hist_svg([s['n_pct'] for s in map(sequence_stats,[query,*ref_seqs])],'% N par séquence','N (%)')
     figure_dir=out/'figures';figure_dir.mkdir(exist_ok=True)
-    for name,svg in figures.items():(figure_dir/f'{name}.svg').write_text(svg,encoding='utf-8')
-    extra_cards=''.join(f'<article class="panel figcard" data-figure="{html.escape(k,quote=True)}"><div class="row"><h2>{html.escape(k[3:].replace("_"," ").capitalize())}</h2><button class="downloadSvg right" type="button" data-fig="{html.escape(k,quote=True)}">Télécharger SVG</button></div><div class="figure-svg">{svg}</div><p class="hint">{html.escape(explanations.get(k,"Figure exploratoire ; interprétation conditionnée par les entrées et paramètres."))}</p></article>' for k,svg in figures.items())
+    from av_i18n import localize_svg
+    for name,svg in list(figures.items()):
+        figures[name]=localize_svg(svg)
+        (figure_dir/f'{name}.svg').write_text(figures[name],encoding='utf-8')
+    extra_cards=''.join(f'<article class="panel figcard" data-figure="{html.escape(k,quote=True)}"><div class="row"><h2>{html.escape(figure_title(figures[k],k))}</h2><button class="downloadSvg right" type="button" data-fig="{html.escape(k,quote=True)}">Télécharger SVG</button></div><div class="figure-svg">{svg}</div><p class="hint">{html.escape(explanations.get(k,"Figure exploratoire ; interprétation conditionnée par les entrées et paramètres."))}</p></article>' for k,svg in figures.items())
     page=report.read_text(encoding='utf-8')
     original_figures=page.count('class="panel figcard"')
     page=page.replace('</div></section><footer class="footer">',extra_cards+'</div></section><footer class="footer">',1)

@@ -22,6 +22,7 @@ GROUPS = {
     'MUSCLE': (['muscle','muscle5'],['muscle','muscle5']),
     'CLUSTALO': (['clustalo'],['clustalo','clustal-omega']),
     'FASTTREE': (['FastTree','fasttree'],['fasttree','FastTree']),
+    'VSEARCH': (['vsearch'],['vsearch']),
 }
 
 class CommandError(RuntimeError): pass
@@ -137,7 +138,10 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
         if args[0] not in self.version_cache:
             from av_setup import probe_version
             self.version_cache[args[0]]=probe_version(args[0],self.env)
-        if self.ui: self.ui.stage(label)
+        if self.ui:
+            self.ui.stage(label)
+            self.ui.info('Outil : '+Path(args[0]).name+' · '+self.version_cache[args[0]])
+            self.ui.info('Exécutable : '+args[0])
         start=time.time()
         with logfile.open('w',encoding='utf-8') as err:
             with stdout_path.open('wb') if stdout_path else open(os.devnull,'wb') as out:
@@ -194,9 +198,19 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
                '', 'Dossier de travail : '+str(self.workspace)]
         for command in commands:
             argv=[self.executable(command.argv[0]),*command.argv[1:]]
-            lines+=['',command.label,shlex.join(argv)+((' > '+shlex.quote(str(command.stdout))) if command.stdout else ''),
+            lines+=['',command.label,'Outil : '+command.argv[0]+' · '+self.source(command.argv[0]),
+                    'Exécutable : '+argv[0],shlex.join(argv)+((' > '+shlex.quote(str(command.stdout))) if command.stdout else ''),
                     'Journal stderr : '+str(self.next_log(command.log).relative_to(self.workspace))]
         return '\n'.join(lines)
+
+    def engine_info(self,command):
+        """Display-only discovery; no module load and no scientific calculation."""
+        if not self.has(command):return command+' · introuvable'
+        path=self.executable(command)
+        if path not in self.version_cache:
+            from av_setup import probe_version
+            self.version_cache[path]=probe_version(path,self.env)
+        return command+' · '+self.version_cache[path]+' · '+self.source(command)+' · '+path
 
     @staticmethod
     def _option(args,options,name,flag):
@@ -220,7 +234,7 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
                   '--evalue',str(evalue),'--max-target-seqs',str(max_target),f'--{sensitivity}',
                   '--outfmt','6','qseqid','sseqid','pident','length','qstart','qend','sstart','send',
                   'evalue','bitscore','qframe',('qseq_translated' if m=='blastx' else 'qseq'),'sseq', '--out',str(raw)]
-            if m=='blastx': args+=['--min-orf',str(getattr(options,'diamond_min_orf',1)),'--query-gencode','1']
+            if m=='blastx': args+=['--min-orf',str(getattr(options,'diamond_min_orf',1)),'--query-gencode',str(getattr(options,'genetic_code',1))]
             for name,flag in (('matrix','--matrix'),('gapopen','--gapopen'),('gapextend','--gapextend'),
                               ('masking','--masking'),('comp_stats','--comp-based-stats'),('max_hsps','--max-hsps')):
                 self._option(args,options,'diamond_'+name,flag)
@@ -233,8 +247,8 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
               '6 qseqid sseqid pident length qstart qend sstart send evalue bitscore qcovhsp qframe sframe qseq sseq',
               '-out',str(raw)]
         if task: args+=['-task',task]
-        if mode in ('blastx','tblastx'):args+=['-query_gencode','1']
-        if mode in ('tblastn','tblastx'):args+=['-db_gencode','1']
+        if mode in ('blastx','tblastx'):args+=['-query_gencode',str(getattr(options,'genetic_code',1))]
+        if mode in ('tblastn','tblastx'):args+=['-db_gencode',str(getattr(options,'reference_genetic_code',None) or getattr(options,'genetic_code',1))]
         for name,flag in (('word_size','-word_size'),('max_hsps','-max_hsps'),('soft_masking','-soft_masking')):
             self._option(args,options,'blast_'+name,flag)
         self._option(args,options,'blast_masking','-dust' if mode=='blastn' else '-seg')
@@ -326,11 +340,11 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
         if algorithm not in ('needle','water'): raise ValueError('EMBOSS : needle ou water')
         q=query;r=reference
         if mode in ('blastx','diamond-blastx'):
-            q=Seq('QUERY','QUERY',translate_nt(query.seq,frame))
-        if mode=='tblastn': r=Seq(reference.id,reference.id,translate_nt(reference.seq,sframe))
+            q=Seq('QUERY','QUERY',translate_nt(query.seq,frame,getattr(options,'genetic_code',1)))
+        if mode=='tblastn': r=Seq(reference.id,reference.id,translate_nt(reference.seq,sframe,getattr(options,'reference_genetic_code',None) or getattr(options,'genetic_code',1)))
         if mode=='tblastx':
-            q=Seq('QUERY','QUERY',translate_nt(query.seq,frame))
-            r=Seq(reference.id,reference.id,translate_nt(reference.seq,sframe))
+            q=Seq('QUERY','QUERY',translate_nt(query.seq,frame,getattr(options,'genetic_code',1)))
+            r=Seq(reference.id,reference.id,translate_nt(reference.seq,sframe,getattr(options,'reference_genetic_code',None) or getattr(options,'genetic_code',1)))
         if mode in ('blastx','diamond-blastx','tblastn','tblastx') and ('*' in q.seq or '*' in r.seq):
             if self.ui: self.ui.warn('La traduction entière contient des STOP : vérifier la région codante et le cadre.')
         qfile=self.workspace/'emboss_query.fasta'; rfile=self.workspace/'emboss_ref.fasta'

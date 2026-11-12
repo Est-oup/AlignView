@@ -60,4 +60,8 @@ python3 scripts/validate_real_tools.py --tuned \
 python3 -m unittest discover -s tests -v
 ```
 
-Les moteurs du passage complet ont été installés dans un préfixe temporaire, sans remplacer les logiciels du poste. Ces tests ne couvrent pas toutes les combinaisons de matrices/coûts, les codes génétiques alternatifs, toutes les versions de moteurs, les données difficiles ou le cluster cible. Les traductions restent explicitement limitées au code standard. Les journaux d’erreur des moteurs restent l’autorité sur les incompatibilités natives.
+Les moteurs du passage complet ont été installés dans un préfixe temporaire, sans remplacer les logiciels du poste. Ces tests ne couvrent pas toutes les combinaisons de matrices/coûts, toutes les combinaisons de codes génétiques alternatifs, toutes les versions de moteurs, les données difficiles ou le cluster cible. La révision initiale utilisait le code standard ; la révision suivante ajoute les tables NCBI choisies explicitement. Les journaux d’erreur des moteurs restent l’autorité sur les incompatibilités natives.
+
+## Révision complémentaire : utilisation et moteurs
+
+La révision complémentaire ajoute les guides français/anglais embarqués, le sélecteur de requête avant comparaison guidée, les actions VSEARCH natives, les 27 tables NCBI hors ligne et un export HTML explicite. Les rapports historiques de moteurs ci-dessus décrivent leurs passages d’origine ; ils ne prétendent pas tester toutes les tables ni tous les nouveaux réglages. Voir [VSEARCH](VSEARCH.md), [codes de traduction](GENETIC_CODES.md) et [règles de fichiers](FILES.md).

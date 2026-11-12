@@ -1,5 +1,7 @@
 # Documentation d’AlignView
 
+[English manual](en/README.md) · Interface : `--lang en` ou **Réglages et aide → Langue / Language**.
+
 AlignView sert à explorer des séquences, rechercher des correspondances, créer des alignements et partager les résultats. Il fonctionne dans un terminal Linux, y compris par SSH. Le rapport HTML se consulte dans un navigateur.
 
 ## Partir de son besoin
@@ -18,6 +20,8 @@ AlignView sert à explorer des séquences, rechercher des correspondances, crée
 | Comprendre FASTA, HSP, MSA, E-value… | [Glossaire](GLOSSARY.md) | `alignview --docs glossaire` |
 
 Dans ces exemples, `alignview` est la commande installée. Avec le dossier portable, la remplacer par `/chemin/vers/AlignView/alignview.sh`. Aucune installation n’est nécessaire pour consulter la documentation ou la démonstration.
+
+[Analyses VSEARCH](VSEARCH.md) · [Tables de traduction](GENETIC_CODES.md).
 
 ## Depuis l’application
 

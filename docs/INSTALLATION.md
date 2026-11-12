@@ -58,6 +58,7 @@ Le script `bash scripts/install_user.sh` copie volontairement le `.pyz` sous `~/
 | Comparaison globale/locale de deux séquences | EMBOSS Needle/Water | `emboss` |
 | Calcul d’arbre | FastTree | `fasttree` |
 | Visionneuse externe facultative | ALV | `alv` |
+| Recherche globale, déduplication, groupes et chimères nucléotidiques | VSEARCH | `vsearch` |
 
 Le profil `minimal` regroupe BLAST, DIAMOND et MAFFT. Le profil `full` ajoute les autres moteurs. La visionneuse interne suffit sans ALV. MUSCLE 3 n’est pas compatible avec les commandes prévues pour MUSCLE 5.
 

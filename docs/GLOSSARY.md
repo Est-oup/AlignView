@@ -21,7 +21,7 @@
 | Distance p | Fraction de différences dans les positions comparables d’une paire, en excluant gaps/caractères manquants. Ce n’est pas une distance corrigée par un modèle évolutif. |
 | nt / aa | Nucléotides / acides aminés. Les unités doivent rester distinctes en recherche traduite. |
 | Cadre de lecture | Décalage et orientation de traduction d’une séquence nucléotidique : +1, +2, +3, −1, −2 ou −3. |
-| ORF | Ici, segment simple ATG → STOP complet dans l’un des six cadres, selon le code génétique standard. Ce n’est pas une annotation de gène. |
+| ORF | Ici, segment simple ATG → STOP complet dans l’un des six cadres, selon la table NCBI choisie (1 par défaut). Ce n’est pas une annotation de gène. |
 | K-mer | Mot de longueur k prélevé dans une séquence ; les dotplots cherchent des mots exactement identiques. |
 | Newick | Format textuel d’arbre avec parenthèses, noms, longueurs après `:` et éventuellement étiquettes internes. |
 | Support SH-like | Support local calculé par FastTree. Ne pas le présenter comme un bootstrap d’arbres. |

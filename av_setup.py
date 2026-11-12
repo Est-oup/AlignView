@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 import shlex
 import shutil
@@ -13,11 +14,13 @@ PACKAGES = {
     'emboss': ['emboss'], 'muscle': ['muscle>=5'], 'clustalo': ['clustalo'],
     'mmseqs': ['mmseqs2'], 'fasttree': ['fasttree'], 'alv': ['alv'],
     'minimal': ['blast', 'diamond', 'mafft'],
-    'full': ['blast', 'diamond', 'mafft', 'emboss', 'muscle>=5', 'clustalo', 'mmseqs2', 'fasttree', 'alv'],
+    'vsearch': ['vsearch'],
+    'full': ['blast', 'diamond', 'mafft', 'emboss', 'muscle>=5', 'clustalo', 'mmseqs2', 'fasttree', 'vsearch', 'alv'],
 }
 ALIASES = {'muscle5':'muscle', 'FastTree':'fasttree', 'makeblastdb':'blast',
            'needle':'emboss', 'water':'emboss', 'transeq':'emboss'}
 VERSION_FLAGS = {'mafft':['--version'], 'diamond':['version'], 'muscle':['-version'],
+                 'vsearch':['--version'],
                  'muscle5':['-version'], 'clustalo':['--version'], 'mmseqs':['version'],
                  'FastTree':['-help'], 'fasttree':['-help'], 'alv':['--version'],
                  'needle':['-version'], 'water':['-version'], 'transeq':['-version']}
@@ -92,7 +95,10 @@ def probe_version(path,env):
         result=subprocess.run([path,*VERSION_FLAGS.get(command,['-version'])],
             env=env,capture_output=True,text=True,timeout=4,errors='replace')
         if result.returncode:return f'version indisponible (code {result.returncode})'
-        return next((line.strip() for line in (result.stdout+'\n'+result.stderr).splitlines() if line.strip()),'version indisponible')[:240]
+        lines=[line.strip() for line in (result.stdout+'\n'+result.stderr).splitlines() if line.strip()]
+        if command=='vsearch':
+            return next((line for line in lines if re.match(r'vsearch\s+v?\d',line,re.I)),'version indisponible')[:240]
+        return next(iter(lines),'version indisponible')[:240]
     except (OSError,subprocess.TimeoutExpired):return 'version indisponible'
 
 
@@ -105,7 +111,7 @@ def software_hub(ui, tools):
             ('1','État et versions','Exécutables, origine et commande de réparation','DIAGNOSTIC'),
             ('2','Installer le socle conseillé','BLAST + DIAMOND + MAFFT dans un environnement dédié','INSTALLER'),
             ('3','Installer un outil précis','Ajouter uniquement ce qui manque','INSTALLER'),
-            ('4','Installer tous les moteurs','Ajoute EMBOSS, MUSCLE, Clustal Omega, MMseqs2, FastTree, ALV','INSTALLER'),
+            ('4','Installer tous les moteurs','Ajoute EMBOSS, MUSCLE, Clustal Omega, MMseqs2, FastTree, VSEARCH, ALV','INSTALLER'),
             ('m','Rechercher les modules HPC','Charger à la demande selon la politique de la session','HPC'),
             ('q','Retour','Reprendre l’analyse','NAVIGATION')],
             f'{found}/{len(rows)} commandes disponibles · préfixe {managed_prefix()}')

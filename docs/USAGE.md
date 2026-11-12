@@ -189,3 +189,13 @@ FastTree requiert au moins trois séquences alignées. Choisir un modèle adapt�
 La documentation est accessible au démarrage et dans **Réglages et aide → Documentation complète**. `alignview --docs` affiche l’index hors ligne ; `--docs cli` donne les options complètes.
 
 **Enregistrer et partager → Préparer un calcul sur HPC** crée `alignview_job.sbatch`. Enregistrer le projet pour conserver les entrées auxquelles il se réfère. Vérifier ressources Slurm, chemins et moteurs sur le cluster. Aucune soumission n’est automatique ; la relance produit ses résultats dans un dossier distinct du projet sauvegardé.
+
+## VSEARCH, langue et codes de traduction
+
+**Analyser → Analyses VSEARCH** donne quatre parcours nucléotidiques indépendants : recherche globale sur la requête active, déduplication, regroupement et chimères de novo. **Explorer → Résultats VSEARCH** permet de relire les résumés, aperçus et paramètres ; le HTML ajoute une vue VSEARCH. Voir [le guide complet](VSEARCH.md).
+
+La sélection de requête est proposée avant toute comparaison interactive multirequête, y compris le parcours guidé. En batch, `--query-id` reste obligatoire.
+
+**Réglages et aide → Langue / Language** change la langue de présentation. `--lang en` ou `ALIGNVIEW_LANG=en` active l’anglais depuis le lancement. Les identifiants et données scientifiques ne sont pas traduits. Les [guides anglais](en/README.md) sont aussi embarqués.
+
+Le choix de table se trouve dans **Traduction et régions codantes → Choisir la table de traduction**, et dans les paramètres des calculs traduits. `--genetic-code` règle QUERY et `--reference-genetic-code` les références. Voir [les limites et exemples](GENETIC_CODES.md).

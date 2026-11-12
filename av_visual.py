@@ -175,7 +175,7 @@ document.getElementById('searchSummary').innerHTML=`<p><b>Mode :</b> ${esc(D.mod
 document.getElementById('queryStats').innerHTML=`<p><b>Type :</b> ${esc(S.kind||'—')}</p><p><b>GC :</b> ${S.gc_pct===null?'non applicable':percent(S.gc_pct)}</p><p><b>Ambiguïtés :</b> ${esc(S.ambiguous??'—')}</p><p><b>Entropie :</b> ${esc(S.entropy??'—')} bits</p>`;
 document.getElementById('coverageSvg').innerHTML=D.coverageSVG||'<p class="muted">Aucune recherche de similarité.</p>';
 document.getElementById('profile').innerHTML=D.profileSVG||'<p class="muted">Aucune donnée.</p>';
-const localSearch=!!(D.hsps?.length||D.settings?.search_completed||D.referenceCount&&D.mode!=='msa'&&!D.mode.startsWith('global-'));
+const localSearch=!!(D.hsps?.length||D.settings?.search_completed||D.referenceCount&&D.mode!=='msa'&&D.mode!=='vsearch'&&!D.mode.startsWith('global-'));
 const tabLabels={overview:'Résumé',coverage:'Correspondances',sequences:'Séquences',msa:'Alignement',dotplot:'Dotplot',figures:'Figures',exports:'Exporter',provenance:'Paramètres',guide:'Comprendre'};
 const availableTabs={coverage:localSearch,msa:!!D.msa,dotplot:!!D.dotplot};
 document.querySelectorAll('[data-tab]').forEach(button=>{

@@ -32,7 +32,9 @@ from av_ui import UI,BLUE,BOLD,GREEN,CYAN,YELLOW,RED,GREY,HomeRequested
 from av_visual import coverage_svg,dotplot_svg,plot_svg
 from av_report_v6 import build_report_v6
 from av_tree import TREE_FIGURE, tree_svg
-from av_docs import TOPICS, read_document
+from av_docs import TOPICS, ALIASES as DOC_ALIASES, read_document
+from av_vsearch import ACTIONS as VSEARCH_ACTIONS
+from av_i18n import set_language, language, translate as tr
 from av_units import units_for, coord_audit
 from av_exports import generate_exports,PRESETS
 from av_start import startup, StartRequest, suggest_modes, choose_file, choose_sequence
@@ -45,6 +47,7 @@ from av_setup import PACKAGES, setup_tools, software_hub, diagnostic
 from av_msa_tui import MSAViewer, msa_static
 
 MODES={
+    'vsearch':('VSEARCH','Recherche globale de similarité entre séquences nucléotidiques'),
     'blastn':('BLASTN','ADN → ADN : recherche locale nucléotidique'),
     'blastp':('BLASTP','Protéine → protéine : recherche locale'),
     'blastx':('BLASTX','ADN → protéine : 6 cadres de traduction de QUERY'),
@@ -65,14 +68,18 @@ HELP_TEXT={
  'mafft':'MAFFT global (G-INS-i) / local (L-INS-i) sont des stratégies d’alignement multiple, et non des recherches d’homologie. MAFFT --auto choisit suivant les données. ADD-FRAGMENTS ajoute une requête partielle à un alignement de références.',
  'hsp':'MSA des HSP : segments alignables localement, sans les régions flanquantes. AlignView écarte les HSP ne recouvrant pas suffisamment la région ancre. Ne pas interpréter ce MSA comme des séquences intégrales.',
  'dot':'Dotplot = correspondances exactes de k-mers à leurs positions. Une diagonale suggère une colinéarité, plusieurs diagonales peuvent indiquer des répétitions ou duplications ; cela ne mesure pas une identité globale.',
- 'orf':'ORF = segment ATG → codon STOP sur l’un des six cadres dans le code génétique standard. Ce détecteur simple n’est pas un prédicteur de gènes : exons, démarrages alternatifs et codes mitochondriaux ne sont pas modélisés.',
+ 'orf':'ORF : segment entre un codon de départ et un STOP, dans la table NCBI choisie. Départs ATG par défaut ou initiateurs de la table. Les arrêts contextuels nécessitent une annotation CDS ; ce détecteur simple n’est pas un prédicteur de gènes.',
  'msa':'Sites variables = au moins deux résidus distincts non-gap dans une colonne ; informatifs en parcimonie = au moins deux états représentés chacun ≥ 2 fois. Distances p ignorent les colonnes avec gap dans une paire.',
  'save':'Tous les fichiers calculés sont temporaires. L’enregistrement est proposé une seule fois en fin de session, sauf si --save est indiqué explicitement. L’arrêt brutal de la session peut faire perdre les résultats.',
 }
 
 
+class CLIParser(argparse.ArgumentParser):
+    def error(self,message):super().error(tr(message))
+
+
 def build_parser():
-    p=argparse.ArgumentParser(prog='alignview',formatter_class=argparse.RawDescriptionHelpFormatter,
+    p=CLIParser(prog='alignview',formatter_class=argparse.RawDescriptionHelpFormatter,
         description='AlignView — exploration, alignements, visualisation et diagnostic en terminal.',
         epilog='Exemples :\n  ./alignview.sh query.fna refs.faa --mode blastx\n  ./alignview.sh sequences.fasta\n  ./alignview.sh query.fna refs.faa --mode diamond-blastx --report --save\n  ./alignview.sh query.fna refs.fna --mode blastn --msa full --save --no-menu')
     section_0=p.add_argument_group('Entrées et reprise')
@@ -112,6 +119,8 @@ def build_parser():
     section_2.add_argument('--dotplot',action='store_true',help='Générer dotplot QUERY / meilleure référence')
     section_2.add_argument('--kmer',type=int,default=9,help='Longueur des mots du dotplot (9)')
     section_2.add_argument('--motif',default='',help='Motif IUPAC sur la requête')
+    section_2.add_argument('--vsearch',choices=['none',*VSEARCH_ACTIONS],default='none',help='Analyse nucléotidique VSEARCH : recherche, déduplication, regroupement ou chimères')
+    section_5.add_argument('--list-genetic-codes',action='store_true',help='Afficher les tables de traduction NCBI disponibles, puis quitter')
     section_3.add_argument('--out',default='',help='Dossier du projet avec --save ; chemin relatif au dossier de lancement, créé à la fin')
     section_3.add_argument('--save',action='store_true',help='Sauvegarde explicite à la fin (batch compris)')
     section_5.add_argument('--no-menu',action='store_true',help='Sans menu interactif')
@@ -129,7 +138,7 @@ def build_parser():
                    help='Exporter explicitement les fichiers tabulaires dans ce dossier, même sans --save')
     section_4.add_argument('--diagnose',action='store_true',help='Diagnostic PATH/modules puis sortie')
     section_5.add_argument('--list-tools',action='store_true',help='Lister les fonctionnalités')
-    section_5.add_argument('--docs',nargs='?',const='index',choices=list(TOPICS),help='Consulter un guide hors ligne, sans ouvrir de données (défaut : index)')
+    section_5.add_argument('--docs',nargs='?',const='index',choices=[*TOPICS,*DOC_ALIASES],help='Consulter un guide hors ligne, sans ouvrir de données (défaut : index)')
     section_0.add_argument('--resume',metavar='PROJET',help='Reprendre un projet sauvegardé sans relancer ses calculs')
     section_0.add_argument('--demo',action='store_true',help='Explorer un exemple embarqué sans outil externe')
     section_4.add_argument('--setup',choices=sorted(PACKAGES),help='Préparer l’installation de moteurs via Conda/Mamba')
@@ -137,11 +146,23 @@ def build_parser():
     section_4.add_argument('--tools-prefix',help='Préfixe Conda dédié (ou ALIGNVIEW_TOOLS_PREFIX)')
     section_4.add_argument('--diagnose-json',action='store_true',help='Diagnostic machine-readable JSON, sans chargement de modules')
     section_5.add_argument('--version',action='version',version='AlignView '+VERSION)
+    section_5.add_argument('--lang',choices=('fr','en'),default='en' if os.environ.get('ALIGNVIEW_LANG')=='en' else 'fr',help='Langue de l’interface, du HTML et des guides (ou ALIGNVIEW_LANG)')
     add_arguments(p)
+    for group in p._action_groups:
+        group.title=tr(group.title)
+        for action in group._group_actions:
+            if action.help and action.help!=argparse.SUPPRESS:action.help=tr(action.help)
+    p.description=tr(p.description);p.epilog=tr(p.epilog)
     return p
 
 
 def parse_args(argv=None):
+    raw=list(argv if argv is not None else sys.argv[1:])
+    selected='en' if os.environ.get('ALIGNVIEW_LANG')=='en' else 'fr'
+    for i,token in enumerate(raw):
+        if token.startswith('--lang='):selected=token.split('=',1)[1]
+        elif token=='--lang' and i+1<len(raw):selected=raw[i+1]
+    set_language(selected if selected in ('fr','en') else 'fr')
     p=build_parser()
     a=p.parse_args(argv)
     source=list(argv if argv is not None else sys.argv[1:])
@@ -160,7 +181,10 @@ def parse_args(argv=None):
     try:validate_parameters(a)
     except ValueError as exc:p.error(str(exc))
     # Sans fichiers, l'interface démarre sur l'écran d'accueil (sauf en batch).
-    if not a.query and a.no_menu and not (a.diagnose or a.diagnose_json or a.list_tools or a.docs or a.setup or a.resume or a.demo or a.write_profile):p.error('Préciser un FASTA en mode --no-menu')
+    if not a.query and a.no_menu and not (a.diagnose or a.diagnose_json or a.list_tools or a.list_genetic_codes or a.docs or a.setup or a.resume or a.demo or a.write_profile):p.error('Préciser un FASTA en mode --no-menu')
+    if a.mode=='vsearch' and a.vsearch=='none':a.vsearch='search'
+    if a.vsearch=='search' and a.mode is None and not a.resume:a.mode='vsearch'
+    if a.vsearch!='none' and a.mode not in (None,'msa','vsearch'):p.error('Utiliser --vsearch sans mode BLAST/DIAMOND ; les analyses ont des métriques différentes.')
     if not all(math.isfinite(x) for x in (a.evalue,a.identity,a.coverage,a.bitscore,a.gapopen,a.gapextend)) or a.ref<1 or a.gapopen<0 or a.gapextend<0 or a.evalue<=0 or a.hits<1 or a.threads<1 or a.kmer<2 or a.kmer>60 or not 0<=a.identity<=100 or not 0<=a.coverage<=100 or a.bitscore<0 or not 0<=a.preview_port<=65535:
         p.error('Valeurs invalides : evalue > 0, hits/threads > 0, 2 ≤ kmer ≤ 60, identité/couverture entre 0 et 100')
     if a.install_tools and not a.setup:p.error('--install-tools nécessite --setup PROFIL')
@@ -223,9 +247,6 @@ class Session:
                 raise ValueError(f'Identifiant QUERY introuvable : {args.query_id}')
             if candidate is None and (args.no_menu or not ui.tty):
                 raise ValueError('FASTA QUERY multiple : préciser --query-id en mode non interactif.')
-            if candidate is None and (getattr(args,'_guided',False) or args.mode is None):
-                candidate=self.query_list[0]
-                ui.notice='Première requête active ; Données permet d’en choisir une autre avant le calcul.'
             if candidate is None:
                 labels=[(str(i),r.id,f'{len(r.seq):,} caractères · {sequence_type(r.seq)}','SÉQUENCES') for i,r in enumerate(self.query_list,1)]
                 choice=ui.menu('Choisir la requête active',labels,
@@ -242,7 +263,7 @@ class Session:
         self.refs_search_path=self.work/'references_active.fasta' if self.refs_path else None
         if self.refs_search_path:write_fasta(self.references,self.refs_search_path)
         self.tools=Toolchain(self.work,ui,auto_modules=args.module_policy=='auto',executable_paths=args.executable,tool_dirs=args.tools_dir)
-        self.hsps=[];self.selected={};self.msa_records=None;self.msa_file=None
+        self.hsps=[];self.selected={};self.msa_records=None;self.msa_file=None;self.vsearch_results={}
         self.dot_data=None;self.motif_rows=[];self.orf_rows=[]
         self.created=[];self.mode=args.mode or ('msa' if self.single else '')
         self.start=datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -257,6 +278,7 @@ class Session:
         if self.single:return
         ref_type=collections.Counter(sequence_type(r.seq) for r in self.references).most_common(1)[0][0]
         types={
+            'vsearch':('ADN/ARN','ADN/ARN'),
             'blastn':('ADN/ARN','ADN/ARN'),'blastp':('protéine','protéine'),
             'blastx':('ADN/ARN','protéine'),'mmseqs-blastp':('protéine','protéine'),'tblastn':('protéine','ADN/ARN'),
             'tblastx':('ADN/ARN','ADN/ARN'),'diamond-blastp':('protéine','protéine'),
@@ -276,6 +298,8 @@ class Session:
         d.update({p.name:getattr(self.a,p.name,p.default) for p in PARAMETERS})
         d['native_defaults']='Options non transmises : défauts de la version du moteur enregistrée dans commands.json.'
         d['calculation_runs']=self.calculation_runs
+        d['language']=language()
+        d['vsearch_analyses']={action:{k:value for k,value in result.items() if k!='preview'} for action,result in self.vsearch_results.items()}
         u=units_for(self.mode,sequence_type(self.query.seq))
         d['units']={'query_coordinates':u.query,'reference_coordinates':u.subject,'alignment_columns':u.aligned,'msa_columns':u.msa}
         d['timestamp_utc']=self.start;d['query']=str(self.query_path);d['active_query_id']=self.query.id
@@ -346,8 +370,8 @@ class Session:
             ('Dotplot','généré' if self.dot_data else 'non généré'),
             ('Dossier de lancement',str(Path.cwd())),
             ('Sauvegarde','modifications à enregistrer' if self.dirty else 'projet enregistré')]:
-            print('  '+self.ui.c(GREY,f'{k:<18}')+str(v))
-        self.ui.info('Modules chargés : '+(', '.join(m for _,m in self.tools.loaded) or 'aucun, PATH utilisé'))
+            print('  '+self.ui.c(GREY,f'{tr(k):<23}')+tr(v))
+        self.ui.info('Modules chargés : '+(', '.join(m for _,m in self.tools.loaded) or tr('aucun, PATH utilisé')))
         if self.last_saved:self.ui.info('Dernière copie enregistrée : '+str(self.last_saved))
 
 
@@ -550,11 +574,12 @@ class Session:
         if preview:
             translated=self.mode in ('blastx','diamond-blastx','tblastx','tblastn')
             return (f'Séquences : {self.query.id} / {ref.id}.\n'+
-                (f'Traduction complète, code 1 : QUERY cadre {qframe}, référence cadre {sframe} si applicable ; STOP conservés.\n' if translated else '')+result)
+                (f'Traduction complète : QUERY cadre {qframe}, table {self.a.genetic_code} ; référence cadre {sframe}, table {self.a.reference_genetic_code or self.a.genetic_code} ; STOP conservés.\n' if translated else '')+result)
         file,_=result
         self.a.pairwise='global' if algorithm=='needle' else 'local'
         self.record_calculation(algorithm,calculation_settings(algorithm,self.a,self.mode),
-            reference=ref.id,query_frame=qframe,reference_frame=sframe,genetic_code=1)
+            reference=ref.id,query_frame=qframe,reference_frame=sframe,genetic_code=self.a.genetic_code,
+            reference_genetic_code=self.a.reference_genetic_code or self.a.genetic_code)
         self.dirty=True
         show_file(file,self.ui,max_lines=180)
         self.created.append(str(file.name))
@@ -585,8 +610,8 @@ class Session:
                     self.ui.warn('Aucun cadre détecté ou forcé : utilisation explicite du cadre QUERY +1 (--frame pour changer).')
                 if frame not in (-3,-2,-1,1,2,3):self.ui.warn('Cadre invalide');return
                 if len(frames)>1:self.ui.warn(f'Cadres différents {sorted(frames)} : seule QUERY frame {frame} est utilisée.')
-                tr=translate_nt(self.query.seq,frame).replace('*','X')
-                self._msa_preparation.update(query_frame=frame,genetic_code=1,stop_handling='STOP remplacés par X')
+                tr=translate_nt(self.query.seq,frame,self.a.genetic_code).replace('*','X')
+                self._msa_preparation.update(query_frame=frame,genetic_code=self.a.genetic_code,stop_handling='STOP remplacés par X')
                 query_record=Seq('QUERY',f'QUERY_frame_{frame}',tr)
                 self.ui.info('QUERY ADN traduite en protéine (STOP remplacés par X pour MAFFT).')
             else:query_record=Seq('QUERY','QUERY',self.query.seq)
@@ -616,7 +641,7 @@ class Session:
 
     def msa_preparation_text(self):
         if self._msa_preparation.get('query_frame'):
-            return f'Préparation : QUERY traduite en cadre {self._msa_preparation["query_frame"]}, code génétique standard (1), STOP remplacés par X.'
+            return f'Préparation : QUERY traduite en cadre {self._msa_preparation["query_frame"]}, table NCBI {self.a.genetic_code}, STOP remplacés par X.'
         return 'Préparation : séquences intégrales ; aucune traduction supplémentaire.'
 
     def _msa_hsps(self,preview=False):
@@ -691,7 +716,7 @@ class Session:
         if any(len(r.seq)!=ncol for r in seqs):
             self.ui.warn('Longueurs différentes : FASTA non aligné. Utiliser MAFFT au préalable.');return
         if not self.ui.tty:
-            print(msa_static(seqs,width=75,limit=40,color=False))
+            print(tr(msa_static(seqs,width=75,limit=40,color=False)))
             return
         if self._viewer is None or self._viewer.seqs is not seqs:
             self._viewer=MSAViewer(seqs,color=self.ui.color)
@@ -732,6 +757,49 @@ class Session:
         for i,row in enumerate(matrix,1):
             print(f'  {i:>3}  '+' '.join('     NA' if value is None else f'{value:7.3f}' for value in row))
         self.ui.info('Distance p non corrigée ; les colonnes à gap sont exclues par paire. Maximum 250 séquences.')
+
+    def vsearch_run(self,action,preview=False):
+        from av_vsearch import commands, summarize, publish_directory
+        source=[self.query] if action=='search' else self.query_list
+        references=self.references if action=='search' else []
+        if action=='search' and not references:raise ValueError('VSEARCH recherche : charger un FASTA de références.')
+        if any(sequence_type(record.seq)!='ADN/ARN' for record in [*source,*references]):
+            raise ValueError('VSEARCH nécessite des séquences nucléotidiques ; les protéines ne sont pas prises en charge.')
+        def normalized(records):
+            return [Seq(r.id,r.id,r.seq.upper().replace('-','').replace('.','').replace('U','T')) for r in records]
+        normalized_source=normalized(source)
+        eligible=sum(self.a.vsearch_min_length<=len(r.seq)<=self.a.vsearch_max_length for r in normalized_source)
+        if not eligible:raise ValueError('VSEARCH : aucune séquence dans les limites de longueur choisies.')
+        pending=self.work/('pending_vsearch_'+action)
+        if pending.exists():shutil.rmtree(pending)
+        pending.mkdir()
+        input_file=pending/'input.fasta';write_fasta(normalized_source,input_file)
+        refs=pending/'references.fasta' if references else None
+        if refs:write_fasta(normalized(references),refs)
+        prepared=commands(action,input_file,refs,pending,self.a)
+        preparation=f'{len(source)} séquences · gaps retirés et U→T · {eligible} dans les limites de longueur.'
+        if preview:return preparation+'\n\n'+self.tools.describe(prepared)
+        self.ui.info(preparation)
+        self._calculation_start=len(self.tools.history)
+        self.tools.execute(prepared)
+        summary,rows=summarize(action,pending,len(source),eligible)
+        settings=calculation_settings('vsearch',self.a,self.mode,strategy=action)
+        settings['action']=action
+        result={'action':action,'engine':'VSEARCH','settings':settings,'summary':summary,'preview':rows,
+                'preparation':{'gaps_removed':True,'rna_to_dna':True,'query_id':self.query.id if action=='search' else None},
+                'commands':[dict(row) for row in self.tools.history[self._calculation_start:]]}
+        (pending/'result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
+        parent=self.work/'vsearch';parent.mkdir(exist_ok=True)
+        target=parent/action
+        publish_directory(pending,target)
+        self.vsearch_results[action]=result
+        (parent/'analyses.json').write_text(json.dumps(self.vsearch_results,ensure_ascii=False,indent=2),encoding='utf-8')
+        self.record_calculation('vsearch_'+action,settings,summary=summary)
+        self.dirty=True
+        self.ui.success('Analyse VSEARCH terminée : '+action)
+        for key,value in summary.items():self.ui.info(f'{key} : {value}')
+        self.ui.info('Fichiers : vsearch/'+action+'/ · résultats intégrés au prochain HTML.')
+        return result
 
     def make_tree(self,preview=False):
         """FastTree sur MSA préexistant ; méthode exploratoire, non datée."""
@@ -788,27 +856,33 @@ class Session:
     def find_orfs(self):
         self.ui.heading('ORF FINDER / SIX CADRES')
         if sequence_type(self.query.seq)!='ADN/ARN':self.ui.warn('QUERY nucléotidique requise.');return
-        n=self.ui.ask('Longueur minimale en acides aminés','60','ORF ATG → STOP, code génétique standard')
+        n=self.ui.ask('Longueur minimale en acides aminés','60',f'ORF : table NCBI {self.a.genetic_code} · départs {self.a.orf_starts}')
         try:min_aa=int(n)
         except ValueError:self.ui.warn('Longueur invalide');return
         if min_aa<1:self.ui.warn('Longueur positive requise');return
-        rows=orfs(self.query,min_aa,include_partial=False);self.orf_rows=rows
+        rows=orfs(self.query,min_aa,include_partial=False,table=self.a.genetic_code,starts=self.a.orf_starts);self.orf_rows=rows
         export_table(self.work/'orfs.tsv',rows,['seqid','start','end','frame','strand','length_aa','complete'])
         write_fasta([Seq(f'ORF_{i}',f'ORF_{i} {r["seqid"]}:{r["start"]}-{r["end"]} frame={r["frame"]}',r['protein'])
                      for i,r in enumerate(rows,1)],self.work/'orfs.faa')
+        self._calculation_start=len(self.tools.history)
+        self.record_calculation('orfs',calculation_settings('translation',self.a,self.mode),
+            engine='AlignView Python',version=VERSION,minimum_aa=min_aa,output_sha256=sha256(self.work/'orfs.faa'))
         self.ui.info(f'{len(rows)} ORF complètes (≥{min_aa} aa)')
         for r in rows[:35]:print(f'  {r["start"]:>9}–{r["end"]:<9}  cadre {r["frame"]:>2}  {r["length_aa"]:>5} aa  {r["strand"]}')
         self.ui.warn('Ce détecteur simple ne remplace pas Prodigal/GeneMark ni une annotation structurale.')
 
     def translate_frames(self):
-        self.ui.heading('TRADUCTION SIX CADRES / CODE STANDARD')
+        self.ui.heading(f'TRADUCTION SIX CADRES / TABLE NCBI {self.a.genetic_code}')
         if sequence_type(self.query.seq)!='ADN/ARN':self.ui.warn('QUERY nucléotidique requise.');return
         seqs=[]
         for frame in (1,2,3,-1,-2,-3):
-            aa=translate_nt(self.query.seq,frame)
-            seqs.append(Seq(f'frame_{frame}',f'QUERY frame {frame}',aa))
+            aa=translate_nt(self.query.seq,frame,self.a.genetic_code)
+            seqs.append(Seq(f'frame_{frame}',f'QUERY frame {frame} table={self.a.genetic_code}',aa))
             print(f'  {frame:>2}  {len(aa)} aa  {aa.count("*")} STOP  {aa[:95]}'+('…' if len(aa)>95 else ''))
         write_fasta(seqs,self.work/'six_frames.faa')
+        self._calculation_start=len(self.tools.history)
+        self.record_calculation('translation',calculation_settings('translation',self.a,self.mode),
+            engine='AlignView Python',version=VERSION,output_sha256=sha256(self.work/'six_frames.faa'))
         self.ui.info('Traductions complètes dans six_frames.faa (sur demande de sauvegarde).')
 
     def extract_region(self):
@@ -872,11 +946,11 @@ class Session:
         if u.translated_query:
             frame_q=self.a.frame or (best.qframe if best else None)
             if not frame_q:raise ValueError('Dotplot traduit : un HSP avec cadre QUERY ou --frame explicite est nécessaire.')
-            q=translate_nt(q,frame_q).replace('*','X')
+            q=translate_nt(q,frame_q,self.a.genetic_code).replace('*','X')
         if u.translated_subject:
             frame_s=best.sframe if best else None
             if not frame_s:raise ValueError('Dotplot traduit : un HSP avec cadre de référence connu est nécessaire.')
-            r=translate_nt(r,frame_s).replace('*','X')
+            r=translate_nt(r,frame_s,self.a.reference_genetic_code or self.a.genetic_code).replace('*','X')
         dtypeq='aa' if u.translated_query else u.query
         dtypes='aa' if u.translated_subject else u.subject
         if dtypeq!=dtypes:raise ValueError('Dotplot : alphabets incompatibles ; traduire les séquences avant comparaison.')
@@ -936,6 +1010,7 @@ class Session:
     def resume_actions(self):
         """Only explicit actions run after resuming; saved action flags stay inert."""
         explicit=getattr(self.a,'_explicit',set())
+        if 'vsearch' in explicit and self.a.vsearch!='none':self.vsearch_run(self.a.vsearch)
         if 'msa' in explicit and self.a.msa!='none':
             if self.single and self.a.msa in ('hits','hsp','fragments'):
                 raise ValueError('Cette stratégie MSA nécessite un FASTA de références.')
@@ -1067,6 +1142,9 @@ class Session:
         if self.a.tree:command+=['--tree']
         if self.a.dotplot:command+=['--dotplot','--kmer',str(self.a.kmer)]
         if self.a.motif:command+=['--motif',self.a.motif]
+        if self.a.vsearch!='none':command+=['--vsearch',self.a.vsearch]
+        command+=['--lang',self.a.lang]
+        if self.a.tools_prefix:command+=['--tools-prefix',self.a.tools_prefix]
         command+=extra_cli(self.a)
         command+=['--threads',str(threads),'--hits',str(self.a.hits),'--evalue',str(self.a.evalue),
                   '--identity',str(self.a.identity),'--coverage',str(self.a.coverage),'--no-menu','--report','--save','--out',location]
@@ -1134,6 +1212,13 @@ class Session:
             self.save_settings()
             return
         self.ui.banner('ALIGNEMENTS / EXPLORATION GUIDÉE')
+        if self.a.vsearch!='none':
+            self.vsearch_run(self.a.vsearch)
+            if self.a.msa=='view':self.load_msa()
+            elif self.a.msa!='none':self.msa_run('all')
+            if self.a.tree:self.make_tree()
+            if self.a.report:self.make_report()
+            return
         if self.single:
             self.single_intro()
             if self.a.motif:
@@ -1267,8 +1352,8 @@ def show_tool_list():
                                            'CSV, TSV, JSON/JSONL, BED, GFF3, NEXUS, PHYLIP, Stockholm et SHA256','Script Slurm, modules automatiques et logs',
                                            'Documentation hors ligne : --docs ; HTML seul : --html-out rapport.html']}
     for group,items in groups.items():
-        print('\n'+group)
-        for item in items:print('  • '+item)
+        print('\n'+tr(group))
+        for item in items:print('  • '+tr(item))
 
 
 def _apply_start(args,request,demo_root):
@@ -1309,11 +1394,16 @@ def main(argv=None):
     if args.docs:
         try:
             content=read_document(args.docs)
-            if ui.tty and not args.no_menu:ui.page(content,TOPICS[args.docs][1])
+            if ui.tty and not args.no_menu:ui.page(content,TOPICS[DOC_ALIASES.get(args.docs,args.docs)][1])
             else:print(content,end='' if content.endswith('\n') else '\n')
             return 0
         except (ValueError,OSError) as exc:ui.error(str(exc));return 1
     if args.list_tools:show_tool_list();return 0
+    if args.list_genetic_codes:
+        from av_genetics import TABLES, context_dependent
+        for identifier,(name,_,_) in TABLES.items():
+            print(f'{identifier:>2}  {name}'+(' · arrêts contextuels' if context_dependent(identifier) else ''))
+        return 0
     if args.setup:
         try:setup_tools(ui,args.setup,args.tools_prefix,args.install_tools);return 0
         except (ValueError,CommandError,OSError) as exc:ui.error(str(exc));return 1
@@ -1359,6 +1449,7 @@ def main(argv=None):
                 fresh.resume=None;fresh.demo=False;fresh.save=False;fresh.out='';fresh.export_dir=''
                 fresh.html_out='';fresh._explicit=set()
                 fresh.msa='none';fresh.tree=False;fresh.pairwise='none';fresh.report=False;fresh.dotplot=False
+                fresh.vsearch='none'
                 if request in ('query','reconfigure'):
                     from av_project import read_project
                     root,state=read_project(archive)

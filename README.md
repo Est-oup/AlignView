@@ -2,6 +2,8 @@
 
 **Explorer des séquences, construire des alignements et partager des résultats compréhensibles.**
 
+[English version](README_EN.md) · `--lang fr` / `--lang en` · `ALIGNVIEW_LANG=en`
+
 Application terminal pour Linux et SSH/HPC, Python 3.10+, sans dépendance Python obligatoire. Version locale : **0.1.0**. Le rapport HTML est autonome ; les figures sont exportables en SVG.
 
 ## Lancer l’application
@@ -34,7 +36,7 @@ L’aide est disponible au démarrage avec **Lire la documentation**, ou dans **
 | Rubrique | Fonctions principales |
 | --- | --- |
 | **1 · Explorer** | Visionneuse MSA, séquences, qualité, HSP, couvertures, conservation, distances, arbre |
-| **2 · Analyser** | Recherches BLAST/DIAMOND/MMseqs2, MSA, Needle/Water, motifs, traduction, ORF, profils, dotplot |
+| **2 · Analyser** | Recherches BLAST/DIAMOND/MMseqs2, analyses VSEARCH, MSA, Needle/Water, motifs, traduction, ORF, profils, dotplot |
 | **3 · Données** | Séquence active, changement de fichiers, historique et reprise de projet |
 | **4 · Enregistrer et partager** | Projet portable, HTML, tables, alignements, SVG et script Slurm |
 | **5 · Réglages et aide** | Moteurs, paramètres, profils JSON, provenance et documentation complète |
@@ -84,6 +86,14 @@ Après un calcul FastTree, **Voir l’arbre** ouvre sa figure avec identifiants,
 
 Le [guide du HTML](docs/HTML.md) explique les vues et les limites de données intégrées. Les exports applicatifs complets sont décrits dans [Formats et coordonnées](docs/EXPORTS.md).
 
+## VSEARCH, requêtes multiples et traduction
+
+**Comparer à des références** ouvre une liste si le FASTA de requêtes contient plusieurs séquences ; `/` filtre les identifiants. En batch, choisir `--query-id`. **Analyser → Analyses VSEARCH** propose recherche globale, déduplication, regroupement et chimères. **Traduction et régions codantes → Choisir la table de traduction** donne les tables NCBI et leurs noms. Les écrans de préparation affichent le moteur, sa version, sa provenance et son chemin.
+
+[Guide VSEARCH](docs/VSEARCH.md) · [Tables de traduction](docs/GENETIC_CODES.md).
+
+VSEARCH peut être installé avec `./alignview.sh --setup vsearch --tools-prefix "$PWD/tools" --install-tools` depuis le dossier de l’application. Les paramètres affichés dépendent de l’analyse choisie.
+
 ## Moteurs et paramètres
 
 La lecture, la visualisation et les analyses internes fonctionnent sans moteur externe. MAFFT/MUSCLE/Clustal Omega créent les MSA ; BLAST/DIAMOND/MMseqs2 effectuent les recherches ; EMBOSS compare deux séquences ; FastTree calcule un arbre.
@@ -106,4 +116,4 @@ Une nouvelle recherche conserve jusqu’à **100 références** par défaut. Les
 
 [Développement](docs/DEVELOPMENT.md) · [Publication](docs/RELEASING.md) · [Audit et limites](docs/AUDIT.md) · [Contribuer](CONTRIBUTING.md) · [Licence MIT](LICENSE).
 
-Les FASTA et MSA sont chargés en mémoire. L’import interactif est FASTA/FASTA gzip ; les autres formats annoncés sont des exports. Les arbres et ORF sont exploratoires ; les traductions utilisent le code standard. Les distributions sont préparées localement, sans publication PyPI/Bioconda revendiquée. La validation locale ne remplace pas les essais sur le cluster et les données réellement utilisés.
+Les FASTA et MSA sont chargés en mémoire. L’import interactif est FASTA/FASTA gzip ; les autres formats annoncés sont des exports. Les arbres et ORF sont exploratoires ; les traductions utilisent la table NCBI choisie (1 par défaut). Les distributions sont préparées localement, sans publication PyPI/Bioconda revendiquée. La validation locale ne remplace pas les essais sur le cluster et les données réellement utilisés.

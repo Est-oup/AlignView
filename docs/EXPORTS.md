@@ -13,7 +13,7 @@
 | Partager une exploration autonome | HTML | Un seul fichier HTML, sans réseau, contenant les figures intégrées |
 | Avoir un PDF | Depuis le HTML : Imprimer / PDF | Fonction du navigateur, pas un moteur PDF installé par AlignView |
 
-Depuis l’accueil, « Rapports et exports » ouvre le centre d’export. Le raccourci `s` enregistre un projet portable. Dans la visionneuse MSA, `e` exporte le HTML. En batch : `--export-profile standard|publication|complete --export-dir dossier`, sans `--save` pour ne conserver que les exports.
+Depuis l’accueil, **Enregistrer et partager → Exporter les résultats** ouvre le centre d’export. Le raccourci `s` enregistre un projet portable. Dans la visionneuse MSA, `e` exporte le HTML. En batch : `--export-profile standard|publication|complete --export-dir dossier`, sans `--save` pour ne conserver que les exports.
 
 ## Fichiers
 
@@ -28,6 +28,7 @@ Depuis l’accueil, « Rapports et exports » ouvre le centre d’export. Le rac
 - `msa_alignment.nex`, `msa_alignment.phy`, `msa_alignment.sto`, `msa_alignment.aln` : export pour logiciel phylogénétique ; le PHYLIP est *relaxed*, avec tables de correspondance des identifiants (PHYLIP, Stockholm et CLUSTAL).
 - `msa_positions.tsv/csv`, `msa_pairwise_distances.tsv/csv` : statistiques par colonne du MSA et distances p entre séquences.
 - `tree_fasttree.nwk`, `figures/45_arbre_fasttree.svg` : arbre FastTree et figure vectorielle avec longueurs, supports et échelle. La figure est intégrée au HTML ; le Newick et le SVG sont aussi inclus dans les exports publication/complet. La racine du dessin est arbitraire ; les supports SH-like sont locaux, pas des bootstraps.
+- `vsearch/` : fichiers complets des analyses VSEARCH (TSV/UC/FASTA), résumés, paramètres et commandes ; présent dans tous les profils lorsque ces analyses existent.
 - `provenance.json` : versions du projet/Python, plateforme, paramètres, commandes, modules chargés, hashes d'entrée.
 - `MANIFEST.tsv` : tailles et empreintes SHA256 des exports ; auto-exclu pour éviter un checksum récursif.
 
@@ -48,3 +49,7 @@ Les distances p sont calculées en ignorant les caractères gaps/manquants dans 
 ## Audit d’unités et figures
 
 `coordinate_units.tsv` précise les unités pour le mode employé. `coordinate_audit.tsv` compare les étendues natives aux résidus non-gap des alignements, avec ratio 3 nt/aa pour les séquences traduites. Le rapport HTML autonome, les SVG et `figures_catalog.tsv` sont inclus dans les profils publication et complet, si générés. `MANIFEST.tsv` fournit les hashes SHA256 des fichiers exportés.
+
+## Profils, moteurs et traductions
+
+Les profils standard/publication/complete concernent les fichiers, pas la sensibilité des moteurs. Les analyses VSEARCH gardent leurs propres métriques globales et ne reçoivent pas d’E-value ou bitscore fictifs. Les codes NCBI choisis sont conservés dans les paramètres et les commandes de recherche traduite. Les traductions internes et ORF ont leur bloc de provenance spécifique ; changer la table ensuite ne modifie pas cette trace historique. Les en-têtes de colonnes et les identifiants restent stables en anglais ; la présentation et les guides changent de langue.

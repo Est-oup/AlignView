@@ -43,7 +43,7 @@ Les modes, les stratégies et leurs limites sont expliqués dans [les parcours](
 | `query` | — | FASTA de la requête, ou FASTA unique à explorer |
 | `--query-id` | '' | Identifiant FASTA à utiliser comme requête quand le premier fichier en contient plusieurs |
 | `references` | — | FASTA des références |
-| `--mode` | — | Programme de recherche ou alignement Valeurs : msa, blastn, blastp, blastx, tblastn, tblastx, diamond-blastp, diamond-blastx, mmseqs-blastp, global-dna, global-aa. |
+| `--mode` | — | Programme de recherche ou alignement Valeurs : msa, vsearch, blastn, blastp, blastx, tblastn, tblastx, diamond-blastp, diamond-blastx, mmseqs-blastp, global-dna, global-aa. |
 | `--resume` | — | Reprendre un projet sauvegardé sans relancer ses calculs |
 | `--demo` | False | Explorer un exemple embarqué sans outil externe |
 
@@ -79,6 +79,7 @@ Les modes, les stratégies et leurs limites sont expliqués dans [les parcours](
 | `--dotplot` | False | Générer dotplot QUERY / meilleure référence |
 | `--kmer` | 9 | Longueur des mots du dotplot (9) |
 | `--motif` | '' | Motif IUPAC sur la requête |
+| `--vsearch` | 'none' | Analyse nucléotidique VSEARCH : recherche, déduplication, regroupement ou chimères Valeurs : none, search, dereplicate, cluster, chimeras. |
 
 ## Rapports, exports et sauvegardes
 
@@ -100,7 +101,7 @@ Les modes, les stratégies et leurs limites sont expliqués dans [les parcours](
 | `--tools-dir` | [] | Ajouter des exécutables locaux au PATH d’AlignView (répétable) |
 | `--module-policy` | 'auto' | auto : modules HPC si commande absente ; never : PATH et chemins seulement Valeurs : auto, never. |
 | `--diagnose` | False | Diagnostic PATH/modules puis sortie |
-| `--setup` | — | Préparer l’installation de moteurs via Conda/Mamba Valeurs : alv, blast, clustalo, diamond, emboss, fasttree, full, mafft, minimal, mmseqs, muscle. |
+| `--setup` | — | Préparer l’installation de moteurs via Conda/Mamba Valeurs : alv, blast, clustalo, diamond, emboss, fasttree, full, mafft, minimal, mmseqs, muscle, vsearch. |
 | `--install-tools` | False | Exécuter le plan --setup dans un environnement dédié |
 | `--tools-prefix` | — | Préfixe Conda dédié (ou ALIGNVIEW_TOOLS_PREFIX) |
 | `--diagnose-json` | False | Diagnostic machine-readable JSON, sans chargement de modules |
@@ -109,17 +110,37 @@ Les modes, les stratégies et leurs limites sont expliqués dans [les parcours](
 
 | Option | Défaut | Rôle et valeurs |
 | --- | --- | --- |
+| `--list-genetic-codes` | False | Afficher les tables de traduction NCBI disponibles, puis quitter |
 | `--no-menu` | False | Sans menu interactif |
 | `--simple-ui` | False | Menus numérotés classiques |
 | `--no-color` | False | Sans couleurs ANSI |
 | `--list-tools` | False | Lister les fonctionnalités |
-| `--docs` | — | Consulter un guide hors ligne, sans ouvrir de données (défaut : index) Valeurs : index, demarrage, parcours, fichiers, installation, parametres, html, exports, cli, depannage, glossaire, developpement, publication, audit. |
+| `--docs` | — | Consulter un guide hors ligne, sans ouvrir de données (défaut : index) Valeurs : index, demarrage, parcours, fichiers, installation, parametres, html, exports, cli, depannage, glossaire, vsearch, translation, developpement, publication, audit, getting-started, quickstart, usage, files, parameters, troubleshooting, glossary, development, releasing, genetics. |
 | `--version` | — | show program's version number and exit |
+| `--lang` | 'fr' | Langue de l’interface, du HTML et des guides (ou ALIGNVIEW_LANG) Valeurs : fr, en. |
 
 ## Autres paramètres scientifiques
 
 | Option | Défaut | Rôle et valeurs |
 | --- | --- | --- |
+| `--genetic-code` | 1 | Table de traduction QUERY (NCBI) : Code utilisé pour les traductions internes et les recherches traduites de la requête. Valeurs : 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33. |
+| `--reference-genetic-code` | — | Table de traduction des références : Vide : même table que QUERY ; transmis à TBLASTN/TBLASTX et aux traductions des références. Valeurs : 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33. |
+| `--orf-starts` | 'atg' | Codons de départ des ORF : atg : ATG uniquement ; table : tous les initiateurs de la table NCBI choisie. Valeurs : atg, table. |
+| `--vsearch-id` | 0.97 | Identité minimale VSEARCH : Fraction de 0 à 1, distincte du filtre d’identité locale BLAST. |
+| `--vsearch-iddef` | 2 | Définition d’identité VSEARCH : 0 à 4 ; 2 : exclut les gaps terminaux. Lire la documentation VSEARCH. Valeurs : 0, 1, 2, 3, 4. |
+| `--vsearch-strand` | 'both' | Brins VSEARCH : both : recherche et regroupement sur les deux brins ; UCHIME de novo travaille sur le brin plus. Valeurs : plus, both. |
+| `--vsearch-query-cov` | 0.0 | Couverture minimale de la requête VSEARCH : Fraction de 0 à 1, calculée par VSEARCH. |
+| `--vsearch-target-cov` | 0.0 | Couverture minimale des références VSEARCH : Fraction de 0 à 1, calculée par VSEARCH. |
+| `--vsearch-maxaccepts` | 0 | Candidats acceptés avant arrêt : 0 : pas de plafond de candidats acceptés ; distinct du maximum de références rapportées. |
+| `--vsearch-maxrejects` | 32 | Candidats rejetés avant arrêt : 0 : pas d’arrêt sur rejets ; mettre aussi maxaccepts et minwordmatches à 0 pour une recherche exhaustive. |
+| `--vsearch-minwordmatches` | 10 | Mots communs minimum VSEARCH : 0 désactive ce préfiltre ; utile aux séquences courtes, avec un coût plus élevé. |
+| `--vsearch-masking` | 'dust' | Masquage VSEARCH : dust : faible complexité ; none : aucun. Les entrées internes sont normalisées en majuscules. Valeurs : none, dust. |
+| `--vsearch-n-mismatch / --no-vsearch-n-mismatch` | False | Compter les ambiguïtés comme différences : Évite qu’un N soit traité comme une identité avec toute base compatible. |
+| `--vsearch-sizein / --no-vsearch-sizein` | False | Lire les abondances des en-têtes : Utiliser les annotations ;size=N; existantes. Sinon chaque entrée compte pour une séquence. |
+| `--vsearch-min-length` | 1 | Longueur minimale VSEARCH : Les séquences plus courtes sont exclues et comptées dans le résumé. |
+| `--vsearch-max-length` | 50000 | Longueur maximale VSEARCH : Les séquences plus longues sont exclues et comptées dans le résumé. |
+| `--vsearch-abskew` | 2.0 | Rapport d’abondance UCHIME : Abondance minimale des parents relativement à la chimère candidate. |
+| `--vsearch-minh` | 0.28 | Score minimal de chimère UCHIME : Plus grand : détection plus stricte, avec moins de candidats détectés. |
 | `--search-candidates` | — | Limite de candidats du moteur : Auto = max(100, 10 × références retenues). Ce plafond peut changer les résultats ; distinct des 100 hits affichés. |
 | `--hsp-overlap` | 0.5 | Recouvrement minimal de l’ancre HSP : Fraction de la région requête ancre recouverte pour retenir un segment dans le MSA exploratoire. |
 | `--sframe` | — | Cadre de référence pour Needle/Water : Vide : cadre du meilleur HSP, sinon +1. Applicable à TBLASTN/TBLASTX. Valeurs : -3, -2, -1, 1, 2, 3. |

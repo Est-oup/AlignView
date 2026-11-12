@@ -1,5 +1,17 @@
 # Changelog
 
+## Documentation, portabilité et analyses — 10 novembre 2026
+
+- Guides complets français/anglais, premiers pas, parcours, fichiers, HTML, exports, dépannage, glossaire, VSEARCH et codes génétiques ; références CLI générées et contrôles de liens.
+- Documentation hors ligne dans le terminal, le wheel et le zipapp ; choix de langue par --lang fr/en, variable ALIGNVIEW_LANG ou menu.
+- Sélection de la requête avant comparaison multirequête guidée ; liste filtrable et absence de choix implicite de la première séquence.
+- Quatre analyses VSEARCH nucléotidiques : recherche globale, déduplication, regroupement et UCHIME de novo ; paramètres contextualisés, fichiers natifs, provenance, reprise et vue HTML dédiées.
+- 27 tables NCBI embarquées, codes séparés QUERY/références, initiateurs ORF réglables ; arrêts contextuels signalés et refusés par le détecteur d’ORF simple.
+- Moteur, version, origine et chemin visibles avant calcul ; exécutable et version rappelés à l’exécution.
+- HTML autonome conservé avec --html-out ; options explicites de reprise et profil d’export respectés sans relance implicite des anciens calculs.
+- Lanceur fonctionnel depuis tout dossier et via un lien symbolique ; détection d’un préfixe tools/ local, sorties relatives au dossier de lancement.
+- Anciennes versions regroupées sous archives/ ; archive portable avec un unique dossier AlignView/, sans moteurs ni anciennes sorties.
+
 ## Figure d’arbre — 10 novembre 2026
 
 - Figure SVG générée automatiquement avec l’arbre FastTree et intégrée au rapport HTML autonome.
