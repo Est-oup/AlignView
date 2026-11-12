@@ -23,7 +23,7 @@ from test_release import Terminal
 
 class DefaultsTests(unittest.TestCase):
     def test_default_and_all_sensitivity_profiles_keep_one_hundred_hits(self):
-        for profile in ('standard','sensible','strict'):
+        for profile in ('standard','sensitive','strict'):
             args=parse_args(['--demo','--no-menu','--preset',profile])
             self.assertEqual(args.hits,100)
             explicit=parse_args(['--demo','--no-menu','--preset',profile,'--hits','7'])
@@ -78,7 +78,7 @@ class WorkflowStateTests(unittest.TestCase):
             self.assertEqual(session._viewer.row,2)
         finally:session.close()
 
-    def test_view_intent_loads_alignment_without_recalculation_or_auto_open(self):
+    def test_view_intent_opens_alignment_without_recalculation(self):
         args=parse_args([])
         _apply_start(args,StartRequest('view',ROOT/'examples/example_msa.fasta'),Path('/tmp'))
         ui=UI(False);ui.tty=True
@@ -87,7 +87,7 @@ class WorkflowStateTests(unittest.TestCase):
             with patch.object(session,'show_msa_window') as viewer,patch.object(session.tools,'msa') as aligner:
                 session.initial()
                 self.assertIsNotNone(session.msa_records)
-                viewer.assert_not_called();aligner.assert_not_called()
+                viewer.assert_called_once();aligner.assert_not_called()
         finally:session.close()
 
     def test_guided_comparison_asks_which_query_before_calculation(self):
@@ -97,11 +97,12 @@ class WorkflowStateTests(unittest.TestCase):
         with patch.object(ui,'menu',return_value='3') as menu:
             session=Session(args,ui)
             try:
-                with patch.object(session.tools,'search') as search:session.initial();search.assert_not_called()
+                with patch.object(Workbench,'compare') as compare,patch.object(session.tools,'search') as search:
+                    session.initial();search.assert_not_called();compare.assert_called_once()
                 self.assertEqual(session.query.id,'seq_3')
                 self.assertEqual(session.a.hits,100)
                 menu.assert_called_once()
-                self.assertEqual(menu.call_args.args[0],'Choisir la requête active')
+                self.assertEqual(menu.call_args.args[0],'Choose the active query')
             finally:session.close()
 
     def test_unaligned_file_opened_as_alignment_stays_available_for_alignment(self):
@@ -114,7 +115,7 @@ class WorkflowStateTests(unittest.TestCase):
                 session.initial()
                 self.assertIsNone(session.msa_records)
                 self.assertTrue(WorkspaceState.from_session(session).can_align)
-                self.assertIn('Longueurs différentes',ui.notice)
+                self.assertIn('Different lengths',ui.notice)
             finally:session.close()
 
     def test_zero_hit_search_is_still_completed_after_project_resume(self):
@@ -154,11 +155,11 @@ class WorkflowStateTests(unittest.TestCase):
             self.assertEqual(session.settings()['search_run']['evalue'],1e-5)
         finally:session.close()
 
-    def test_home_five_sections_fit_small_terminal_with_complete_labels(self):
-        ui=UI(False);ui.context=('Fichier de démonstration · 4 séquences','Alignement prêt · modifications à enregistrer')
+    def test_home_six_actions_fit_small_terminal_with_complete_labels(self):
+        ui=UI(False);ui.context=('Demo file · 4 sequences','Alignment ready · unsaved changes')
         for columns,rows in ((80,24),(60,24),(110,32)):
             with patch('shutil.get_terminal_size',return_value=os.terminal_size((columns,rows))):
-                frame=ui._menu_frame('Projet',[item(*entry) for entry in HOME_ITEMS],hint='Ouvrir Explorer pour lire l’alignement.')
+                frame=ui._menu_frame('Project',[item(*entry) for entry in HOME_ITEMS],hint='Open Results to read the alignment.')
                 self.assertLessEqual(len(frame.lines),rows-1)
                 for _,label,_ in HOME_ITEMS:self.assertTrue(any(label in line for line in frame.lines))
 
@@ -166,49 +167,70 @@ class WorkflowStateTests(unittest.TestCase):
 class NavigationTerminalTests(unittest.TestCase):
     demo="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main;raise SystemExit(main(['--demo','--no-color']))"
 
-    def discard(self,terminal):
+    def discard(self,terminal,dirty=False):
+        if not dirty:
+            terminal.send('q');terminal.expect('Session closed.')
+            self.assertEqual(terminal.process.wait(timeout=5),0);return
         terminal.send('q');terminal.expect('Quitter AlignView ?');terminal.send('2\r')
-        terminal.expect('sans sauvegarder');self.assertEqual(terminal.process.wait(timeout=5),0)
+        terminal.expect('without saving');self.assertEqual(terminal.process.wait(timeout=5),0)
 
     def test_demo_to_viewer_and_f2_home(self):
         terminal=Terminal(self.demo)
         try:
-            terminal.expect('L’alignement est prêt');terminal.expect('Réglages et aide')
-            terminal.send('1\r');terminal.expect('Explorer les résultats')
-            terminal.send('1\r');terminal.expect('AlignView / Alignement')
-            terminal.send('\x1bOQ');terminal.expect('Retour à l’accueil')
+            terminal.expect('AlignView / Alignment');terminal.send('q')
+            terminal.expect('Results ready');terminal.expect('Advanced')
+            terminal.send('1\r');terminal.expect('Read the alignment')
+            terminal.send('1\r');terminal.expect('AlignView / Alignment')
+            terminal.send('\x1bOQ');terminal.expect('Back to Home')
             self.discard(terminal)
         finally:terminal.close()
 
     def test_f2_leaves_nested_settings_without_quitting_project(self):
         terminal=Terminal(self.demo)
         try:
-            terminal.expect('L’alignement est prêt');terminal.send('5\r')
-            terminal.expect('Réglages et aide');terminal.send('2\r')
-            terminal.expect('Réglages de recherche');terminal.send('5\r')
-            terminal.expect('Filtrer les correspondances')
-            terminal.send('\x1b[12~');terminal.expect('Retour à l’accueil')
+            terminal.expect('AlignView / Alignment');terminal.send('q')
+            terminal.expect('Results ready');terminal.send('6\r')
+            terminal.expect('Additional analyses');terminal.send('3\r')
+            terminal.expect('Calculation settings');terminal.send('1\r')
+            terminal.expect('Search settings');terminal.send('5\r')
+            terminal.expect('Filter matches')
+            terminal.send('\x1b[12~');terminal.expect('Back to Home')
             self.discard(terminal)
         finally:terminal.close()
 
-    def test_unavailable_search_explains_required_references(self):
+    def test_comparison_without_references_opens_reference_picker(self):
         code="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main;raise SystemExit(main([sys.argv[1]+'/examples/example_query.fna','--no-color']))"
         terminal=Terminal(code)
         try:
-            terminal.expect('Commencer par Analyser');terminal.send('2\r')
-            terminal.expect('Que souhaitez-vous calculer ?');terminal.send('2\r')
-            terminal.expect('Ajouter un fichier de références')
-            terminal.send('\x1bOQ');terminal.expect('Retour à l’accueil')
+            terminal.expect('Choose Compare');terminal.send('2\r')
+            terminal.expect('Choose a file — Choose references')
+            terminal.send('\x1bOQ');terminal.expect('Back to Home')
             self.discard(terminal)
         finally:terminal.close()
 
-    def test_nested_details_page_restores_the_menu_and_keyboard(self):
-        code="import sys;sys.path.insert(0,sys.argv[1]);from av_ui import UI\nu=UI(False);result=u.menu('Longue liste',[(str(i),'Séquence '+str(i),'Description de la séquence','') for i in range(250)]);print('SELECTED',result,flush=True)"
+    def test_add_references_and_change_query_before_comparison(self):
+        code="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main;raise SystemExit(main([sys.argv[1]+'/examples/example_msa.fasta','--module-policy','never','--no-color']))"
         terminal=Terminal(code)
         try:
-            terminal.expect('Longue liste');terminal.send('\x1bOP')
-            terminal.expect('Détails');terminal.send('q')
-            terminal.expect('Longue liste');terminal.send('\x1b[F\r')
+            terminal.expect('Choose Compare');terminal.send('2\r')
+            terminal.expect('Choose a file — Choose references');terminal.send('p')
+            terminal.expect('FASTA path');terminal.send(str(ROOT/'examples/example_msa.fasta')+'\r')
+            terminal.expect('Choose the active query');terminal.send('3\r')
+            terminal.expect('Run comparison');terminal.expect('seq_3')
+            terminal.send('2\r');terminal.expect('Choose the active query');terminal.send('2\r')
+            terminal.expect('Selected query: seq_2');terminal.expect('Run comparison')
+            self.assertNotIn(b'Search termin',terminal.output)
+            terminal.send('q');terminal.expect('Choose Compare')
+            self.discard(terminal,dirty=True)
+        finally:terminal.close()
+
+    def test_nested_details_page_restores_the_menu_and_keyboard(self):
+        code="import sys;sys.path.insert(0,sys.argv[1]);from av_ui import UI\nu=UI(False);result=u.menu('Long list',[(str(i),'Sequence '+str(i),'Sequence description','') for i in range(250)]);print('SELECTED',result,flush=True)"
+        terminal=Terminal(code)
+        try:
+            terminal.expect('Long list');terminal.send('\x1bOP')
+            terminal.expect('Details');terminal.send('q')
+            terminal.expect('Long list');terminal.send('\x1b[F\r')
             terminal.expect('SELECTED 249');self.assertEqual(terminal.process.wait(timeout=5),0)
             self.assertEqual(terminal.output.count(b'\x1b[?1049h'),1)
             self.assertEqual(terminal.output.count(b'\x1b[?1049l'),1)
@@ -218,21 +240,19 @@ class NavigationTerminalTests(unittest.TestCase):
         code="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main;from unittest.mock import patch\nfrom av_start import StartRequest\nwith patch('alignview.startup',return_value=StartRequest('align',__import__('pathlib').Path(sys.argv[1])/'examples/example_msa.fasta')):\n raise SystemExit(main(['--module-policy','never','--no-color']))"
         terminal=Terminal(code,env={'PATH':str(ROOT/'tests/mockbin')+os.pathsep+os.environ['PATH']})
         try:
-            terminal.expect('Commencer par Analyser');terminal.send('2\r')
-            terminal.expect('Que souhaitez-vous calculer ?');terminal.send('1\r')
-            terminal.expect('Créer un alignement');terminal.send('1\r')
-            terminal.expect('AlignView / Alignement');terminal.send('q')
-            terminal.expect('L’alignement est prêt')
-            self.discard(terminal)
+            terminal.expect('Create an alignment');terminal.send('1\r')
+            terminal.expect('AlignView / Alignment');terminal.send('q')
+            terminal.expect('Results ready')
+            self.discard(terminal,dirty=True)
         finally:terminal.close()
 
     def test_file_picker_can_return_to_start_with_f2(self):
         code="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main;raise SystemExit(main(['--no-color']))"
         terminal=Terminal(code)
         try:
-            terminal.expect('Que souhaitez-vous faire ?');terminal.send('1\r')
-            terminal.expect('Choisir un fichier');terminal.send('\x1bOQ')
-            terminal.expect('Que souhaitez-vous faire ?');terminal.send('q')
+            terminal.expect('What would you like to do?');terminal.send('1\r')
+            terminal.expect('Choose a file');terminal.send('\x1bOQ')
+            terminal.expect('What would you like to do?');terminal.send('q')
             self.assertEqual(terminal.process.wait(timeout=5),0)
         finally:terminal.close()
 
@@ -240,8 +260,8 @@ class NavigationTerminalTests(unittest.TestCase):
         code="import sys;sys.path.insert(0,sys.argv[1]);from av_core import Seq;from av_msa_tui import MSAViewer\nv=MSAViewer([Seq('a','a','ACGT'),Seq('b','b','ACGA')],False);print('FIRST',v.run(),flush=True);print('SECOND',v.run(),flush=True)"
         terminal=Terminal(code)
         try:
-            terminal.expect('AlignView / Alignement');terminal.send('w')
-            terminal.expect('FIRST web');terminal.expect('AlignView / Alignement');terminal.send('q')
+            terminal.expect('AlignView / Alignment');terminal.send('w')
+            terminal.expect('FIRST web');terminal.expect('AlignView / Alignment');terminal.send('q')
             terminal.expect('SECOND None');self.assertEqual(terminal.process.wait(timeout=5),0)
         finally:terminal.close()
 
@@ -253,12 +273,11 @@ class NavigationTerminalTests(unittest.TestCase):
             code="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main;raise SystemExit(main(['--resume',sys.argv[2],'--module-policy','never','--no-color']))"
             terminal=Terminal(code,args=(project,),env={'PATH':str(ROOT/'tests/mockbin')+os.pathsep+os.environ['PATH']})
             try:
-                terminal.expect('Commencer par Analyser');terminal.send('2\r')
-                terminal.expect('Que souhaitez-vous calculer ?');terminal.send('1\r')
-                terminal.expect('Créer un alignement');terminal.send('1\r')
-                terminal.expect('AlignView / Alignement');terminal.send('\x1bOQ')
-                terminal.expect('modifications à enregistrer')
-                self.discard(terminal)
+                terminal.expect('Choose Compare');terminal.send('3\r')
+                terminal.expect('Create an alignment');terminal.send('1\r')
+                terminal.expect('AlignView / Alignment');terminal.send('\x1bOQ')
+                terminal.expect('unsaved changes')
+                self.discard(terminal,dirty=True)
                 self.assertTrue(project.is_dir())
             finally:terminal.close()
 

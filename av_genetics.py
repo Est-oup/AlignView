@@ -44,7 +44,7 @@ TABLES={identifier:(' '.join(value[0].split()),value[1],value[2]) for identifier
 
 
 def code_table(identifier=1):
-    if identifier not in TABLES: raise ValueError(f"Table NCBI inconnue : {identifier}")
+    if identifier not in TABLES: raise ValueError(f"Table NCBI inconnue: {identifier}")
     return dict(zip(CODONS, TABLES[identifier][1]))
 
 def start_codons(identifier=1):

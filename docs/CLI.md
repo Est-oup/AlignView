@@ -1,230 +1,226 @@
-# Référence de la ligne de commande
+# Command-line reference
 
-Cette page est générée depuis le parseur réel par `python3 scripts/generate_cli_docs.py`. Ne pas modifier ses tables à la main.
+Generated from the actual parser by `python3 scripts/generate_cli_docs.py`. Do not edit the tables manually.
 
-Dans les exemples, `alignview` désigne la commande installée. Sans installation, remplacer ce mot par `/chemin/vers/AlignView/alignview.sh`.
+Use the installed `alignview` command, or replace it with `/path/to/AlignView/alignview.sh`.
 
-## Choisir une commande
+## Common workflows
 
 ```bash
 alignview --demo
-alignview --docs demarrage
-alignview aligne.fasta --msa view
-alignview sequences.fasta --msa align --report --save --out mon_projet --no-menu
-alignview requetes.fna references.faa --mode blastx --query-id mon_identifiant --save --out recherche --no-menu
-alignview aligne.fasta --msa view --tree --html-out arbre.html --no-menu
-alignview --resume mon_projet --html-out rapport_actualise.html --no-menu
-alignview --resume mon_projet --msa align --tree --report --save --out nouveau_calcul --no-menu
+alignview --docs quickstart
+alignview aligned.fasta --msa view --html-out report.html --no-menu
+alignview sequences.fasta --msa align --report --save --out project_01 --no-menu
+alignview queries.fna refs.fna --vsearch search --query-id chosen_id --report --save --out search_01 --no-menu
+alignview --resume project_01 --html-out updated.html --no-menu
 ```
 
-## Règles à retenir
+## Storage and resuming
 
-- Les chemins relatifs partent du dossier depuis lequel la commande est lancée ; le lanceur ne change pas de dossier.
-- `--save --out DOSSIER` conserve un projet portable. `--out` seul ne déclenche pas la sauvegarde.
-- `--html-out FICHIER.html` conserve seulement le HTML autonome. `--export-dir DOSSIER` conserve les exports du profil choisi.
-- `--report` prépare le rapport en mémoire de session ; ajouter une destination ou une sauvegarde pour le conserver.
-- Un fichier ou dossier de destination existant est refusé en batch ; choisir un nouveau nom.
-- `--resume PROJET` ne relance aucun moteur par défaut. Seules les actions explicitement ajoutées (`--msa`, `--tree`, `--pairwise`, `--dotplot`, `--motif`) sont exécutées.
-- En reprise, les paramètres explicites deviennent les réglages futurs. Les paramètres historiques des résultats déjà calculés restent conservés. `--report` et `--html-out` reconstruisent le HTML sans relancer de moteur.
-- Un profil JSON fournit les valeurs de départ ; les options explicites sont prioritaires. Un profil de seuil (`--preset`) est distinct d’un profil de fichiers (`--export-profile`).
+- Relative paths start from the launch directory; the launcher does not change it.
+- `--save --out DIRECTORY` retains a project. `--out` alone does not save.
+- `--html-out FILE.html` retains standalone HTML. `--export-dir DIRECTORY` retains exports of the selected profile.
+- `--report` alone prepares temporary HTML. Add a destination or saving to retain it.
+- Batch runs refuse an existing destination.
+- Resume alone reruns no scientific engine. Only explicit actions (`--msa`, `--tree`, `--pairwise`, `--dotplot`, `--motif`, `--vsearch`) request calculations.
+- Explicit parameters override profiles/saved future settings; historical settings remain associated with existing results.
+- `--genetic-code` selects the query/internal table; `--reference-genetic-code` selects or inherits the reference table.
+See [Usage](USAGE.md), [Parameters](PARAMETERS.md), [VSEARCH](VSEARCH.md), [Genetic codes](GENETIC_CODES.md) and [Files](FILES.md).
 
-Les modes, les stratégies et leurs limites sont expliqués dans [les parcours](USAGE.md), [les paramètres](PARAMETERS.md) et [le guide des fichiers](FILES.md).
+## General help
 
-## Aide générale
-
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
 | `-h / --help` | — | show this help message and exit |
 
-## Entrées et reprise
+## Input and resuming
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `query` | — | FASTA de la requête, ou FASTA unique à explorer |
-| `--query-id` | '' | Identifiant FASTA à utiliser comme requête quand le premier fichier en contient plusieurs |
-| `references` | — | FASTA des références |
-| `--mode` | — | Programme de recherche ou alignement Valeurs : msa, vsearch, blastn, blastp, blastx, tblastn, tblastx, diamond-blastp, diamond-blastx, mmseqs-blastp, global-dna, global-aa. |
-| `--resume` | — | Reprendre un projet sauvegardé sans relancer ses calculs |
-| `--demo` | False | Explorer un exemple embarqué sans outil externe |
+| `query` | — | Query FASTA, or a single FASTA to explore |
+| `--query-id` | '' | FASTA identifier to use as the query when the first file contains several sequences |
+| `references` | — | Reference FASTA |
+| `--mode` | — | Search or alignment method Values: msa, vsearch, blastn, blastp, blastx, tblastn, tblastx, diamond-blastp, diamond-blastx, mmseqs-blastp, global-dna, global-aa. |
+| `--resume` | — | Resume a saved project without rerunning its calculations |
+| `--demo` | False | Explore a bundled example without external tools |
 
-## Recherche et filtres
+## Search and filtering
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--task` | '' | Tâche NCBI compatible avec le programme |
-| `--evalue` | 1e-05 | E-value maximale (1e-5 par défaut) |
-| `--identity` | 0 | Identité locale minimale % (0) |
-| `--coverage` | 0 | Couverture QUERY par union des HSP % (0) |
-| `--bitscore` | 0 | Bitscore local minimal (0) |
-| `--hits` | 100 | Nombre maximal de références retenues (100 par défaut) |
-| `--preset` | 'standard' | Profil de recherche : standard, sensible ou strict ; les options explicites sont prioritaires Valeurs : standard, sensible, strict. |
-| `--threads` | 4 | Nombre de threads (4) |
-| `--sensitivity` | 'sensitive' |  Valeurs : fast, sensitive, more-sensitive, very-sensitive, ultra-sensitive. |
+| `--task` | '' | NCBI task compatible with the selected program |
+| `--evalue` | 1e-05 | Maximum E-value (default: 1e-5) |
+| `--identity` | 0 | Minimum local identity % (0) |
+| `--coverage` | 0 | Query coverage from the union of HSPs % (0) |
+| `--bitscore` | 0 | Minimum local bitscore (0) |
+| `--hits` | 100 | Maximum retained references (default: 100) |
+| `--preset` | 'standard' | Search preset: standard, sensible or strict; explicit options take priority Values: standard, sensitive, strict. |
+| `--threads` | 4 | Number of threads (4) |
+| `--sensitivity` | 'sensitive' |  Values: fast, sensitive, more-sensitive, very-sensitive, ultra-sensitive. |
 
-## Alignements et analyses
+## Alignments and analyses
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--msa` | 'none' |  Valeurs : none, view, align, full, hits, all, global, fragments, hsp. |
-| `--mafft` | 'auto' |  Valeurs : auto, global, local, fast. |
-| `--aligner` | 'mafft' | Moteur MSA : MAFFT, MUSCLE 5, Clustal Omega Valeurs : mafft, muscle, clustalo. |
-| `--tree` | False | Inférer un arbre exploratoire FastTree à partir du MSA calculé |
-| `--pairwise` | 'none' |  Valeurs : none, global, local. |
-| `--ref` | 1 | Indice d’une référence (1) |
-| `--frame` | — | Forcer un cadre de traduction Valeurs : -3, -2, -1, 1, 2, 3. |
+| `--msa` | 'none' |  Values: none, view, align, full, hits, all, global, fragments, hsp. |
+| `--mafft` | 'auto' |  Values: auto, global, local, fast. |
+| `--aligner` | 'mafft' | MSA engine: MAFFT, MUSCLE 5, Clustal Omega Values: mafft, muscle, clustalo. |
+| `--tree` | False | Infer an exploratory FastTree tree from the MSA |
+| `--pairwise` | 'none' |  Values: none, global, local. |
+| `--ref` | 1 | Reference index (1) |
+| `--frame` | — | Select a translation frame Values: -3, -2, -1, 1, 2, 3. |
 | `--gapopen` | 10 |  |
 | `--gapextend` | 0.5 |  |
-| `--matrix` | '' | Matrice de substitution EMBOSS |
-| `--free-ends` | False | Ne pas pénaliser les gaps terminaux Needle |
-| `--dotplot` | False | Générer dotplot QUERY / meilleure référence |
-| `--kmer` | 9 | Longueur des mots du dotplot (9) |
-| `--motif` | '' | Motif IUPAC sur la requête |
-| `--vsearch` | 'none' | Analyse nucléotidique VSEARCH : recherche, déduplication, regroupement ou chimères Valeurs : none, search, dereplicate, cluster, chimeras. |
+| `--matrix` | '' | EMBOSS substitution matrix |
+| `--free-ends` | False | Do not penalize terminal gaps in Needle |
+| `--dotplot` | False | Generate a query / best-reference dotplot |
+| `--kmer` | 9 | Dotplot word length (9) |
+| `--motif` | '' | IUPAC motif in the query |
+| `--vsearch` | 'none' | VSEARCH nucleotide analysis: search, dereplication, clustering or chimeras Values: none, search, dereplicate, cluster, chimeras. |
 
-## Rapports, exports et sauvegardes
+## Reports, exports and saving
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--report` | False | Préparer le HTML et ses SVG ; conserver avec --save, --export-dir ou --html-out |
-| `--html-out` | '' | Enregistrer un HTML autonome à cet endroit, même sans --save ; refuse d’écraser |
-| `--no-open` | False | Ne pas ouvrir automatiquement le HTML dans le navigateur |
-| `--out` | '' | Dossier du projet avec --save ; chemin relatif au dossier de lancement, créé à la fin |
-| `--save` | False | Sauvegarde explicite à la fin (batch compris) |
-| `--export-profile` | 'standard' | standard / publication / complete : fichiers préparés en cas de sauvegarde Valeurs : standard, publication, complete. |
-| `--export-dir` | '' | Exporter explicitement les fichiers tabulaires dans ce dossier, même sans --save |
+| `--report` | False | Prepare HTML and SVG figures; retain them using --save, --export-dir or --html-out |
+| `--html-out` | '' | Save a standalone HTML here, even without --save; refuses to overwrite |
+| `--no-open` | False | Do not automatically open HTML in the browser |
+| `--out` | '' | Project directory with --save; relative to the launch directory, created at the end |
+| `--save` | False | Explicitly save at the end, including batch runs |
+| `--export-profile` | 'standard' | standard / publication / complete: files prepared when saving Values: standard, publication, complete. |
+| `--export-dir` | '' | Explicitly export files to this directory, even without --save |
 
-## Moteurs scientifiques et installation
+## Scientific engines and installation
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--executable` | [] | Chemin exact vers un outil externe, répétable, ex. blastx=/opt/ncbi/bin/blastx |
-| `--tools-dir` | [] | Ajouter des exécutables locaux au PATH d’AlignView (répétable) |
-| `--module-policy` | 'auto' | auto : modules HPC si commande absente ; never : PATH et chemins seulement Valeurs : auto, never. |
-| `--diagnose` | False | Diagnostic PATH/modules puis sortie |
-| `--setup` | — | Préparer l’installation de moteurs via Conda/Mamba Valeurs : alv, blast, clustalo, diamond, emboss, fasttree, full, mafft, minimal, mmseqs, muscle, vsearch. |
-| `--install-tools` | False | Exécuter le plan --setup dans un environnement dédié |
-| `--tools-prefix` | — | Préfixe Conda dédié (ou ALIGNVIEW_TOOLS_PREFIX) |
-| `--diagnose-json` | False | Diagnostic machine-readable JSON, sans chargement de modules |
+| `--executable` | [] | Exact external-tool path, repeatable, e.g. blastx=/opt/ncbi/bin/blastx |
+| `--tools-dir` | [] | Add local executable directories to AlignView's PATH (repeatable) |
+| `--module-policy` | 'auto' | auto: try HPC modules for missing commands; never: use existing paths and the managed environment Values: auto, never. |
+| `--diagnose` | False | Report available executables and versions, then exit |
+| `--setup` | — | Prepare engine installation using Conda/Mamba Values: alv, blast, clustalo, diamond, emboss, fasttree, full, mafft, minimal, mmseqs, muscle, vsearch. |
+| `--install-tools` | False | Run the --setup plan in a dedicated environment |
+| `--tools-prefix` | — | Dedicated Conda prefix (or ALIGNVIEW_TOOLS_PREFIX) |
+| `--diagnose-json` | False | Machine-readable JSON diagnostics without loading modules |
 
-## Interface et documentation
+## Interface and documentation
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--list-genetic-codes` | False | Afficher les tables de traduction NCBI disponibles, puis quitter |
-| `--no-menu` | False | Sans menu interactif |
-| `--simple-ui` | False | Menus numérotés classiques |
-| `--no-color` | False | Sans couleurs ANSI |
-| `--list-tools` | False | Lister les fonctionnalités |
-| `--docs` | — | Consulter un guide hors ligne, sans ouvrir de données (défaut : index) Valeurs : index, demarrage, parcours, fichiers, installation, parametres, html, exports, cli, depannage, glossaire, vsearch, translation, developpement, publication, audit, getting-started, quickstart, usage, files, parameters, troubleshooting, glossary, development, releasing, genetics. |
+| `--list-genetic-codes` | False | List available NCBI translation tables and exit |
+| `--no-menu` | False | Without interactive menus |
+| `--simple-ui` | False | Classic numbered menus |
+| `--no-color` | False | Without ANSI colors |
+| `--list-tools` | False | List features |
+| `--docs` | — | Read an offline guide without opening data (default: index) Values: index, quickstart, usage, files, installation, parameters, html, exports, cli, troubleshooting, glossary, vsearch, translation, development, releasing, audit, getting-started, genetics. |
 | `--version` | — | show program's version number and exit |
-| `--lang` | 'fr' | Langue de l’interface, du HTML et des guides (ou ALIGNVIEW_LANG) Valeurs : fr, en. |
 
-## Autres paramètres scientifiques
+## Other scientific parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--genetic-code` | 1 | Table de traduction QUERY (NCBI) : Code utilisé pour les traductions internes et les recherches traduites de la requête. Valeurs : 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33. |
-| `--reference-genetic-code` | — | Table de traduction des références : Vide : même table que QUERY ; transmis à TBLASTN/TBLASTX et aux traductions des références. Valeurs : 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33. |
-| `--orf-starts` | 'atg' | Codons de départ des ORF : atg : ATG uniquement ; table : tous les initiateurs de la table NCBI choisie. Valeurs : atg, table. |
-| `--vsearch-id` | 0.97 | Identité minimale VSEARCH : Fraction de 0 à 1, distincte du filtre d’identité locale BLAST. |
-| `--vsearch-iddef` | 2 | Définition d’identité VSEARCH : 0 à 4 ; 2 : exclut les gaps terminaux. Lire la documentation VSEARCH. Valeurs : 0, 1, 2, 3, 4. |
-| `--vsearch-strand` | 'both' | Brins VSEARCH : both : recherche et regroupement sur les deux brins ; UCHIME de novo travaille sur le brin plus. Valeurs : plus, both. |
-| `--vsearch-query-cov` | 0.0 | Couverture minimale de la requête VSEARCH : Fraction de 0 à 1, calculée par VSEARCH. |
-| `--vsearch-target-cov` | 0.0 | Couverture minimale des références VSEARCH : Fraction de 0 à 1, calculée par VSEARCH. |
-| `--vsearch-maxaccepts` | 0 | Candidats acceptés avant arrêt : 0 : pas de plafond de candidats acceptés ; distinct du maximum de références rapportées. |
-| `--vsearch-maxrejects` | 32 | Candidats rejetés avant arrêt : 0 : pas d’arrêt sur rejets ; mettre aussi maxaccepts et minwordmatches à 0 pour une recherche exhaustive. |
-| `--vsearch-minwordmatches` | 10 | Mots communs minimum VSEARCH : 0 désactive ce préfiltre ; utile aux séquences courtes, avec un coût plus élevé. |
-| `--vsearch-masking` | 'dust' | Masquage VSEARCH : dust : faible complexité ; none : aucun. Les entrées internes sont normalisées en majuscules. Valeurs : none, dust. |
-| `--vsearch-n-mismatch / --no-vsearch-n-mismatch` | False | Compter les ambiguïtés comme différences : Évite qu’un N soit traité comme une identité avec toute base compatible. |
-| `--vsearch-sizein / --no-vsearch-sizein` | False | Lire les abondances des en-têtes : Utiliser les annotations ;size=N; existantes. Sinon chaque entrée compte pour une séquence. |
-| `--vsearch-min-length` | 1 | Longueur minimale VSEARCH : Les séquences plus courtes sont exclues et comptées dans le résumé. |
-| `--vsearch-max-length` | 50000 | Longueur maximale VSEARCH : Les séquences plus longues sont exclues et comptées dans le résumé. |
-| `--vsearch-abskew` | 2.0 | Rapport d’abondance UCHIME : Abondance minimale des parents relativement à la chimère candidate. |
-| `--vsearch-minh` | 0.28 | Score minimal de chimère UCHIME : Plus grand : détection plus stricte, avec moins de candidats détectés. |
-| `--search-candidates` | — | Limite de candidats du moteur : Auto = max(100, 10 × références retenues). Ce plafond peut changer les résultats ; distinct des 100 hits affichés. |
-| `--hsp-overlap` | 0.5 | Recouvrement minimal de l’ancre HSP : Fraction de la région requête ancre recouverte pour retenir un segment dans le MSA exploratoire. |
-| `--sframe` | — | Cadre de référence pour Needle/Water : Vide : cadre du meilleur HSP, sinon +1. Applicable à TBLASTN/TBLASTX. Valeurs : -3, -2, -1, 1, 2, 3. |
+| `--genetic-code` | 1 | Query translation table (NCBI): Code used for internal query translation and translated query searches. Values: 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33. |
+| `--reference-genetic-code` | — | Reference translation table: Unset: use the query table; passed to TBLASTN/TBLASTX and internal reference translation. Values: 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33. |
+| `--orf-starts` | 'atg' | ORF start codons: atg: ATG only; table: all initiators from the selected NCBI table. Values: atg, table. |
+| `--vsearch-id` | 0.97 | Minimum VSEARCH identity: Fraction from 0 to 1; distinct from the BLAST local identity filter. |
+| `--vsearch-iddef` | 2 | VSEARCH identity definition: 0 to 4; 2 excludes terminal gaps. See the VSEARCH documentation. Values: 0, 1, 2, 3, 4. |
+| `--vsearch-strand` | 'both' | VSEARCH strands: both: search and cluster both strands; de novo UCHIME uses the plus strand. Values: plus, both. |
+| `--vsearch-query-cov` | 0.0 | Minimum VSEARCH query coverage: Fraction from 0 to 1, calculated by VSEARCH. |
+| `--vsearch-target-cov` | 0.0 | Minimum VSEARCH reference coverage: Fraction from 0 to 1, calculated by VSEARCH. |
+| `--vsearch-maxaccepts` | 0 | Accepted candidates before stopping: 0: no accepted-candidate limit; distinct from the reported reference limit. |
+| `--vsearch-maxrejects` | 32 | Rejected candidates before stopping: 0: do not stop after rejections; also set maxaccepts and minwordmatches to 0 for exhaustive search. |
+| `--vsearch-minwordmatches` | 10 | Minimum shared words for VSEARCH: 0 disables this prefilter; useful for short sequences, at greater computational cost. |
+| `--vsearch-masking` | 'dust' | VSEARCH masking: dust: low complexity; none: no masking. Internal input sequences are normalized to uppercase. Values: none, dust. |
+| `--vsearch-n-mismatch / --no-vsearch-n-mismatch` | False | Count ambiguous symbols as mismatches: Prevent N from counting as a match to every compatible nucleotide. |
+| `--vsearch-sizein / --no-vsearch-sizein` | False | Read header abundances: Use existing ;size=N; annotations. Otherwise each input record counts as one sequence. |
+| `--vsearch-min-length` | 1 | Minimum VSEARCH sequence length: Shorter sequences are excluded and counted in the summary. |
+| `--vsearch-max-length` | 50000 | Maximum VSEARCH sequence length: Longer sequences are excluded and counted in the summary. |
+| `--vsearch-abskew` | 2.0 | UCHIME abundance skew: Minimum parent abundance relative to the candidate chimera. |
+| `--vsearch-minh` | 0.28 | Minimum UCHIME chimera score: Higher values make detection stricter, with fewer candidates detected. |
+| `--search-candidates` | — | Engine candidate limit: Auto = max(100, 10 × retained references). This candidate limit can affect results and differs from the 100 displayed hits. |
+| `--hsp-overlap` | 0.5 | Minimum HSP anchor overlap: Fraction of the anchor query region that a segment must cover in the exploratory MSA. |
+| `--sframe` | — | Reference frame for Needle/Water: Unset: best HSP frame, otherwise +1. Applies to TBLASTN/TBLASTX. Values: -3, -2, -1, 1, 2, 3. |
 
-## Paramètres BLAST
+## BLAST parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--blast-word-size` | — | Taille de graine BLAST : Petites graines : détection plus sensible, calcul plus coûteux ; valeurs autorisées selon la tâche. |
-| `--blast-reward` | — | Score de match ADN : Gain pour une base identique ; dépend des coûts de mismatch et de gap. |
-| `--blast-penalty` | — | Score de mismatch ADN : Score négatif pour une substitution ; change le score et les statistiques. |
-| `--blast-matrix` | — | Matrice protéique BLAST : Ex. BLOSUM62, BLOSUM45, PAM30. Les coûts de gap doivent être compatibles. |
-| `--blast-gapopen` | — | Ouverture de gap BLAST : Coût propre à BLAST, indépendant de Needle/Water. TBLASTX est non gappé. |
-| `--blast-gapextend` | — | Extension de gap BLAST : Coût propre à BLAST. Seules certaines combinaisons matrice/coûts sont acceptées. |
-| `--blast-masking` | 'native' | Masquage DUST / SEG : Masque la faible complexité. Le désactiver peut révéler des correspondances peu spécifiques. Valeurs : native, yes, no. |
-| `--blast-soft-masking` | 'native' | Masquage souple BLAST : true : masque les graines ; false : masque aussi l’extension. Défaut dépendant du programme. Valeurs : native, true, false. |
-| `--blast-strand` | 'both' | Brin de la requête ADN : both : deux brins ; plus/minus : limite la recherche à un brin. Valeurs : both, plus, minus. |
-| `--blast-max-hsps` | — | HSP maximum par référence : Limite les segments rapportés, donc potentiellement la couverture calculée ensuite. |
-| `--blast-comp-stats` | 'native' | Statistiques de composition BLAST : 0 : désactivées ; 1/2/3 : corrections NCBI selon le moteur. Change scores et E-values. Valeurs : native, 0, 1, 2, 3. |
+| `--blast-word-size` | — | BLAST seed size: Smaller seeds increase sensitivity and cost; allowed values depend on the task. |
+| `--blast-reward` | — | DNA match score: Reward for an identical nucleotide; depends on mismatch and gap costs. |
+| `--blast-penalty` | — | DNA mismatch score: Negative mismatch score; affects scoring and statistics. |
+| `--blast-matrix` | — | BLAST protein matrix: Examples: BLOSUM62, BLOSUM45, PAM30. Gap costs must be compatible. |
+| `--blast-gapopen` | — | BLAST gap opening: BLAST-specific cost, independent of Needle/Water. TBLASTX is ungapped. |
+| `--blast-gapextend` | — | BLAST gap extension: BLAST-specific cost. Only supported matrix/cost combinations are accepted. |
+| `--blast-masking` | 'native' | Masquage DUST / SEG: Mask low complexity. Disabling masking may reveal nonspecific matches. Values: native, yes, no. |
+| `--blast-soft-masking` | 'native' | Masquage souple BLAST: true: mask seeds; false: also mask extension. The default depends on the program. Values: native, true, false. |
+| `--blast-strand` | 'both' | DNA query strand: both: both strands; plus/minus: restrict the search to one strand. Values: both, plus, minus. |
+| `--blast-max-hsps` | — | Maximum HSPs per reference: Limit reported segments and potentially the coverage calculated from them. |
+| `--blast-comp-stats` | 'native' | BLAST composition statistics: 0: disabled; 1/2/3: NCBI corrections depending on the engine. Affects scores and E-values. Values: native, 0, 1, 2, 3. |
 
-## Paramètres DIAMOND
+## DIAMOND parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--diamond-matrix` | — | Matrice DIAMOND : Matrice protéique ; les coûts de gap doivent être compatibles. |
-| `--diamond-gapopen` | — | Ouverture de gap DIAMOND : Coût propre à DIAMOND, indépendant des autres moteurs. |
-| `--diamond-gapextend` | — | Extension de gap DIAMOND : Pénalise l’allongement des gaps. |
-| `--diamond-masking` | 'native' | Masquage DIAMOND : 0 : désactivé ; 1 : tantan ; seg : SEG (DIAMOND ≥ 2.0.12). Valeurs : native, 0, 1, seg. |
-| `--diamond-comp-stats` | 'native' | Composition DIAMOND : 0 : désactivée ; 1 : correction compositionnelle ; 3/4 : ajustements de matrice, selon version. Valeurs : native, 0, 1, 3, 4. |
-| `--diamond-max-hsps` | — | HSP maximum DIAMOND : 0 : tous ; plusieurs HSP peuvent améliorer la couverture et augmenter le coût. |
-| `--diamond-min-orf` | 1 | ORF minimum DIAMOND BLASTX : AlignView utilisait déjà 1, contrairement au choix automatique de DIAMOND. 0 : automatique natif. |
+| `--diamond-matrix` | — | DIAMOND matrix: Protein matrix; gap costs must be compatible. |
+| `--diamond-gapopen` | — | DIAMOND gap opening: DIAMOND-specific cost, independent of other engines. |
+| `--diamond-gapextend` | — | DIAMOND gap extension: Penalize gap extension. |
+| `--diamond-masking` | 'native' | DIAMOND masking: 0: disabled; 1: tantan; seg: SEG (DIAMOND ≥ 2.0.12). Values: native, 0, 1, seg. |
+| `--diamond-comp-stats` | 'native' | DIAMOND composition correction: 0: disabled; 1: composition correction; 3/4: matrix adjustments, depending on the version. Values: native, 0, 1, 3, 4. |
+| `--diamond-max-hsps` | — | Maximum DIAMOND HSPs: 0: all; multiple HSPs may increase coverage and computational cost. |
+| `--diamond-min-orf` | 1 | Minimum DIAMOND BLASTX ORF: AlignView uses 1 rather than DIAMOND's automatic choice. 0: native automatic behavior. |
 
-## Paramètres MMseqs2
+## MMseqs2 parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--mmseqs-sensitivity` | — | Sensibilité MMseqs2 (-s) : De 1 (rapide) à 7.5 (sensible). Indépendante du réglage DIAMOND. |
-| `--mmseqs-mask` | 'native' | Masquage MMseqs2 : 1 : faible complexité masquée ; 0 : désactivé. Valeurs : native, 0, 1. |
-| `--mmseqs-comp-bias` | 'native' | Correction de composition MMseqs2 : 0/1 : désactive/active la correction du biais de composition. Valeurs : native, 0, 1. |
+| `--mmseqs-sensitivity` | — | MMseqs2 sensitivity (-s): From 1 (fast) to 7.5 (sensitive). Independent of DIAMOND sensitivity. |
+| `--mmseqs-mask` | 'native' | MMseqs2 masking: 1: low complexity masked; 0: disabled. Values: native, 0, 1. |
+| `--mmseqs-comp-bias` | 'native' | MMseqs2 composition correction: 0/1: disable/enable composition-bias correction. Values: native, 0, 1. |
 
-## Paramètres MAFFT
+## MAFFT parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--mafft-op` | — | Ouverture de gap MAFFT (--op) : Pénalité de gap en alignement groupe à groupe ; indépendante d’EMBOSS. |
-| `--mafft-ep` | — | Offset MAFFT (--ep) : Paramètre d’offset de MAFFT ; ne se confond pas avec gapextend d’EMBOSS. |
-| `--mafft-maxiterate` | — | Raffinements MAFFT : Global/local : 1000 par défaut AlignView. Pour régler ce nombre, choisir global, local ou fast plutôt que auto. |
+| `--mafft-op` | — | MAFFT gap opening (--op): Group-to-group alignment gap penalty; independent of EMBOSS. |
+| `--mafft-ep` | — | MAFFT offset (--ep): MAFFT offset parameter; different from EMBOSS gapextend. |
+| `--mafft-maxiterate` | — | MAFFT refinement iterations: Global/local: AlignView defaults to 1000 iterations. Choose global, local or fast to set this number explicitly. |
 
-## Paramètres MUSCLE 5
+## MUSCLE 5 parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--muscle-method` | 'align' | Algorithme MUSCLE 5 : align : PPP ; super5 : prévu pour des ensembles plus grands. MUSCLE 3 non pris en charge. Valeurs : align, super5. |
-| `--muscle-perturb` | 0 | Graine de perturbation MUSCLE : 0 : HMM standard ; une autre graine explore la variabilité de l’alignement. |
-| `--muscle-perm` | 'none' | Permutation de l’arbre guide : Change le parcours de l’arbre. Une seule permutation produit un seul MSA. Valeurs : none, abc, acb, bca. |
-| `--muscle-refineiters` | — | Raffinements MUSCLE 5 : Nombre d’itérations de raffinement ; coût et résultat peuvent changer. |
+| `--muscle-method` | 'align' | MUSCLE 5 algorithm: align: PPP; super5: intended for larger datasets. MUSCLE 3 is unsupported. Values: align, super5. |
+| `--muscle-perturb` | 0 | MUSCLE perturbation seed: 0: standard HMM; another seed explores alignment variability. |
+| `--muscle-perm` | 'none' | Guide-tree permutation: Change the guide-tree traversal. One permutation produces one MSA. Values: none, abc, acb, bca. |
+| `--muscle-refineiters` | — | MUSCLE 5 refinement iterations: Refinement iteration count; cost and results may change. |
 
-## Paramètres Clustal Omega
+## Clustal Omega parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--clustalo-iterations` | 0 | Itérations Clustal Omega : Cycles combinés arbre guide / HMM. 0 : aucun raffinement itératif. |
-| `--clustalo-full / --no-clustalo-full` | False | Distances complètes Clustal Omega : Matrice de distances complète plutôt que mBed ; coût quadratique. |
-| `--clustalo-full-iter / --no-clustalo-full-iter` | False | Distances complètes aux itérations : Matrice complète pendant les raffinements ; requiert des itérations. |
+| `--clustalo-iterations` | 0 | Clustal Omega iterations: Combined guide-tree/HMM cycles. 0: no iterative refinement. |
+| `--clustalo-full / --no-clustalo-full` | False | Full Clustal Omega distances: Full distance matrix instead of mBed; quadratic cost. |
+| `--clustalo-full-iter / --no-clustalo-full-iter` | False | Full distances during iterations: Use a full matrix during refinement; requires iterations. |
 
-## Paramètres Needle
+## Needle parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--needle-endopen` | — | Ouverture de gap terminal Needle : Vide : même coût que gapopen AlignView ; ignoré si extrémités libres. |
-| `--needle-endextend` | — | Extension de gap terminal Needle : Vide : même coût que gapextend AlignView ; ignoré si extrémités libres. |
+| `--needle-endopen` | — | Needle terminal gap opening: Unset: same as AlignView gapopen; ignored when sequence ends are free. |
+| `--needle-endextend` | — | Needle terminal gap extension: Unset: same as AlignView gapextend; ignored when sequence ends are free. |
 
-## Paramètres FastTree
+## FastTree parameters
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--fasttree-model` | 'auto' | Modèle d’évolution FastTree : auto : JC pour ADN, JTT pour protéines. GTR : ADN ; JTT/WAG/LG : protéines. Valeurs : auto, JC, GTR, JTT, WAG, LG. |
-| `--fasttree-gamma / --no-fasttree-gamma` | False | Réévaluation Gamma20 : Après optimisation CAT, réévalue et redimensionne les branches sous Gamma20 ; ne refait pas la topologie. |
-| `--fasttree-boot` | — | Rééchantillonnages du support local : Support SH-like, pas un bootstrap d’arbres. 0 : désactive les supports locaux. |
-| `--fasttree-seed` | — | Graine FastTree : Fixe la graine aléatoire pour les calculs stochastiques. |
+| `--fasttree-model` | 'auto' | FastTree evolutionary model: auto: JC for DNA, JTT for proteins. GTR: DNA; JTT/WAG/LG: proteins. Values: auto, JC, GTR, JTT, WAG, LG. |
+| `--fasttree-gamma / --no-fasttree-gamma` | False | Gamma20 reassessment: After CAT optimization, rescore and rescale branches under Gamma20; does not repeat topology inference. |
+| `--fasttree-boot` | — | Local-support resampling: SH-like support, not a tree bootstrap. 0: disable local support. |
+| `--fasttree-seed` | — | FastTree random seed: Set the random seed for stochastic calculations. |
 
-## Profils de calcul réutilisables
+## Reusable calculation profiles
 
-| Option | Défaut | Rôle et valeurs |
+| Option | Default | Purpose and values |
 | --- | --- | --- |
-| `--load-profile` | — | Charger un profil de calcul ; les options CLI explicites sont prioritaires |
-| `--write-profile` | — | Écrire le profil de calcul puis quitter, sans lancer de moteur |
+| `--load-profile` | — | Load a calculation profile; explicit CLI options take priority |
+| `--write-profile` | — | Write the calculation profile and exit without running an engine |

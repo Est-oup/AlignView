@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check current manual links, code fences and bundled language resources."""
+"""Check current manual links, code fences and the bundled English manual."""
 from pathlib import Path
 import re
 import sys
@@ -24,10 +24,10 @@ def main():
             if not (path.parent/target).exists():
                 problems.append(str(path.relative_to(ROOT))+': missing '+target)
     for filename,_,_ in TOPICS.values():
-        for relative in (filename,'en/'+filename):
+        for relative in (filename,):
             if not (ROOT/'docs'/relative).is_file():problems.append('Missing bundled guide: '+relative)
     if problems:raise SystemExit('\n'.join(problems))
-    print(f'{len(files)} Markdown files: local links, fences and French/English guides passed')
+    print(f'{len(files)} Markdown files: local links, fences and English guides passed')
 
 
 if __name__=='__main__':main()

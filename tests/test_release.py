@@ -109,14 +109,14 @@ class ViewerReleaseTests(unittest.TestCase):
 
     def test_invalid_alignment_has_actionable_error(self):
         for records in ([],[Seq('a','a','')],[Seq('a','a','AA'),Seq('b','b','A')]):
-            with self.assertRaisesRegex(ValueError,'aligné'):MSAViewer(records)
+            with self.assertRaisesRegex(ValueError,'aligned'):MSAViewer(records)
 
     def test_utf8_and_modified_arrows_are_read_as_whole_keys(self):
         code="import sys;sys.path.insert(0,sys.argv[1]);from av_terminal import screen,read_key\nwith screen():\n print('READY',flush=True)\n for i in range(3):\n  key=read_key(timeout=5);print('KEY='+key,flush=True)"
         terminal=Terminal(code)
         try:
-            terminal.expect('READY');terminal.send('\x1b[1;5Cé\x1b[6~')
-            terminal.expect('KEY=ctrl-right');terminal.expect('KEY=é');terminal.expect('KEY=pagedown')
+            terminal.expect('READY');terminal.send('\x1b[1;5Cλ\x1b[6~')
+            terminal.expect('KEY=ctrl-right');terminal.expect('KEY=λ');terminal.expect('KEY=pagedown')
             self.assertEqual(terminal.process.wait(timeout=3),0)
         finally:terminal.close()
 
@@ -124,18 +124,18 @@ class ViewerReleaseTests(unittest.TestCase):
         code="import sys;sys.path.insert(0,sys.argv[1]);from av_core import Seq;from av_msa_tui import MSAViewer\nv=MSAViewer([Seq('s'+str(i),'s'+str(i),'ACGT'*300) for i in range(40)],False);v.run();print('FINAL',v.row,v.col,flush=True)"
         terminal=Terminal(code)
         try:
-            terminal.expect('AlignView / Alignement')
+            terminal.expect('AlignView / Alignment')
             terminal.send('\x1b[6~\x1b[1;5C')
-            terminal.expect('Ligne 9/40')
+            terminal.expect('Row 9/40')
             terminal.resize(32,100)
-            terminal.send('g');terminal.expect('Aller à la colonne MSA');terminal.send('75%\n')
+            terminal.send('g');terminal.expect('Go to MSA column');terminal.send('75%\n')
             terminal.expect('Colonne MSA 900')
             terminal.send('q');terminal.expect('FINAL 8 899')
             self.assertEqual(terminal.process.wait(timeout=3),0)
         finally:terminal.close()
 
     def test_long_menu_can_reach_last_item(self):
-        code="import sys;sys.path.insert(0,sys.argv[1]);from av_ui import UI\nu=UI(False);r=u.menu('LONG MENU',[(str(i),'Séquence '+str(i),'Description','DATA') for i in range(250)]);print('SELECTED',r,flush=True)"
+        code="import sys;sys.path.insert(0,sys.argv[1]);from av_ui import UI\nu=UI(False);r=u.menu('LONG MENU',[(str(i),'Sequence '+str(i),'Description','DATA') for i in range(250)]);print('SELECTED',r,flush=True)"
         terminal=Terminal(code)
         try:
             terminal.expect('LONG MENU');terminal.send('\x1b[F\r')
@@ -148,7 +148,7 @@ class ViewerReleaseTests(unittest.TestCase):
         terminal=Terminal(code)
         try:
             terminal.expect('PAGER');terminal.send('\x1b[F\x1b[C')
-            terminal.expect('300/300');terminal.expect('horizontal 8')
+            terminal.expect('300/300');terminal.expect('horizontal offset 8')
             terminal.send('q');terminal.expect('DONE')
         finally:terminal.close()
 
@@ -202,19 +202,20 @@ class ProjectReleaseTests(unittest.TestCase):
             code="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main\nraise SystemExit(main([sys.argv[1]+'/examples/example_msa.fasta',sys.argv[1]+'/examples/example_msa.fasta','--mode','global-dna','--query-id','seq_1','--module-policy','never']))"
             terminal=Terminal(code,dimensions=(32,110))
             try:
-                terminal.expect('Commencer par Analyser');terminal.send('c')
-                terminal.expect('Données et projets');terminal.send('1\r')
-                terminal.expect('Choisir la requête active');terminal.send('2\r')
-                terminal.expect('Requête sélectionnée : seq_2')
-                terminal.expect('Commencer par Analyser');terminal.send('c')
-                terminal.expect('Données et projets');terminal.send('3\r')
-                terminal.expect('Analyses précédentes');terminal.send('1\r')
-                terminal.expect('Projet repris : seq_1')
-                terminal.expect('Commencer par Analyser');terminal.send('s')
-                terminal.expect('Dossier du projet');terminal.send(str(target)+'\n')
-                terminal.expect('Projet enregistré :')
-                terminal.expect('Commencer par Analyser');terminal.send('x')
-                terminal.expect('Projet conservé :');self.assertEqual(terminal.process.wait(timeout=5),0)
+                terminal.expect('Choose Compare');terminal.send('c')
+                terminal.expect('Files and query');terminal.send('1\r')
+                terminal.expect('Choose the active query');terminal.send('2\r')
+                terminal.expect('Selected query: seq_2')
+                terminal.expect('Run comparison');terminal.send('q')
+                terminal.expect('Choose Compare');terminal.send('c')
+                terminal.expect('Files and query');terminal.send('3\r')
+                terminal.expect('Previous analyses');terminal.send('1\r')
+                terminal.expect('Project resumed: seq_1')
+                terminal.expect('Choose Compare');terminal.send('s')
+                terminal.expect('Project directory');terminal.send(str(target)+'\n')
+                terminal.expect('Project saved:')
+                terminal.expect('Choose Compare');terminal.send('x')
+                terminal.expect('Project retained:');self.assertEqual(terminal.process.wait(timeout=5),0)
                 _,state=read_project(target)
                 self.assertEqual(state['active_query_id'],'seq_1')
                 self.assertGreaterEqual(len(list((target/'history').iterdir())),2)
@@ -242,7 +243,7 @@ class ProjectReleaseTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 folder=save_project(session,Path(tmp)/'saved')
                 (folder/'inputs/query.fasta').write_text('>tampered\nAAA\n')
-                with self.assertRaisesRegex(ValueError,'changé'):read_project(folder)
+                with self.assertRaisesRegex(ValueError,'changed'):read_project(folder)
         finally:session.close()
 
     def test_project_paths_cannot_escape_project(self):
@@ -253,7 +254,7 @@ class ProjectReleaseTests(unittest.TestCase):
                 state=json.loads((folder/'session.json').read_text())
                 state['inputs']['query']['path']='../../outside.fasta'
                 (folder/'session.json').write_text(json.dumps(state))
-                with self.assertRaisesRegex(ValueError,'hors du projet'):read_project(folder)
+                with self.assertRaisesRegex(ValueError,'outside the project'):read_project(folder)
         finally:session.close()
 
     def test_save_never_overwrites_existing_folder(self):
@@ -328,7 +329,7 @@ class SetupReleaseTests(unittest.TestCase):
 
     def test_unrelated_existing_folder_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaisesRegex(ValueError,'sans environnement'):install_plan('mafft',tmp,manager='/bin/conda')
+            with self.assertRaisesRegex(ValueError,'without a Conda environment'):install_plan('mafft',tmp,manager='/bin/conda')
 
     def test_plan_never_installs_without_explicit_flag(self):
         with patch('av_setup.install_plan',return_value=['conda','create','mafft']),patch('av_setup.subprocess.run') as run:
@@ -357,7 +358,7 @@ class SetupReleaseTests(unittest.TestCase):
             with patch.dict(os.environ,{'ALIGNVIEW_TOOLS_PREFIX':tmp,'PATH':'/usr/bin'}):
                 tools=Toolchain(root/'work',auto_modules=False)
                 self.assertEqual(tools.executable('mmseqs'),str(executable))
-                self.assertEqual(tools.source('mmseqs'),'environnement AlignView')
+                self.assertEqual(tools.source('mmseqs'),'AlignView environment')
 
     def test_nan_and_infinite_parameters_are_rejected(self):
         for flag,value in (('--evalue','nan'),('--evalue','inf'),('--bitscore','nan'),('--gapopen','-1'),('--ref','0')):

@@ -16,7 +16,7 @@ from av_report_v6 import build_report_v6
 
 records=[Seq(f'seq_{i:03d}',f'seq_{i:03d}','ACGT'*300) for i in range(120)]
 payload=dict(units={'query':'nt','subject':'nt','aligned':'nt','msa':'nt'},queryName='example',queryLen=1200,
-    queryStats={'length':1200,'kind':'ADN/ARN'},referenceCount=0,mode='msa',
+    queryStats={'length':1200,'kind':'DNA/RNA'},referenceCount=0,mode='msa',
     settings={'evalue':.01,'search_run':{'evalue':1e-8}},
     history=[{'command':'mafft --auto input.fasta','version':'1.2-test','duration_s':1,'exit_code':0,
         'stderr_log':'logs/test.log','stdout':'aligned.fasta'}],
@@ -27,7 +27,12 @@ const result=document.createElement('pre');result.id='alignview-browser-check';d
 try {
  const assert=(ok,why)=>{if(!ok)throw Error(why);};
  assert(document.getElementById('history').textContent.includes('version 1.2-test'),'executed version must remain visible');
- assert(document.getElementById('history').textContent.includes('\n  stdout : aligned.fasta'),'stdout destination must appear on its own line');
+ assert(document.getElementById('history').textContent.includes('\n  stdout: aligned.fasta'),'stdout destination must appear on its own line');
+ assert(!document.querySelector('#overview #profiles'),'composition profiles must remain outside Overview');
+ assert(document.getElementById('searchOverview').hidden,'an alignment-only report must not show search settings');
+ assert(!document.getElementById('subtitle').textContent.includes('retained references'),'alignment subtitle must describe the alignment');
+ assert(document.querySelector('[data-tab="sequences"]').closest('.nav-extra'),'sequence diagnostics must be in Advanced');
+ assert(document.querySelector('[data-tab="provenance"]').closest('.nav-extra'),'provenance must be in Advanced');
  assert(document.querySelector('[data-tab="coverage"]').hidden,'unused search tab must be hidden');
  assert(document.querySelector('[data-tab="dotplot"]').hidden,'unused dotplot tab must be hidden');
  assert(document.querySelector('[data-open-tab="msa"]'),'reading guide must link to the available alignment');
@@ -95,11 +100,11 @@ try {
  assert(document.getElementById('readingGuide'),'reading guide must exist');
  assert(document.querySelectorAll('.figure-view').length===document.querySelectorAll('.figcard').length,'all atlas figures must be expandable');
  assert(document.querySelector('[data-tab="figures"]').textContent==='Figures','atlas entry must have a plain label');
- tab('figures');assert(document.getElementById('pageTitle').textContent==='Atlas des figures','atlas title must survive report composition');
+ tab('figures');assert(document.getElementById('pageTitle').textContent==='Figure atlas','atlas title must survive report composition');
  document.getElementById('figFilter').value='conservation';document.getElementById('figFilter').dispatchEvent(new Event('input'));
  const cards=[...document.querySelectorAll('.figcard')];assert(cards.some(x=>x.hidden)&&cards.some(x=>!x.hidden),'atlas filtering must remain usable');
  document.getElementById('openTree').click();
- const tree=document.querySelector('.figcard[data-figure="45_arbre_fasttree"]');
+ const tree=document.querySelector('.figcard[data-figure="45_fasttree_tree"]');
  assert(tree&&!tree.hidden&&tree.querySelector('details').open,'tree shortcut must reveal and expand the figure');
  assert(cards.filter(x=>!x.hidden).length===1,'phylogeny filter must isolate the tree');
  assert(tree.querySelectorAll('.tree-tip').length===3,'all tree labels must be rendered');
@@ -110,7 +115,7 @@ try {
  HTMLAnchorElement.prototype.click=function(){filename=this.download;};
  tree.querySelector('.downloadSvg').click();
  URL.createObjectURL=create;HTMLAnchorElement.prototype.click=click;
- assert(filename==='45_arbre_fasttree.svg'&&downloaded,'tree SVG download must be available');
+ assert(filename==='45_fasttree_tree.svg'&&downloaded,'tree SVG download must be available');
  const svg=await downloaded.text();assert(svg.includes('tree-tip')&&svg.includes('0.97'),'download must contain the actual tree and support');
  tab('provenance');assert(document.getElementById('advancedNav').closest('details').open,'advanced active navigation must be visible');
  tab('exports');assert(document.getElementById('exports').classList.contains('active'),'exports must remain accessible');
@@ -126,16 +131,15 @@ try {
 
     # English presentation must preserve scientific identifiers and native
     # VSEARCH metrics, and must not expose the unrelated local-search tab.
-    from av_i18n import set_language
-    set_language('en')
+
     english=tmp/'english';english.mkdir()
-    identifier='Données_gene_42'
+    identifier='Δ_gene_42'
     translated=[Seq(identifier,identifier,'ACGTACGT'),*tiny[1:]]
     (english/'tree_fasttree.nwk').write_text("(('"+identifier+"':0.1,b:0.2)0.97:0.3,c:0.4);")
     (english/'vsearch').mkdir()
     (english/'vsearch/analyses.json').write_text(json.dumps({'search':{
         'summary':{'matches':1,'matched_references':1},'settings':{'vsearch_id':.97},'commands':[],
-        'preview':[{'query':identifier,'target':'Réglages_gene','id':100,'qcov':100,'tcov':100,'qstrand':'+'}]
+        'preview':[{'query':identifier,'target':'Ω_gene','id':100,'qcov':100,'tcov':100,'qstrand':'+'}]
     }},ensure_ascii=False))
     report=build_report_v6(english,translated[0],translated[1:],[],'vsearch',{'hits':100},[],msa_seqs=translated)
     english_checks=r'''<script>window.addEventListener('DOMContentLoaded',async ()=>{
@@ -148,14 +152,14 @@ try{
  assert(document.querySelector('[data-tab="coverage"]').hidden,'VSEARCH must not pretend to be a local HSP search');
  const open=document.getElementById('openTree');assert(open.textContent==='View the tree','tree shortcut must be translated');
  open.click();
- assert(document.querySelector('.tree-tip').textContent==='Données_gene_42','tree identifier must be preserved');
+ assert(document.querySelector('.tree-tip').textContent==='Δ_gene_42','tree identifier must be preserved');
  assert(document.querySelector('.tree-scale').nextElementSibling.textContent.includes('substitutions/site'),'branch scale must remain present');
  tab('vsearch');await new Promise(resolve=>setTimeout(resolve,0));
  assert(document.getElementById('pageTitle').textContent==='VSEARCH analyses','dynamic page title must be translated');
- assert(document.querySelector('#vsearch td').textContent==='Données_gene_42','query identifier must be preserved');
- assert(document.querySelector('#vsearch td:nth-child(2)').textContent==='Réglages_gene','target identifier must be preserved');
+ assert(document.querySelector('#vsearch td').textContent==='Δ_gene_42','query identifier must be preserved');
+ assert(document.querySelector('#vsearch td:nth-child(2)').textContent==='Ω_gene','target identifier must be preserved');
  assert(document.querySelector('#vsearch h2').textContent==='VSEARCH analyses','VSEARCH heading must be translated');
- result.textContent='PASS: English report, dynamic translation, native VSEARCH view, identifiers and tree';
+ result.textContent='PASS: English report, native English labels, native VSEARCH view, identifiers and tree';
 }catch(error){result.textContent='FAIL: '+error.message;}
 });</script>'''
     report.write_text(report.read_text().replace('</body>',english_checks+'</body>'),encoding='utf-8')

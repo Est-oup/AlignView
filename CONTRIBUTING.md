@@ -1,9 +1,11 @@
-# Contribuer
+# Contributing
 
-Lancer `python3 -m unittest discover -s tests -v`. Les tests ordinaires ne téléchargent aucun moteur. Voir [DEVELOPMENT.md](docs/DEVELOPMENT.md) pour les validations réelles et la construction.
+Run `python3 -m unittest discover -s tests -v`. Ordinary tests do not download scientific engines. See [Development](docs/DEVELOPMENT.md) for real-engine validation and distribution builds.
 
-Pour un problème, joindre une commande minimale, les versions d’AlignView et Python, le terminal, `alignview --diagnose-json` et un petit FASTA synthétique. Préciser : local, SSH ou Slurm.
+For a bug report, provide a minimal command, AlignView and Python versions, terminal details, `alignview --diagnose-json` output and a small synthetic FASTA. State whether the run was local, over SSH or under Slurm.
 
-Toute modification des coordonnées ou statistiques doit inclure un résultat connu attendu. Vérifier la navigation à 80×24, avec une longue liste et un long alignement. Conserver l’exécution sans dépendance Python obligatoire et le fonctionnement batch.
+Changes to coordinates or statistics need a known expected result. Verify navigation at 80×24 with long lists and alignments. Preserve batch operation and execution without mandatory Python dependencies.
 
-Les guides français et anglais sont consultables avec `--docs` et se trouvent dans `docs/` et `docs/en/`. Après une modification de CLI : `python3 scripts/generate_cli_docs.py`, puis `python3 scripts/check_docs.py`. Une nouvelle chaîne d’interface doit être traduite dans `av_locale_en.py`, sans modifier les identifiants scientifiques ni les arguments des moteurs. Une nouvelle option scientifique doit être reliée à sa commande réelle et à la provenance.
+Use English for source identifiers, comments, docstrings, messages, reports, documentation and templates. Write presentation text directly in English; there is no translation catalog or language selector. Preserve user-supplied sequence identifiers, source file names and raw engine output.
+
+The offline manual is in `docs/`. After changing the CLI, run `python3 scripts/generate_cli_docs.py`, then `python3 scripts/check_docs.py`. Each scientific option must be connected to the actual engine command and calculation provenance. Rebuild distributions after changing source or bundled guides.

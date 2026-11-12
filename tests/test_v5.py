@@ -1,4 +1,4 @@
-"""V5 : exports interopérables, portabilité, rendu HTML et absence de sauvegarde implicite."""
+"""v5: interoperable exports, portability, HTML rendering and explicit saving."""
 from __future__ import annotations
 import csv
 import json

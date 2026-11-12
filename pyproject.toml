@@ -21,14 +21,14 @@ alignview = "alignview:main"
 dev = ["build>=1", "twine>=5"]
 
 [tool.setuptools]
-py-modules = ["alignview", "av_core", "av_tools", "av_ui", "av_start", "av_msa_tui", "av_visual", "av_report_v4", "av_report_v5", "av_exports", "av_units", "av_report_v6", "av_version", "av_terminal", "av_setup", "av_project", "av_demo", "av_navigation", "av_defaults", "av_parameters", "av_tree", "av_docs", "av_genetics", "av_vsearch", "av_i18n", "av_locale_en"]
+py-modules = ["alignview", "av_core", "av_tools", "av_ui", "av_start", "av_msa_tui", "av_visual", "av_report_v4", "av_report_v5", "av_exports", "av_units", "av_report_v6", "av_version", "av_terminal", "av_setup", "av_project", "av_demo", "av_navigation", "av_advanced", "av_defaults", "av_parameters", "av_tree", "av_docs", "av_genetics", "av_vsearch", "av_display"]
 packages = ["alignview_docs"]
 
 [tool.setuptools.package-dir]
 alignview_docs = "docs"
 
 [tool.setuptools.package-data]
-alignview_docs = ["*.md", "en/*.md"]
+alignview_docs = ["*.md"]
 
 [tool.setuptools.dynamic]
 version = {attr = "av_version.VERSION"}

@@ -1,55 +1,49 @@
-# Formats, unités et interprétation des exports
+# Export formats and coordinates
 
-## Choix rapide
+## Choose a destination and profile
 
-| Question | Format conseillé | Détail |
-|---|---|---|
-| Travailler sous R / Python | TSV (ou CSV) | Lisible avec `readr::read_tsv`, pandas |
-| Archiver les paramètres et HSP | JSON / JSONL | JSONL complet HSP, une observation par ligne |
-| Visualiser les régions de séquences | BED | Coordonnées 0-based half-open, comme BED standard |
-| Annoter des similarités dans un viewer | GFF3 | Features `match` sur QUERY ; coordonnées 1-based inclusives |
-| Reprendre un alignement multiple | FASTA, NEXUS, relaxed PHYLIP | Inclut consensus et sites variables quand possible |
-| Faire une figure d'article | SVG | Format vectoriel, une figure par fichier |
-| Partager une exploration autonome | HTML | Un seul fichier HTML, sans réseau, contenant les figures intégrées |
-| Avoir un PDF | Depuis le HTML : Imprimer / PDF | Fonction du navigateur, pas un moteur PDF installé par AlignView |
+Use **Save and share → Export results**. Batch examples:
 
-Depuis l’accueil, **Enregistrer et partager → Exporter les résultats** ouvre le centre d’export. Le raccourci `s` enregistre un projet portable. Dans la visionneuse MSA, `e` exporte le HTML. En batch : `--export-profile standard|publication|complete --export-dir dossier`, sans `--save` pour ne conserver que les exports.
+```bash
+alignview --resume project_01 --export-profile publication --export-dir exports_01 --no-menu
+alignview --resume project_01 --export-profile complete --export-dir exports_02 --no-menu
+```
 
-## Fichiers
+Standard exports contain FASTA, sequence quality, local-search tables, coverage, BED and provenance. Publication adds CSV, GFF3, alignment exchange formats, HTML and SVG figures. Complete adds detailed JSON/JSONL, unmatched regions and a SHA256 inventory. Conditional files require the underlying data. VSEARCH output directories are preserved in all profiles when available.
 
-- `sequence_qc.tsv/csv/json` : source du FASTA, longueur, ungapped, gaps, GC (nucléotides seulement), %N, entropie.
-- `hsps_all.tsv` et `hsps_selected.tsv` : tous les HSP et les HSP après filtres, avec alignements par colonnes et frames.
-- `hits_by_reference.tsv` : un résumé par référence, y compris couverture de QUERY et de la référence (union sans double comptage).
-- `coverage_regions.tsv` : intervalles couverts ou sans HSP selon QUERY ou référence.
-- `hsp_query.bed`, `hsp_reference.bed` : segments des HSP ; bed score de 0 à 1000.
-- `hsp_features.gff3` : segments HSP sous forme de `match` GFF3, avec attribut `Target` sur les références.
-- `query_without_hsp.bed`, `references_without_hsp.bed` : régions sans HSP détecté, **pas une absence prouvée d'homologie**.
-- `msa_alignment.fasta`, `msa_consensus.fasta`, `msa_variable_sites.fasta` : alignement et sous-ensemble des colonnes variables.
-- `msa_alignment.nex`, `msa_alignment.phy`, `msa_alignment.sto`, `msa_alignment.aln` : export pour logiciel phylogénétique ; le PHYLIP est *relaxed*, avec tables de correspondance des identifiants (PHYLIP, Stockholm et CLUSTAL).
-- `msa_positions.tsv/csv`, `msa_pairwise_distances.tsv/csv` : statistiques par colonne du MSA et distances p entre séquences.
-- `tree_fasttree.nwk`, `figures/45_arbre_fasttree.svg` : arbre FastTree et figure vectorielle avec longueurs, supports et échelle. La figure est intégrée au HTML ; le Newick et le SVG sont aussi inclus dans les exports publication/complet. La racine du dessin est arbitraire ; les supports SH-like sont locaux, pas des bootstraps.
-- `vsearch/` : fichiers complets des analyses VSEARCH (TSV/UC/FASTA), résumés, paramètres et commandes ; présent dans tous les profils lorsque ces analyses existent.
-- `provenance.json` : versions du projet/Python, plateforme, paramètres, commandes, modules chargés, hashes d'entrée.
-- `MANIFEST.tsv` : tailles et empreintes SHA256 des exports ; auto-exclu pour éviter un checksum récursif.
+An export directory is not a full resumable project. Save a project to retain every internal/auxiliary analysis and history. Browser exports use the report's embedded subset, not necessarily the complete application data.
 
-Les fichiers conditionnels ne sont créés **que lorsque les données existent** : pas de NEXUS sans MSA, pas de HSP pour un FASTA unique non comparé.
+## Main files
 
-## Attention à l'unité des coordonnées
+| File | Purpose |
+| --- | --- |
+| sequence_qc.tsv/csv/json | Origin, identifier, alphabet, lengths, gaps, GC where appropriate, ambiguity and entropy |
+| query_active.fasta / references.fasta | Active query and reference sequences |
+| hsps_all.tsv / hsps_selected.tsv | Calculated and filtered local HSPs, with aligned characters and frames |
+| hits_by_reference.tsv | Reference-level identity, scores and coverage summaries |
+| coverage_regions.tsv | Covered/uncovered coordinate intervals |
+| hsp_query.bed / hsp_reference.bed | HSP intervals in native sequence coordinates |
+| hsp_features.gff3 | Match features and explicit Target attributes |
+| msa_alignment.fasta / msa_consensus.fasta / msa_variable_sites.fasta | MSA, consensus and variable-column subset |
+| msa_alignment.nex/.phy/.sto/.aln | NEXUS, relaxed PHYLIP, Stockholm and Clustal exchange |
+| msa_phylip_ids.tsv / msa_stockholm_ids.tsv / msa_clustal_ids.tsv | Identifier mappings for format-specific aliases |
+| msa_positions.tsv / msa_pairwise_distances.tsv | Per-column metrics and pairwise p-distances |
+| tree_fasttree.nwk / figures/45_fasttree_tree.svg | Tree topology/lengths/supports and vector figure |
+| vsearch/ | Complete VSEARCH result files, previews, parameters and provenance |
+| report.html / figures/ / figures_catalog.tsv | Standalone presentation, individual SVGs and figure descriptions |
+| provenance.json | Current settings, historical calculation blocks, engine versions, commands and input hashes |
+| MANIFEST.tsv | File sizes and SHA256 values in the complete export; excludes itself |
 
-| Format / résultat | Origine | Fin | Unité |
-|---|---|---|---|
-| HSP BLAST/TSV/GFF3 | 1-based | inclusive | QUERY en nucléotides pour BLASTX, en aa pour BLASTP |
-| BED | 0-based | exclusive | même unité que la séquence d'origine du côté considéré |
-| MSA | 1-based | colonne, gaps inclus | positions d'alignement, pas coordonnées génomiques |
+## Coordinates and interpretation
 
-Les distances p sont calculées en ignorant les caractères gaps/manquants dans chaque paire ; les colonnes ainsi comparables varient selon la paire. La couverture est calculée sur l'union des HSP filtrés. Les identités sont celles des **HSP locaux**, pas une identité globale recalculée.
+| Format | Start | End | Unit |
+| --- | --- | --- | --- |
+| HSP/TSV/GFF3 | 1-based | Inclusive | Native query/reference unit |
+| BED | 0-based | Half-open | Native sequence unit |
+| MSA | 1-based column | Column, including gaps | Aligned nt or aa |
 
-**Rapport HTML** : pour limiter sa taille, il intègre une sélection (2 000 HSP, 301 statistiques de séquences, 1 000 séquences de MSA). La visionneuse affiche des pages de 100 séquences. Les boutons du navigateur exportent uniquement les données intégrées. Pour les résultats complets, exporter depuis l’application.
+BLASTX uses nt/aa/aa for query/reference/HSP columns; TBLASTN uses aa/nt/aa; TBLASTX uses nt/nt/aa. `coordinate_units.tsv` and `coordinate_audit.tsv` preserve these distinctions. Reverse-strand coordinates need their strand/frame context.
 
-## Audit d’unités et figures
+Coverage is an interval union, not a sum of overlapping HSP lengths. Identity is local to a segment, not a recalculated whole-sequence identity. Pairwise p-distances exclude gaps/missing characters independently per pair.
 
-`coordinate_units.tsv` précise les unités pour le mode employé. `coordinate_audit.tsv` compare les étendues natives aux résidus non-gap des alignements, avec ratio 3 nt/aa pour les séquences traduites. Le rapport HTML autonome, les SVG et `figures_catalog.tsv` sont inclus dans les profils publication et complet, si générés. `MANIFEST.tsv` fournit les hashes SHA256 des fichiers exportés.
-
-## Profils, moteurs et traductions
-
-Les profils standard/publication/complete concernent les fichiers, pas la sensibilité des moteurs. Les analyses VSEARCH gardent leurs propres métriques globales et ne reçoivent pas d’E-value ou bitscore fictifs. Les codes NCBI choisis sont conservés dans les paramètres et les commandes de recherche traduite. Les traductions internes et ORF ont leur bloc de provenance spécifique ; changer la table ensuite ne modifie pas cette trace historique. Les en-têtes de colonnes et les identifiants restent stables en anglais ; la présentation et les guides changent de langue.
+VSEARCH Matches.tsv uses native VSEARCH fields (query, target, id, alnlen, qilo/qihi, tilo/tihi, qcov/tcov, qstrand, qrow/trow). It contains no invented E-value/bitscore. Clustering/dereplication UC files map records to Representatives; size annotations retain abundances. Chimera files separate reported classifications. See [VSEARCH](VSEARCH.md).

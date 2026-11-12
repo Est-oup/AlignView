@@ -54,7 +54,7 @@ class TreeTests(unittest.TestCase):
         self.assertAlmostEqual(delta, 720 * 0.1 / 0.5)
         self.assertEqual(svg.find('.//s:text[@class="tree-support"]', NS).text, '0.97')
         self.assertIsNotNone(svg.find('.//s:path[@class="tree-scale"]', NS))
-        self.assertIn('sans enracinement biologique', ''.join(svg.itertext()))
+        self.assertIn('without biological rooting', ''.join(svg.itertext()))
 
     def test_missing_and_zero_lengths_have_no_distance_scale(self):
         for source in ('((a,b),c);', '(a:0,b:0,c:0);', '(a:0.1,b,c:0.3);'):
@@ -62,7 +62,7 @@ class TreeTests(unittest.TestCase):
                 svg = ET.fromstring(tree_svg(source))
                 self.assertEqual(svg.attrib['data-layout'], 'cladogram')
                 self.assertIsNone(svg.find('.//s:path[@class="tree-scale"]', NS))
-                self.assertIn('distances non représentées', ''.join(svg.itertext()))
+                self.assertIn('distances are not represented', ''.join(svg.itertext()))
 
     def test_labels_are_xml_text_and_never_executable_markup(self):
         name = '<script>alert("x")</script>&_' + 'long_id_' * 20
@@ -93,20 +93,20 @@ class TreeIntegrationTests(unittest.TestCase):
             page = report()
             figure = out / 'figures' / (TREE_FIGURE + '.svg')
             self.assertTrue(figure.is_file())
-            self.assertIn('data-group="Phylogénie" data-figure="' + TREE_FIGURE + '"', page)
+            self.assertIn('data-group="Phylogeny" data-figure="' + TREE_FIGURE + '"', page)
             self.assertIn(figure.read_text(), page)
             self.assertIn(TREE_FIGURE + '.svg', (out / 'figures_catalog.tsv').read_text())
-            self.assertIn('Télécharger SVG', page)
+            self.assertIn('Download SVG', page)
             self.assertEqual(page.count('class="panel figcard"'), len(list((out / 'figures').glob('*.svg'))))
             tree.write_text('(alpha,,gamma);')
             page = report()
-            self.assertIn('Figure d’arbre indisponible', page)
+            self.assertIn('Figure d’arbre unavailable', page)
             self.assertFalse(figure.exists())
             tree.unlink()
             page = report()
             self.assertNotIn('data-figure="' + TREE_FIGURE + '"', page)
             self.assertNotIn(TREE_FIGURE, (out / 'figures_catalog.tsv').read_text())
-            self.assertNotIn('Figure d’arbre indisponible', page)
+            self.assertNotIn('Figure d’arbre unavailable', page)
 
     def test_failed_newick_preserves_previous_tree_and_svg(self):
         session = Session(parse_args([str(ROOT / 'examples/example_msa.fasta'), '--msa', 'view', '--no-menu']), UI(color=False))

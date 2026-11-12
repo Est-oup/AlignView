@@ -15,7 +15,7 @@ sys.path.insert(0,str(ROOT))
 from alignview import Session,parse_args
 from av_core import Seq,translate_nt,orfs,write_fasta,read_fasta
 from av_genetics import TABLES,code_table,context_dependent
-from av_i18n import set_language,translate,localize_svg
+
 from av_parameters import snapshot
 from av_project import save_project,resume_project
 from av_tools import Toolchain,CommandError
@@ -28,7 +28,6 @@ from test_release import Terminal
 
 
 class WorkflowTests(unittest.TestCase):
-    def tearDown(self):set_language('fr')
 
     def session(self,*extra):
         return Session(parse_args([str(ROOT/'examples/example_msa.fasta'),'--msa','view','--no-menu',*extra]),UI(False))
@@ -81,30 +80,48 @@ class WorkflowTests(unittest.TestCase):
                 finally:resumed.close()
         finally:session.close()
 
+    def test_legacy_preset_profile_loads_with_english_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            profile=Path(tmp)/'legacy.json'
+            profile.write_text(json.dumps({'schema':1,'parameters':{'preset':'sensible','hits':42}}))
+            args=parse_args(['--demo','--load-profile',str(profile),'--no-menu'])
+            self.assertEqual(args.preset,'sensitive')
+            self.assertEqual(args.hits,42)
+
+    def test_english_is_default_and_has_no_language_selector(self):
+        from alignview import build_parser
+        parser=build_parser()
+        self.assertNotIn('--lang',parser._option_string_actions)
+        with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,{'ALIGNVIEW_LANG':'fr'}):
+            result=self.cli('--help',cwd=tmp)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertIn('Input and resuming',result.stdout)
+            self.assertIn('Command-line',self.cli('--docs','cli',cwd=tmp).stdout)
+            self.assertNotIn('Langue',result.stdout)
+
     def test_english_output_preserves_identifiers(self):
-        set_language('en')
-        self.assertEqual(translate('Requête sélectionnée : Données_gene_42 · 12 caractères'),
-                         'Selected query: Données_gene_42 · 12 characters')
-        svg=tree_svg("('Données_gene_42':0.1,b:0.2);")
+        record=Seq('Δ_gene_42','Δ_gene_42','ACGT')
+        self.assertEqual(record.id,'Δ_gene_42')
+        svg=tree_svg("('Δ_gene_42':0.1,b:0.2);")
         self.assertIn('Exploratory tree',svg)
-        self.assertIn('Données_gene_42',svg)
+        self.assertIn('Δ_gene_42',svg)
         self.assertIn('substitutions per site',svg)
 
     def test_english_help_and_guides_are_available_without_data(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result=self.cli('--lang','en','--help',cwd=tmp)
+            result=self.cli('--help',cwd=tmp)
             self.assertEqual(result.returncode,0,result.stderr)
             self.assertIn('Input and resuming',result.stdout)
-            result=self.cli('--lang','en','--docs','quickstart','--no-menu',cwd=tmp)
+            result=self.cli('--docs','quickstart','--no-menu',cwd=tmp)
             self.assertEqual(result.returncode,0,result.stderr)
             self.assertTrue(result.stdout.startswith('# Getting started'))
             self.assertIn('--html-out',result.stdout)
-            result=self.cli('q.fa','r.fa','--lang','en','--msa','view','--no-menu',cwd=tmp)
+            result=self.cli('q.fa','r.fa','--msa','view','--no-menu',cwd=tmp)
             self.assertNotEqual(result.returncode,0)
             self.assertIn('requires a single aligned FASTA',result.stderr)
 
     def test_guided_english_query_selector_reaches_filtered_identifier(self):
-        code="from alignview import Session,parse_args;from av_ui import UI;import sys;a=parse_args([sys.argv[1]+'/examples/example_msa.fasta',sys.argv[1]+'/examples/example_msa.fasta','--lang','en']);a._guided=True;s=Session(a,UI(False));print('ACTIVE='+s.query.id,flush=True);s.close()"
+        code="from alignview import Session,parse_args;from av_ui import UI;import sys;a=parse_args([sys.argv[1]+'/examples/example_msa.fasta',sys.argv[1]+'/examples/example_msa.fasta',]);a._guided=True;s=Session(a,UI(False));print('ACTIVE='+s.query.id,flush=True);s.close()"
         terminal=Terminal(code)
         try:
             terminal.expect('Choose the active query');terminal.send('/seq_3\r')
@@ -113,7 +130,6 @@ class WorkflowTests(unittest.TestCase):
 
 
 class GeneticCodeTests(unittest.TestCase):
-    def tearDown(self):set_language('fr')
 
     def test_alternative_codes_and_ambiguity(self):
         self.assertEqual(translate_nt('ATATGAAGA',table=1),'I*R')

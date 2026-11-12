@@ -1,46 +1,35 @@
-# Revue critique de l’interface
+# Interface review
 
-Révision du 10 novembre 2026, après retour d’utilisation sur la première préparation 0.1.0.
+Reviewed on 12 November 2026. This describes workflow and implementation choices; it does not claim measured user satisfaction or comparative usability superiority.
 
-## Diagnostic
+## Problems addressed
 
-La première refonte avait ajouté des fonctions et raccourcis sans réduire suffisamment les décisions. Les tests validaient calculs et touches ; ils ne démontraient pas la clarté du parcours complet.
+| Problem | Current behavior |
+| --- | --- |
+| Results, calculations and diagnostics mixed in the same menus | Direct Home actions; additional work stays under Advanced |
+| Opening an alignment required another result-selection step | The viewer opens immediately |
+| Guided calculations returned Home before preparation | The selected task opens its preparation screen directly |
+| Multi-query comparison could hide the active query | Explicit initial choice, visible query name and a query selector before calculation |
+| Missing references led to a disabled search | Compare with references opens the reference picker |
+| Segment diagnostics cluttered ordinary result reading | Detailed quality, coverage, conservation and distances are under Advanced |
+| Changing a sensitivity preset altered the result limit | The reference limit remains independent, initially 100 |
+| Simply reading an existing file requested saving | Read-only sessions close directly; new results/settings/history remain protected |
+| Export choices exposed implementation profiles first | Choose FASTA alignment, reference TSV, tree SVG or a result folder |
+| HTML repeated composition charts and empty search counters | Overview focuses on available results; detailed charts stay under Advanced |
+| Runtime translation could leave mixed-language output | English is written directly in code, reports and the single bundled manual |
 
-| Problème observé | Conséquence | Modification |
-| --- | --- | --- |
-| Jusqu’à 13 entrées à l’accueil, destinations dupliquées | Difficile de savoir par où commencer | Cinq rubriques stables, un contexte et une étape conseillée |
-| Nombreuses méthodes de menus aux vocabulaires variables | Profondeur et repères incohérents | Contrôleur unique `av_navigation.py` |
-| Moteurs et profils proposés trop tôt | Il faut connaître les logiciels avant de poser une question | Démarrage par intention, proposition compatible et aperçu avant calcul |
-| Actions proposées sans données nécessaires | Commandes sans effet, erreurs tardives | Choix indisponibles avec leur prérequis expliqué |
-| Libellé et description dans une ligne étroite | Texte tronqué difficile à comparer | Une colonne, description sous le libellé |
-| Retours locaux uniquement | Perte de repères dans les sous-menus | Fil de navigation, Échap/← et F2 accueil |
-| Touches vidées pendant les transitions | Une touche rapide semble sans effet | Mode terminal changé sans vider les touches en attente |
-| Aide dans un écran alternatif imbriqué | Écran ou souris mal restaurés | Gestion des écrans imbriqués vérifiée dans un PTY |
-| Rafraîchissement permanent au repos | Sortie SSH inutile, scintillement possible | Rendu après modification ou redimensionnement |
-| Profils changeant aussi le maximum de hits | Nombre de résultats modifié de façon peu visible | Limite 100 indépendante du profil ; `--hits` prioritaire |
-| Séquence active implicite dans un FASTA unique | Analyses ciblant la première séquence sans choix clair | Sélection explicite, FASTA complet conservé pour le MSA |
-| Historique temporaire assimilé à une sauvegarde | Risque de quitter en pensant le travail conservé | Reprise d’historique toujours marquée à enregistrer |
-| Réglages futurs confondus avec le calcul existant | Interprétation ambiguë après modification | Paramètres calculés conservés séparément, état de relance visible |
-| Rapport avec cartes vides et toutes les figures ouvertes | Même surcharge dans le navigateur | Guide de lecture, vues selon les données, figures dépliables |
+## Structure
 
-## Parcours retenus
+Home exposes Results, Compare with references, Align sequences, Save and share, Files and query, and Advanced. Results follow available data. Preparation screens keep the launch action visible; engine-specific controls, command previews and profiles are in Advanced options.
 
-L’accueil suit les tâches : **Explorer, Analyser, Données, Enregistrer et partager, Réglages et aide**. Le moteur reste accessible sans imposer sa connaissance au premier écran.
+Advanced groups additional analyses, checks and statistics, calculation settings, tools and provenance, HPC and help. Its implementation is separated into `av_advanced.py`; ordinary navigation remains in `av_navigation.py`.
 
-Un alignement existant est chargé sans moteur. Un FASTA brut reste chargé avant calcul ; l’aperçu précise les séquences et le moteur. Une comparaison commence par une recherche, dont les correspondances et couvertures sont regroupées. Créer ensuite un MSA reste une action explicite.
+Project, HTML and individual exports have distinct purposes: resume, share and reuse. Output paths remain relative to the launch directory and existing destinations are refused. Session history becomes portable when the project is saved.
 
-Projet, rapport et exports sont décrits par leur usage : reprendre, présenter, réutiliser. Un enregistrement est visible et ne provoque pas de deuxième copie à la fermeture.
+The HTML report keeps reading and export views in its main navigation. Sequence diagnostics, dotplots, the complete atlas, parameters and method help are in Advanced. The overview retains a direct tree shortcut.
 
-## Vérification
+## Verification
 
-Les tests parcourent de vrais pseudo-terminaux : démo → visionneuse → F2 ; réglages imbriqués → F2 ; prérequis manquant ; alignement guidé ; sélecteur ; changement de requête et historique ; sauvegarde et fermeture.
+Pseudo-terminal tests exercise the demo, viewer, F2 return, nested settings, file selection, reference addition, query changes, history, calculation, saving and closing. The six Home actions fit an 80×24 terminal. Browser checks exercise offline navigation, filtering, horizontal and vertical alignment navigation, expandable figures, printing, tree viewing, SVG download and VSEARCH.
 
-Avec 120 références, les tests vérifient que 100 sont retenues et exportées. Profils, limites explicites et reprise de paramètres existants sont testés séparément. Les cinq rubriques et leurs libellés tiennent dans un terminal 80×24.
-
-Le rapport est contrôlé dans Chrome, en complément des tests de formats. Ces vérifications portent sur des comportements observables ; elles ne remplacent pas les retours d’usage sur les données et terminaux de travail.
-
-La [revue des calculs](CALCULATION_REVIEW.md) complète cette révision : les contrôles scientifiques sont accessibles avant lancement, propres au moteur sélectionné, accompagnés de leur effet et réutilisables dans des profils. L’aperçu des commandes et la provenance distinguent configuration future et calcul effectué.
-
-## Limites
-
-Les grands FASTA restent en mémoire, les rapports gardent des modules historiques et toutes les versions de moteurs/plateformes ne sont pas validées. Les huit moteurs ont désormais un essai réel local, avec des paramètres de départ et modifiés. L’audit scientifique conserve les limites de portée. Aucune satisfaction utilisateur ou supériorité générale n’est déduite du nombre de tests.
+These checks establish observable behavior. They do not replace feedback on real biological datasets, terminal configurations or the target HPC environment. See [Calculation review](CALCULATION_REVIEW.md) and [Validation scope](AUDIT.md).

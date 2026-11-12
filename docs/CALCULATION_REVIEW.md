@@ -1,56 +1,48 @@
-# Revue critique des calculs et de leurs réglages
+# Calculation and settings review
 
-Révision du 10 novembre 2026. Relecture des appels de moteurs, comparaison des documentations officielles, corrections du code et essais locaux. Il s’agit d’une revue fonctionnelle et d’intégration ; aucun classement de précision biologique entre logiciels n’est déduit de ces essais.
+Reviewed on 10 November 2026, with later workflow and English-only updates. This is a functional integration review, not a biological accuracy ranking of the supported tools.
 
-## Ce qui donnait un effet de boîte noire
+## Calculation controls
 
-| Constat dans le code | Conséquence | Correction |
+| Earlier problem | Current behavior |
+| --- | --- |
+| Few engine-native options exposed | A typed registry shares settings across CLI, menus, profiles and provenance |
+| Generic sensitivity appeared to apply to every engine | Separate DIAMOND sensitivity and numeric MMseqs2 sensitivity |
+| Hidden candidate limit varied by engine | Visible, configurable candidate limit with engine-specific semantics |
+| MMseqs2 alignments lacked an explicit traceback request | `-a` requests the gapped alignments consumed by AlignView |
+| EMBOSS gap settings could be mistaken for BLAST/MSA settings | Separate engine-specific option names and labels |
+| MAFFT refinement count was fixed | Strategy, gap controls and refinements are exposed; conflicting auto/refinement settings are rejected |
+| HSP alignment ignored the requested strategy and fixed anchor overlap | Requested strategy is retained; anchor overlap is configurable and preparation is inspectable |
+| Fragment addition displayed an ambiguous engine | MAFFT is explicitly required; reference alignment and fragment addition remain distinct steps |
+| DIAMOND BLASTX fixed `--min-orf 1` invisibly | The setting is explicit and configurable; 0 restores native automatic behavior |
+| Needle end penalties were unclear | Separate free-end selection and terminal costs; Water does not expose irrelevant end settings |
+| FastTree model/support choices were hidden | Alphabet-compatible models, Gamma20, local support, resampling and seed controls |
+| Future settings could overwrite an existing result's context | Successful calculations keep settings snapshots, versions and executed commands |
+| Reruns reused error-log paths | Each execution receives a distinct log name |
+| Failed MSA/tree reruns could damage existing results | Outputs are staged and validated before replacing a successful result |
+
+## Interface references
+
+The reviewed interfaces document useful patterns: [Jalview parameter dialogs](https://www.jalview.org/help/html/webServices/webServicesParams.html), [AliView configuration](https://www.ormbunkar.se/aliview/) and [UGENE MUSCLE controls](https://ugene.net/docs/extensions/umuscle/muscle-aligning/). AlignView applies parameter help, reusable profiles, task-specific controls and command previews. No local comparative user study was performed, and another application's MUSCLE settings are not assumed compatible with MUSCLE 5.
+
+AlignView validates structured fields and generates previews from the same command builders used for execution. It does not accept arbitrary shell fragments as scientific parameters. Its supported controls are documented in [Parameters](PARAMETERS.md); not every native engine option is exposed.
+
+## Recorded engine runs
+
+Baseline and modified-setting runs are retained in [real-tools-results.json](real-tools-results.json) and [tuned-tools-results.json](tuned-tools-results.json).
+
+| Engine | Recorded version | Modified settings exercised |
 | --- | --- | --- |
-| E-value et quelques options générales accessibles ; nombreux paramètres natifs absents | Impossible de tester l’effet des graines, du masquage ou des coûts de gaps | Registre typé commun aux menus, CLI, profils et provenance ; réglages contextualisés par moteur |
-| Sensibilité générique affichée alors que seul DIAMOND recevait ce choix | Réglage sans effet sur MMseqs2, confusion avec BLAST | Sensibilité numérique MMseqs2 dédiée, champ DIAMOND limité à DIAMOND, profils de seuil renommés |
-| Limite de candidats calculée comme `max(100, hits × 10)` et ignorée par MMseqs2 | Plafond scientifique caché, comportement variable selon le moteur | Plafond visible et réglable ; transmission à `--max-seqs` MMseqs2, avec sa signification propre |
-| Extraction des alignements MMseqs2 sans demande explicite du traceback | Calcul des séquences alignées insuffisamment explicite | `-a` demandé pour produire les alignements avec gaps exploités par AlignView |
-| Paramètres `gapopen`, `gapextend`, `matrix` uniquement EMBOSS, sans distinction assez visible | Risque de croire avoir réglé BLAST ou le MSA | Noms séparés `--blast-*`, `--diamond-*`, `--mafft-*` et libellés explicites |
-| G-INS-i/L-INS-i codés avec 1000 raffinements sans réglage dédié | Coût et stratégie peu contrôlables | Stratégie accessible, raffinements et gaps modifiables ; conflit `auto`/raffinements explicites refusé |
-| MSA des HSP forçant MAFFT auto et seuil d’ancre fixé à 50 % | Stratégie choisie ignorée, sélection des régions implicite | Stratégie respectée, seuil d’ancre réglable, préparation inspectable |
-| Fragments forçant MAFFT auto pour les deux étapes, même avec un autre moteur affiché | Moteur et méthode réels ambigus | MAFFT annoncé et imposé pour cette tâche ; références alignées avec la stratégie choisie, ajout automatique distinct |
-| DIAMOND BLASTX avec `--min-orf 1` fixé | Écart au défaut natif peu visible | Choix explicité et modifiable ; 0 restaure l’automatisme natif |
-| Needle pénalisant les extrémités avec les mêmes coûts que les gaps internes | Choix différent d’EMBOSS natif, important pour des séquences partielles | Extrémités libres et coûts terminaux séparés ; aucun réglage d’extrémités proposé à Water |
-| FastTree sans choix du modèle ou de support | Difficile de savoir quel arbre a été inféré | JC/GTR ou JTT/WAG/LG selon alphabet, Gamma20, support SH-like et graine accessibles |
-| Paramètres actuels pouvant remplacer le contexte d’un ancien résultat | Attribution scientifique ambiguë après modification | Instantané par calcul réussi, commandes/versions conservées, réglages modifiés signalés |
-| Journaux stderr réécrits lors d’une relance | Une ancienne commande pouvait pointer vers un nouveau journal | Noms de journaux distincts à chaque exécution |
-| Nouvelle sortie MSA/arbre écrite directement sur la précédente | Un échec de relance pouvait endommager un résultat encore actif | Sorties préparées séparément puis remplacées après succès et validation |
+| BLASTN | 2.17.0+ | Task, word size, reward/penalty, gaps, DUST, soft masking, strand, HSP and candidate limits |
+| DIAMOND | 2.2.8 | Matrix, gaps, masking, composition, HSP and candidate limits |
+| MMseqs2 | 18.8cc5c | Sensitivity 6.5, masking/correction disabled, 37 candidates and traceback |
+| MAFFT | 7.526 | L-INS-i, gap opening 2, offset 0.1, 3 refinements |
+| MUSCLE | 5.3 | Super5, abc permutation, perturbation 2, 3 refinements |
+| Clustal Omega | 1.2.4 | One iteration and full distance matrices |
+| EMBOSS Needle | 6.6.0.0 | EDNAFULL and separate terminal penalties |
+| FastTree | 2.2.0 | LG, Gamma20, 50 local resamplings and seed 42 |
 
-## Enseignements d’autres interfaces
-
-| Documentation consultée | Fonction documentée | Application dans AlignView |
-| --- | --- | --- |
-| [Jalview, dialogue de paramètres](https://www.jalview.org/help/html/webServices/webServicesParams.html) | Modifier avant lancement, aide par paramètre, jeux de paramètres réutilisables | Accès aux paramètres dans la préparation du calcul, F1, profils JSON |
-| [AliView, documentation officielle](https://www.ormbunkar.se/aliview/) | Préréglages de programmes d’alignement et configuration de commandes externes | Moteurs distincts, profils réutilisables et inspection des arguments générés |
-| [UGENE, alignement MUSCLE](https://ugene.net/docs/extensions/umuscle/muscle-aligning/) | Dialogue avec modes adaptés aux tâches, dont grands alignements et raffinement | Séparer question biologique, portée des séquences et réglages du moteur ; MUSCLE 5 expose `align` et `super5` selon sa propre documentation |
-
-Ces fonctions sont établies par leurs documentations. Elles n’ont pas fait l’objet d’un test utilisateur comparatif local. Les réglages d’un MUSCLE intégré à une autre application ne sont pas supposés compatibles avec la CLI de MUSCLE 5.
-
-Le choix d’AlignView est une interface terminal avec champs validés et aperçu issu des mêmes constructeurs que l’exécution. Le périmètre est plus restreint que des commandes externes entièrement libres. Il couvre les contrôles exposés dans le [guide des paramètres](PARAMETERS.md), sans prétendre exposer toutes les options natives.
-
-## Validation locale
-
-Deux passages ont été réalisés sur les huit vrais moteurs : valeurs de départ et paramètres modifiés. Les résultats conservent versions, commandes, statuts et provenance dans [real-tools-results.json](real-tools-results.json) et [tuned-tools-results.json](tuned-tools-results.json).
-
-| Moteur | Version locale du passage complet | Paramètres modifiés testés |
-| --- | --- | --- |
-| BLASTN | 2.17.0+ | Tâche, graine, reward/penalty, gaps, DUST, soft masking, brin, HSP, candidats |
-| DIAMOND | 2.2.8 | Matrice, gaps, masquage, composition, HSP et candidats |
-| MMseqs2 | 18.8cc5c | Sensibilité 6.5, masquage et correction désactivés, 37 candidats et traceback |
-| MAFFT | 7.526 | L-INS-i, ouverture de gap 2, offset 0.1, 3 raffinements |
-| MUSCLE | 5.3 | Super5, permutation abc, perturbation 2, 3 raffinements |
-| Clustal Omega | 1.2.4 | Une itération et matrices de distances complètes |
-| EMBOSS Needle | 6.6.0.0 | EDNAFULL et pénalités terminales distinctes |
-| FastTree | 2.2.0 | LG, Gamma20, 50 rééchantillonnages locaux et graine 42 |
-
-Les fixtures vérifient des hits sur séquences identiques, des alignements valides et des projets reprenables. Les tests de non-régression couvrent aussi la fidélité aperçu/exécution, l’isolation des réglages de chaque moteur, l’effet du seuil HSP sur les séquences retenues, les profils invalides, les priorités CLI, la provenance après reprise, les scripts Slurm et l’accès aux paramètres dans un vrai pseudo-terminal. Le contrôle Chrome vérifie notamment que le résumé de recherche montre le seuil réellement exécuté plutôt qu’une nouvelle valeur préparée.
-
-Pour reproduire les passages avec les moteurs installés :
+Fixtures check matches on identical sequences, valid alignments and resumable projects. Regression tests cover preview/execution agreement, engine-specific settings, HSP overlap effects, invalid profiles, CLI precedence, provenance after resuming, Slurm scripts and parameter access in a pseudo-terminal. Browser checks verify that summaries show executed search thresholds rather than newly prepared values.
 
 ```bash
 python3 scripts/validate_real_tools.py \
@@ -60,8 +52,6 @@ python3 scripts/validate_real_tools.py --tuned \
 python3 -m unittest discover -s tests -v
 ```
 
-Les moteurs du passage complet ont été installés dans un préfixe temporaire, sans remplacer les logiciels du poste. Ces tests ne couvrent pas toutes les combinaisons de matrices/coûts, toutes les combinaisons de codes génétiques alternatifs, toutes les versions de moteurs, les données difficiles ou le cluster cible. La révision initiale utilisait le code standard ; la révision suivante ajoute les tables NCBI choisies explicitement. Les journaux d’erreur des moteurs restent l’autorité sur les incompatibilités natives.
+Those engine runs used an isolated prefix without replacing host software. They do not cover all matrix/gap combinations, genetic codes, engine releases, difficult datasets or the target cluster. Engine error logs remain authoritative for native incompatibilities.
 
-## Révision complémentaire : utilisation et moteurs
-
-La révision complémentaire ajoute les guides français/anglais embarqués, le sélecteur de requête avant comparaison guidée, les actions VSEARCH natives, les 27 tables NCBI hors ligne et un export HTML explicite. Les rapports historiques de moteurs ci-dessus décrivent leurs passages d’origine ; ils ne prétendent pas tester toutes les tables ni tous les nouveaux réglages. Voir [VSEARCH](VSEARCH.md), [codes de traduction](GENETIC_CODES.md) et [règles de fichiers](FILES.md).
+Later updates added guided query selection, native VSEARCH workflows, 27 offline NCBI translation tables, explicit standalone HTML output and a single English interface/manual. Historical engine records describe their original runs and do not claim coverage of every newer option. See [VSEARCH](VSEARCH.md), [Genetic codes](GENETIC_CODES.md) and [Files](FILES.md).

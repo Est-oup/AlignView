@@ -11,7 +11,7 @@ from av_version import VERSION
 
 def build_portable():
     if not (ROOT/'alignview.pyz').is_file():
-        raise ValueError('Construire d’abord alignview.pyz : python3 scripts/build_pyz.py')
+        raise ValueError('Construire d’abord alignview.pyz: python3 scripts/build_pyz.py')
     files=[p for p in ROOT.iterdir() if p.is_file() and (
         p.suffix in ('.py','.pyz','.sh','.md','.toml','.txt','.yml') or p.name in ('LICENSE','MANIFEST.in'))]
     for directory in ('docs','examples','scripts','tests','packaging','.github'):

@@ -1,9 +1,0 @@
-# Validation scope and limitations
-
-The detailed original [audit](../AUDIT.md), [navigation review](../UX_REVIEW.md) and [calculation review](../CALCULATION_REVIEW.md) retain their source-language evidence. Local JSON records in the documentation directory preserve benchmark data and earlier real-engine runs. No remote CI success or publication is implied by prepared workflow files.
-
-The application has automated checks for local-search coordinates, translated units, MSA handling, exports, input integrity, portable saves/resume, terminal keys and full workflows. Real-engine checks are separate from simulated executables. The tree SVG preserves Newick branches and labels, uses an explicitly arbitrary drawing root, and labels a cladogram when distances cannot be drawn. VSEARCH workflows preserve their own global metrics instead of assigning BLAST E-values/bitscores. NCBI tables are vendored with source/date/hash; context-dependent stops are not inferred by the simple ORF detector.
-
-The current changes add query selection in guided multi-query comparisons, language selection, packaged manuals, explicit standalone HTML output and resuming with only explicitly requested actions. Validation results should be checked against the actual version being distributed; historical logs are not a substitute for testing newly changed code.
-
-FASTA/MSA inputs remain in memory. Interactive import supports FASTA/gzip FASTA, not every exported alignment format. A local search uses one active query, not a scheduled all-versus-all analysis. HTML embeds limited subsets; application exports contain full generated result files. Trees, ORFs, motif matches, clusters and chimera screening remain exploratory. Alternative genetic codes require biological selection, not automatic inference. Large difficult datasets, all parameter combinations, all engine releases, other platforms and the target HPC environment require their own validation.

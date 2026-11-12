@@ -33,29 +33,29 @@ class Parameter:
     def check(self,value):
         if value is None and self.default is None:return value
         if self.kind is bool:
-            if type(value) is not bool:raise ValueError('attend oui ou non')
+            if type(value) is not bool:raise ValueError('expected true or false')
         elif self.kind in (int,float):
-            if isinstance(value,bool) or not isinstance(value,(int,float)):raise ValueError('attend un nombre')
-            if not math.isfinite(value) or (self.kind is int and int(value)!=value):raise ValueError('nombre invalide')
-            if self.minimum is not None and value<self.minimum:raise ValueError(f'minimum : {self.minimum:g}')
-            if self.maximum is not None and value>self.maximum:raise ValueError(f'maximum : {self.maximum:g}')
+            if isinstance(value,bool) or not isinstance(value,(int,float)):raise ValueError('expected a number')
+            if not math.isfinite(value) or (self.kind is int and int(value)!=value):raise ValueError('invalid number')
+            if self.minimum is not None and value<self.minimum:raise ValueError(f'minimum: {self.minimum:g}')
+            if self.maximum is not None and value>self.maximum:raise ValueError(f'maximum: {self.maximum:g}')
             value=self.kind(value)
-        elif not isinstance(value,str):raise ValueError('attend du texte')
-        if self.choices and value not in self.choices:raise ValueError('choix : '+', '.join(map(str,self.choices)))
+        elif not isinstance(value,str):raise ValueError('expected text')
+        if self.choices and value not in self.choices:raise ValueError('choix: '+', '.join(map(str,self.choices)))
         if self.kind is str and not self.choices and value and not re.fullmatch(r'[A-Za-z0-9_.+-]+',value):
-            raise ValueError('utiliser un nom de matrice ou de tâche, sans espace')
+            raise ValueError('use a matrix or task name without spaces')
         return value
 
     def display(self,args):
         value=getattr(args,self.name,self.default)
         if value is None:
-            if self.name=='search_candidates':return f'Auto : {max(100,args.hits*10)} candidats moteur'
+            if self.name=='search_candidates':return f'Auto: {max(100,args.hits*10)} engine candidates'
             if self.name in ('frame','sframe'):return 'Meilleur HSP, sinon +1 (AlignView)'
-            if self.name=='needle_endopen':return f'Comme gapopen : {args.gapopen:g} (AlignView)'
-            if self.name=='needle_endextend':return f'Comme gapextend : {args.gapextend:g} (AlignView)'
-            if self.name=='mafft_maxiterate':return 'Auto : choix MAFFT ; global/local : 1000 ; fast : 0'
-        if value is None or value in ('native',''):return 'Défaut du moteur installé'
-        if self.kind is bool:return 'Oui' if value else 'Non'
+            if self.name=='needle_endopen':return f'Comme gapopen: {args.gapopen:g} (AlignView)'
+            if self.name=='needle_endextend':return f'Comme gapextend: {args.gapextend:g} (AlignView)'
+            if self.name=='mafft_maxiterate':return 'Auto: choix MAFFT ; global/local: 1000 ; fast: 0'
+        if value is None or value in ('native',''):return 'Installed engine default'
+        if self.kind is bool:return 'Yes' if value else 'No'
         return str(value)
 
 
@@ -64,75 +64,75 @@ def P(name,label,effect,default=None,kind=float,lo=None,hi=None,choices=()):
 
 
 PARAMETERS = [
-    P('genetic_code','Table de traduction QUERY (NCBI)','Code utilisé pour les traductions internes et les recherches traduites de la requête.',1,int,choices=tuple(TABLES)),
-    P('reference_genetic_code','Table de traduction des références','Vide : même table que QUERY ; transmis à TBLASTN/TBLASTX et aux traductions des références.',None,int,choices=tuple(TABLES)),
-    P('orf_starts','Codons de départ des ORF','atg : ATG uniquement ; table : tous les initiateurs de la table NCBI choisie.','atg',str,choices=('atg','table')),
-    P('vsearch_id','Identité minimale VSEARCH','Fraction de 0 à 1, distincte du filtre d’identité locale BLAST.',.97,float,0,1),
-    P('vsearch_iddef','Définition d’identité VSEARCH','0 à 4 ; 2 : exclut les gaps terminaux. Lire la documentation VSEARCH.',2,int,choices=(0,1,2,3,4)),
-    P('vsearch_strand','Brins VSEARCH','both : recherche et regroupement sur les deux brins ; UCHIME de novo travaille sur le brin plus.','both',str,choices=('plus','both')),
-    P('vsearch_query_cov','Couverture minimale de la requête VSEARCH','Fraction de 0 à 1, calculée par VSEARCH.',0.,float,0,1),
-    P('vsearch_target_cov','Couverture minimale des références VSEARCH','Fraction de 0 à 1, calculée par VSEARCH.',0.,float,0,1),
-    P('vsearch_maxaccepts','Candidats acceptés avant arrêt','0 : pas de plafond de candidats acceptés ; distinct du maximum de références rapportées.',0,int,0),
-    P('vsearch_maxrejects','Candidats rejetés avant arrêt','0 : pas d’arrêt sur rejets ; mettre aussi maxaccepts et minwordmatches à 0 pour une recherche exhaustive.',32,int,0),
-    P('vsearch_minwordmatches','Mots communs minimum VSEARCH','0 désactive ce préfiltre ; utile aux séquences courtes, avec un coût plus élevé.',10,int,0),
-    P('vsearch_masking','Masquage VSEARCH','dust : faible complexité ; none : aucun. Les entrées internes sont normalisées en majuscules.','dust',str,choices=('none','dust')),
-    P('vsearch_n_mismatch','Compter les ambiguïtés comme différences','Évite qu’un N soit traité comme une identité avec toute base compatible.',False,bool),
-    P('vsearch_sizein','Lire les abondances des en-têtes','Utiliser les annotations ;size=N; existantes. Sinon chaque entrée compte pour une séquence.',False,bool),
-    P('vsearch_min_length','Longueur minimale VSEARCH','Les séquences plus courtes sont exclues et comptées dans le résumé.',1,int,1),
-    P('vsearch_max_length','Longueur maximale VSEARCH','Les séquences plus longues sont exclues et comptées dans le résumé.',50000,int,1),
-    P('vsearch_abskew','Rapport d’abondance UCHIME','Abondance minimale des parents relativement à la chimère candidate.',2.,float,1),
-    P('vsearch_minh','Score minimal de chimère UCHIME','Plus grand : détection plus stricte, avec moins de candidats détectés.',.28,float,1e-12),
-    P('threads','CPU','Ressources des moteurs qui acceptent des threads ; FastTree standard reste monothread.',4,int,1),
-    P('evalue','E-value maximale','Seuil transmis au moteur. Le modifier nécessite une nouvelle recherche.',1e-5,float,1e-300),
-    P('search_candidates','Limite de candidats du moteur','Auto = max(100, 10 × références retenues). Ce plafond peut changer les résultats ; distinct des 100 hits affichés.',None,int,1),
-    P('task','Tâche BLAST','Change graines et score. Sans option : BLASTN utilise megablast ; autres programmes : tâche native.','',str),
-    P('sensitivity','Sensibilité DIAMOND','Recherche plus sensible = davantage de calcul ; ce réglage est propre à DIAMOND.','sensitive',str,choices=('fast','sensitive','more-sensitive','very-sensitive','ultra-sensitive')),
-    P('blast_word_size','Taille de graine BLAST','Petites graines : détection plus sensible, calcul plus coûteux ; valeurs autorisées selon la tâche.',None,int,2),
-    P('blast_reward','Score de match ADN','Gain pour une base identique ; dépend des coûts de mismatch et de gap.',None,int,1),
-    P('blast_penalty','Score de mismatch ADN','Score négatif pour une substitution ; change le score et les statistiques.',None,int,hi=-1),
-    P('blast_matrix','Matrice protéique BLAST','Ex. BLOSUM62, BLOSUM45, PAM30. Les coûts de gap doivent être compatibles.',None,str),
-    P('blast_gapopen','Ouverture de gap BLAST','Coût propre à BLAST, indépendant de Needle/Water. TBLASTX est non gappé.',None,int,0),
-    P('blast_gapextend','Extension de gap BLAST','Coût propre à BLAST. Seules certaines combinaisons matrice/coûts sont acceptées.',None,int,0),
-    P('blast_masking','Masquage DUST / SEG','Masque la faible complexité. Le désactiver peut révéler des correspondances peu spécifiques.','native',str,choices=('native','yes','no')),
-    P('blast_soft_masking','Masquage souple BLAST','true : masque les graines ; false : masque aussi l’extension. Défaut dépendant du programme.','native',str,choices=('native','true','false')),
-    P('blast_strand','Brin de la requête ADN','both : deux brins ; plus/minus : limite la recherche à un brin.','both',str,choices=('both','plus','minus')),
-    P('blast_max_hsps','HSP maximum par référence','Limite les segments rapportés, donc potentiellement la couverture calculée ensuite.',None,int,1),
-    P('blast_comp_stats','Statistiques de composition BLAST','0 : désactivées ; 1/2/3 : corrections NCBI selon le moteur. Change scores et E-values.','native',str,choices=('native','0','1','2','3')),
-    P('diamond_matrix','Matrice DIAMOND','Matrice protéique ; les coûts de gap doivent être compatibles.',None,str),
-    P('diamond_gapopen','Ouverture de gap DIAMOND','Coût propre à DIAMOND, indépendant des autres moteurs.',None,int,0),
-    P('diamond_gapextend','Extension de gap DIAMOND','Pénalise l’allongement des gaps.',None,int,0),
-    P('diamond_masking','Masquage DIAMOND','0 : désactivé ; 1 : tantan ; seg : SEG (DIAMOND ≥ 2.0.12).','native',str,choices=('native','0','1','seg')),
-    P('diamond_comp_stats','Composition DIAMOND','0 : désactivée ; 1 : correction compositionnelle ; 3/4 : ajustements de matrice, selon version.','native',str,choices=('native','0','1','3','4')),
-    P('diamond_max_hsps','HSP maximum DIAMOND','0 : tous ; plusieurs HSP peuvent améliorer la couverture et augmenter le coût.',None,int,0),
-    P('diamond_min_orf','ORF minimum DIAMOND BLASTX','AlignView utilisait déjà 1, contrairement au choix automatique de DIAMOND. 0 : automatique natif.',1,int,0),
-    P('mmseqs_sensitivity','Sensibilité MMseqs2 (-s)','De 1 (rapide) à 7.5 (sensible). Indépendante du réglage DIAMOND.',None,float,1,7.5),
-    P('mmseqs_mask','Masquage MMseqs2','1 : faible complexité masquée ; 0 : désactivé.','native',str,choices=('native','0','1')),
-    P('mmseqs_comp_bias','Correction de composition MMseqs2','0/1 : désactive/active la correction du biais de composition.','native',str,choices=('native','0','1')),
-    P('aligner','Moteur MSA','Les algorithmes et leurs paramètres ne sont pas interchangeables.','mafft',str,choices=('mafft','muscle','clustalo')),
-    P('mafft','Stratégie MAFFT','auto : choix natif ; global : G-INS-i ; local : L-INS-i ; fast : FFT-NS-2.','auto',str,choices=('auto','global','local','fast')),
-    P('mafft_op','Ouverture de gap MAFFT (--op)','Pénalité de gap en alignement groupe à groupe ; indépendante d’EMBOSS.',None,float,0),
-    P('mafft_ep','Offset MAFFT (--ep)','Paramètre d’offset de MAFFT ; ne se confond pas avec gapextend d’EMBOSS.',None,float,0),
-    P('mafft_maxiterate','Raffinements MAFFT','Global/local : 1000 par défaut AlignView. Pour régler ce nombre, choisir global, local ou fast plutôt que auto.',None,int,0,1000),
-    P('muscle_method','Algorithme MUSCLE 5','align : PPP ; super5 : prévu pour des ensembles plus grands. MUSCLE 3 non pris en charge.','align',str,choices=('align','super5')),
-    P('muscle_perturb','Graine de perturbation MUSCLE','0 : HMM standard ; une autre graine explore la variabilité de l’alignement.',0,int,0),
-    P('muscle_perm','Permutation de l’arbre guide','Change le parcours de l’arbre. Une seule permutation produit un seul MSA.','none',str,choices=('none','abc','acb','bca')),
-    P('muscle_refineiters','Raffinements MUSCLE 5','Nombre d’itérations de raffinement ; coût et résultat peuvent changer.',None,int,0),
-    P('clustalo_iterations','Itérations Clustal Omega','Cycles combinés arbre guide / HMM. 0 : aucun raffinement itératif.',0,int,0),
-    P('clustalo_full','Distances complètes Clustal Omega','Matrice de distances complète plutôt que mBed ; coût quadratique.',False,bool),
-    P('clustalo_full_iter','Distances complètes aux itérations','Matrice complète pendant les raffinements ; requiert des itérations.',False,bool),
-    P('hsp_overlap','Recouvrement minimal de l’ancre HSP','Fraction de la région requête ancre recouverte pour retenir un segment dans le MSA exploratoire.',.5,float,0,1),
-    P('frame','Cadre QUERY pour les analyses traduites','Vide : cadre du meilleur HSP, sinon +1. Ne réduit pas les six cadres recherchés par BLASTX.',None,int,choices=(-3,-2,-1,1,2,3)),
-    P('sframe','Cadre de référence pour Needle/Water','Vide : cadre du meilleur HSP, sinon +1. Applicable à TBLASTN/TBLASTX.',None,int,choices=(-3,-2,-1,1,2,3)),
-    P('gapopen','Ouverture de gap EMBOSS','Pénalité Needle/Water uniquement ; dépend de la matrice utilisée.',10,float,0),
-    P('gapextend','Extension de gap EMBOSS','Pénalité Needle/Water uniquement.',.5,float,0),
-    P('matrix','Matrice EMBOSS','Vide : EDNAFULL en ADN, EBLOSUM62 en protéines (défauts EMBOSS).','',str),
-    P('free_ends','Extrémités libres Needle','AlignView pénalise les extrémités par défaut ; EMBOSS natif les laisse libres. Sans effet sur Water.',False,bool),
-    P('needle_endopen','Ouverture de gap terminal Needle','Vide : même coût que gapopen AlignView ; ignoré si extrémités libres.',None,float,0),
-    P('needle_endextend','Extension de gap terminal Needle','Vide : même coût que gapextend AlignView ; ignoré si extrémités libres.',None,float,0),
-    P('fasttree_model','Modèle d’évolution FastTree','auto : JC pour ADN, JTT pour protéines. GTR : ADN ; JTT/WAG/LG : protéines.','auto',str,choices=('auto','JC','GTR','JTT','WAG','LG')),
-    P('fasttree_gamma','Réévaluation Gamma20','Après optimisation CAT, réévalue et redimensionne les branches sous Gamma20 ; ne refait pas la topologie.',False,bool),
-    P('fasttree_boot','Rééchantillonnages du support local','Support SH-like, pas un bootstrap d’arbres. 0 : désactive les supports locaux.',None,int,0),
-    P('fasttree_seed','Graine FastTree','Fixe la graine aléatoire pour les calculs stochastiques.',None,int,1),
+    P('genetic_code','Query translation table (NCBI)','Code used for internal query translation and translated query searches.',1,int,choices=tuple(TABLES)),
+    P('reference_genetic_code','Reference translation table','Unset: use the query table; passed to TBLASTN/TBLASTX and internal reference translation.',None,int,choices=tuple(TABLES)),
+    P('orf_starts','ORF start codons','atg: ATG only; table: all initiators from the selected NCBI table.','atg',str,choices=('atg','table')),
+    P('vsearch_id','Minimum VSEARCH identity','Fraction from 0 to 1; distinct from the BLAST local identity filter.',.97,float,0,1),
+    P('vsearch_iddef','VSEARCH identity definition','0 to 4; 2 excludes terminal gaps. See the VSEARCH documentation.',2,int,choices=(0,1,2,3,4)),
+    P('vsearch_strand','VSEARCH strands','both: search and cluster both strands; de novo UCHIME uses the plus strand.','both',str,choices=('plus','both')),
+    P('vsearch_query_cov','Minimum VSEARCH query coverage','Fraction from 0 to 1, calculated by VSEARCH.',0.,float,0,1),
+    P('vsearch_target_cov','Minimum VSEARCH reference coverage','Fraction from 0 to 1, calculated by VSEARCH.',0.,float,0,1),
+    P('vsearch_maxaccepts','Accepted candidates before stopping','0: no accepted-candidate limit; distinct from the reported reference limit.',0,int,0),
+    P('vsearch_maxrejects','Rejected candidates before stopping','0: do not stop after rejections; also set maxaccepts and minwordmatches to 0 for exhaustive search.',32,int,0),
+    P('vsearch_minwordmatches','Minimum shared words for VSEARCH','0 disables this prefilter; useful for short sequences, at greater computational cost.',10,int,0),
+    P('vsearch_masking','VSEARCH masking','dust: low complexity; none: no masking. Internal input sequences are normalized to uppercase.','dust',str,choices=('none','dust')),
+    P('vsearch_n_mismatch','Count ambiguous symbols as mismatches','Prevent N from counting as a match to every compatible nucleotide.',False,bool),
+    P('vsearch_sizein','Read header abundances','Use existing ;size=N; annotations. Otherwise each input record counts as one sequence.',False,bool),
+    P('vsearch_min_length','Minimum VSEARCH sequence length','Shorter sequences are excluded and counted in the summary.',1,int,1),
+    P('vsearch_max_length','Maximum VSEARCH sequence length','Longer sequences are excluded and counted in the summary.',50000,int,1),
+    P('vsearch_abskew','UCHIME abundance skew','Minimum parent abundance relative to the candidate chimera.',2.,float,1),
+    P('vsearch_minh','Minimum UCHIME chimera score','Higher values make detection stricter, with fewer candidates detected.',.28,float,1e-12),
+    P('threads','CPU','Resources for engines that support threads; standard FastTree remains single-threaded.',4,int,1),
+    P('evalue','Maximum E-value','Threshold sent to the engine. Changing it requires a new search.',1e-5,float,1e-300),
+    P('search_candidates','Engine candidate limit','Auto = max(100, 10 × retained references). This candidate limit can affect results and differs from the 100 displayed hits.',None,int,1),
+    P('task','Task BLAST','Changes seeds and scores. Unset: BLASTN uses megablast; other programs use their native task.','',str),
+    P('sensitivity','DIAMOND sensitivity','More sensitive search requires more work; this setting is specific to DIAMOND.','sensitive',str,choices=('fast','sensitive','more-sensitive','very-sensitive','ultra-sensitive')),
+    P('blast_word_size','BLAST seed size','Smaller seeds increase sensitivity and cost; allowed values depend on the task.',None,int,2),
+    P('blast_reward','DNA match score','Reward for an identical nucleotide; depends on mismatch and gap costs.',None,int,1),
+    P('blast_penalty','DNA mismatch score','Negative mismatch score; affects scoring and statistics.',None,int,hi=-1),
+    P('blast_matrix','BLAST protein matrix','Examples: BLOSUM62, BLOSUM45, PAM30. Gap costs must be compatible.',None,str),
+    P('blast_gapopen','BLAST gap opening','BLAST-specific cost, independent of Needle/Water. TBLASTX is ungapped.',None,int,0),
+    P('blast_gapextend','BLAST gap extension','BLAST-specific cost. Only supported matrix/cost combinations are accepted.',None,int,0),
+    P('blast_masking','Masquage DUST / SEG','Mask low complexity. Disabling masking may reveal nonspecific matches.','native',str,choices=('native','yes','no')),
+    P('blast_soft_masking','Masquage souple BLAST','true: mask seeds; false: also mask extension. The default depends on the program.','native',str,choices=('native','true','false')),
+    P('blast_strand','DNA query strand','both: both strands; plus/minus: restrict the search to one strand.','both',str,choices=('both','plus','minus')),
+    P('blast_max_hsps','Maximum HSPs per reference','Limit reported segments and potentially the coverage calculated from them.',None,int,1),
+    P('blast_comp_stats','BLAST composition statistics','0: disabled; 1/2/3: NCBI corrections depending on the engine. Affects scores and E-values.','native',str,choices=('native','0','1','2','3')),
+    P('diamond_matrix','DIAMOND matrix','Protein matrix; gap costs must be compatible.',None,str),
+    P('diamond_gapopen','DIAMOND gap opening','DIAMOND-specific cost, independent of other engines.',None,int,0),
+    P('diamond_gapextend','DIAMOND gap extension','Penalize gap extension.',None,int,0),
+    P('diamond_masking','DIAMOND masking','0: disabled; 1: tantan; seg: SEG (DIAMOND ≥ 2.0.12).','native',str,choices=('native','0','1','seg')),
+    P('diamond_comp_stats','DIAMOND composition correction','0: disabled; 1: composition correction; 3/4: matrix adjustments, depending on the version.','native',str,choices=('native','0','1','3','4')),
+    P('diamond_max_hsps','Maximum DIAMOND HSPs','0: all; multiple HSPs may increase coverage and computational cost.',None,int,0),
+    P('diamond_min_orf','Minimum DIAMOND BLASTX ORF','AlignView uses 1 rather than DIAMOND\'s automatic choice. 0: native automatic behavior.',1,int,0),
+    P('mmseqs_sensitivity','MMseqs2 sensitivity (-s)','From 1 (fast) to 7.5 (sensitive). Independent of DIAMOND sensitivity.',None,float,1,7.5),
+    P('mmseqs_mask','MMseqs2 masking','1: low complexity masked; 0: disabled.','native',str,choices=('native','0','1')),
+    P('mmseqs_comp_bias','MMseqs2 composition correction','0/1: disable/enable composition-bias correction.','native',str,choices=('native','0','1')),
+    P('aligner','MSA engine','Algorithms and their parameters are not interchangeable.','mafft',str,choices=('mafft','muscle','clustalo')),
+    P('mafft','MAFFT strategy','auto: native choice; global: G-INS-i; local: L-INS-i; fast: FFT-NS-2.','auto',str,choices=('auto','global','local','fast')),
+    P('mafft_op','MAFFT gap opening (--op)','Group-to-group alignment gap penalty; independent of EMBOSS.',None,float,0),
+    P('mafft_ep','MAFFT offset (--ep)','MAFFT offset parameter; different from EMBOSS gapextend.',None,float,0),
+    P('mafft_maxiterate','MAFFT refinement iterations','Global/local: AlignView defaults to 1000 iterations. Choose global, local or fast to set this number explicitly.',None,int,0,1000),
+    P('muscle_method','MUSCLE 5 algorithm','align: PPP; super5: intended for larger datasets. MUSCLE 3 is unsupported.','align',str,choices=('align','super5')),
+    P('muscle_perturb','MUSCLE perturbation seed','0: standard HMM; another seed explores alignment variability.',0,int,0),
+    P('muscle_perm','Guide-tree permutation','Change the guide-tree traversal. One permutation produces one MSA.','none',str,choices=('none','abc','acb','bca')),
+    P('muscle_refineiters','MUSCLE 5 refinement iterations','Refinement iteration count; cost and results may change.',None,int,0),
+    P('clustalo_iterations','Clustal Omega iterations','Combined guide-tree/HMM cycles. 0: no iterative refinement.',0,int,0),
+    P('clustalo_full','Full Clustal Omega distances','Full distance matrix instead of mBed; quadratic cost.',False,bool),
+    P('clustalo_full_iter','Full distances during iterations','Use a full matrix during refinement; requires iterations.',False,bool),
+    P('hsp_overlap','Minimum HSP anchor overlap','Fraction of the anchor query region that a segment must cover in the exploratory MSA.',.5,float,0,1),
+    P('frame','Query frame for translated analyses','Unset: best HSP frame, otherwise +1. Does not restrict the six frames searched by BLASTX.',None,int,choices=(-3,-2,-1,1,2,3)),
+    P('sframe','Reference frame for Needle/Water','Unset: best HSP frame, otherwise +1. Applies to TBLASTN/TBLASTX.',None,int,choices=(-3,-2,-1,1,2,3)),
+    P('gapopen','EMBOSS gap opening','Needle/Water penalty only; depends on the selected matrix.',10,float,0),
+    P('gapextend','EMBOSS gap extension','Needle/Water penalty only.',.5,float,0),
+    P('matrix','EMBOSS matrix','Unset: EDNAFULL for DNA, EBLOSUM62 for proteins (EMBOSS defaults).','',str),
+    P('free_ends','Free Needle ends','AlignView penalizes sequence ends by default; native EMBOSS leaves them free. No effect on Water.',False,bool),
+    P('needle_endopen','Needle terminal gap opening','Unset: same as AlignView gapopen; ignored when sequence ends are free.',None,float,0),
+    P('needle_endextend','Needle terminal gap extension','Unset: same as AlignView gapextend; ignored when sequence ends are free.',None,float,0),
+    P('fasttree_model','FastTree evolutionary model','auto: JC for DNA, JTT for proteins. GTR: DNA; JTT/WAG/LG: proteins.','auto',str,choices=('auto','JC','GTR','JTT','WAG','LG')),
+    P('fasttree_gamma','Gamma20 reassessment','After CAT optimization, rescore and rescale branches under Gamma20; does not repeat topology inference.',False,bool),
+    P('fasttree_boot','Local-support resampling','SH-like support, not a tree bootstrap. 0: disable local support.',None,int,0),
+    P('fasttree_seed','FastTree random seed','Set the random seed for stochastic calculations.',None,int,1),
 ]
 BY_NAME={p.name:p for p in PARAMETERS}
 FILTERS=('hits','identity','coverage','bitscore','preset')
@@ -143,38 +143,41 @@ def add_arguments(parser):
     for p in PARAMETERS:
         if p.flag in parser._option_string_actions:continue
         label=next((label for prefix,label in (
-            ('blast_','Paramètres BLAST'),('diamond_','Paramètres DIAMOND'),
-            ('mmseqs_','Paramètres MMseqs2'),('mafft_','Paramètres MAFFT'),
-            ('muscle_','Paramètres MUSCLE 5'),('clustalo_','Paramètres Clustal Omega'),
-            ('fasttree_','Paramètres FastTree'),('needle_','Paramètres Needle')) if p.name.startswith(prefix)),
-            'Autres paramètres scientifiques')
+            ('blast_','BLAST parameters'),('diamond_','DIAMOND parameters'),
+            ('mmseqs_','MMseqs2 parameters'),('mafft_','MAFFT parameters'),
+            ('muscle_','MUSCLE 5 parameters'),('clustalo_','Clustal Omega parameters'),
+            ('fasttree_','FastTree parameters'),('needle_','Needle parameters')) if p.name.startswith(prefix)),
+            'Other scientific parameters')
         if label not in groups:groups[label]=parser.add_argument_group(label)
-        kwargs=dict(default=p.default,help=p.label+' : '+p.effect)
+        kwargs=dict(default=p.default,help=p.label+': '+p.effect)
         if p.kind is bool:kwargs['action']=argparse.BooleanOptionalAction
         else:
             kwargs['type']=p.kind
             if p.choices:kwargs['choices']=p.choices
-        groups[label].add_argument(p.flag,**kwargs)
-    profiles=parser.add_argument_group('Profils de calcul réutilisables')
-    profiles.add_argument('--load-profile',metavar='JSON',help='Charger un profil de calcul ; les options CLI explicites sont prioritaires')
-    profiles.add_argument('--write-profile',metavar='JSON',help='Écrire le profil de calcul puis quitter, sans lancer de moteur')
+        action=groups[label].add_argument(p.flag,**kwargs)
+        # Python 3.10's BooleanOptionalAction appends a default to help; newer
+        # releases do not. Keep our canonical help identical for every version.
+        action.help=kwargs['help']
+    profiles=parser.add_argument_group('Reusable calculation profiles')
+    profiles.add_argument('--load-profile',metavar='JSON',help='Load a calculation profile; explicit CLI options take priority')
+    profiles.add_argument('--write-profile',metavar='JSON',help='Write the calculation profile and exit without running an engine')
 
 
 def validate(args,*,context=None,mode=None):
     for p in PARAMETERS:
         try:p.check(getattr(args,p.name,p.default))
-        except ValueError as exc:raise ValueError(f'{p.flag} : {exc}') from exc
+        except ValueError as exc:raise ValueError(f'{p.flag}: {exc}') from exc
     if context=='msa' and args.aligner=='mafft' and args.mafft=='auto' and args.mafft_maxiterate is not None:
-        raise ValueError('--mafft-maxiterate nécessite --mafft global, local ou fast : --auto choisit lui-même la stratégie.')
+        raise ValueError('--mafft-maxiterate requires --mafft global, local or fast: --auto selects its own strategy.')
     if context=='vsearch' and args.vsearch_min_length>args.vsearch_max_length:
-        raise ValueError('VSEARCH : la longueur minimale dépasse la longueur maximale.')
+        raise ValueError('VSEARCH: minimum length exceeds maximum length.')
     if context=='msa' and args.aligner=='clustalo' and args.clustalo_full_iter and not args.clustalo_iterations:
-        raise ValueError('--clustalo-full-iter nécessite --clustalo-iterations > 0.')
+        raise ValueError('--clustalo-full-iter requires --clustalo-iterations > 0.')
     if context=='search' and mode in ('blastn','blastp','blastx','tblastn','tblastx') and args.task:
         tasks={'blastn':('blastn','blastn-short','megablast','dc-megablast'),
                'blastp':('blastp','blastp-short','blastp-fast'),'blastx':('blastx','blastx-fast'),
                'tblastn':('tblastn','tblastn-fast'),'tblastx':()}
-        if args.task not in tasks[mode]:raise ValueError(f'Tâche {args.task!r} incompatible avec {mode}. Choix : '+', '.join(tasks[mode]))
+        if args.task not in tasks[mode]:raise ValueError(f'Task {args.task!r} incompatible with {mode}. Choice: '+', '.join(tasks[mode]))
 
 
 def relevant(context,args,mode='',*,strategy=''):
@@ -248,18 +251,19 @@ def write_profile(args,filename):
 
 def load_profile(args,filename,explicit=()):
     try:data=json.loads(Path(filename).expanduser().read_text(encoding='utf-8'))
-    except (OSError,json.JSONDecodeError) as exc:raise ValueError(f'Profil illisible : {exc}') from exc
+    except (OSError,json.JSONDecodeError) as exc:raise ValueError(f'Cannot read profile: {exc}') from exc
     if not isinstance(data,dict) or data.get('schema')!=1 or not isinstance(data.get('parameters'),dict):
-        raise ValueError('Profil AlignView invalide (schema 1 attendu).')
+        raise ValueError('Invalid AlignView profile (expected schema 1).')
     values=data['parameters'];unknown=set(values)-set(BY_NAME)-set(FILTERS)
-    if unknown:raise ValueError('Paramètres de profil inconnus : '+', '.join(sorted(unknown)))
+    if unknown:raise ValueError('Unknown profile parameters: '+', '.join(sorted(unknown)))
     candidate=argparse.Namespace(**vars(args))
     for name,value in values.items():
         if name in BY_NAME:value=BY_NAME[name].check(value)
         elif name=='preset':
-            if value not in ('standard','sensible','strict'):raise ValueError('Profil de seuil inconnu.')
+            if value=='sensible':value='sensitive'  # Read profiles saved before the English-only interface.
+            if value not in ('standard','sensitive','strict'):raise ValueError('Unknown threshold preset.')
         elif isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value<0 or (name=='hits' and (value<1 or int(value)!=value)) or (name in ('identity','coverage') and value>100):
-            raise ValueError('Filtre invalide : '+name)
+            raise ValueError('Invalid filter: '+name)
         if name not in explicit:setattr(candidate,name,value)
     validate(candidate)
     vars(args).update(vars(candidate))

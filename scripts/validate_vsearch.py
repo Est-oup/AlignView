@@ -39,7 +39,7 @@ def main():
             command=[sys.executable,str(ROOT/'alignview.py'),str(query)]
             if action=='search':command += [str(refs),'--query-id','q1']
             command+=['--vsearch',action,'--executable','vsearch='+str(engine),'--vsearch-masking','none',
-                      '--vsearch-minwordmatches','0','--lang','en','--no-menu','--module-policy','never',
+                      '--vsearch-minwordmatches','0','--no-menu','--module-policy','never',
                       '--report','--export-profile','publication','--save','--out',str(target)]
             run=subprocess.run(command,capture_output=True,text=True,timeout=60)
             if run.returncode:raise SystemExit(action+': '+run.stdout+run.stderr)
@@ -54,7 +54,7 @@ def main():
             if action in ('dereplicate','cluster'):
                 assert data['summary']['representatives']==3
                 assert data['summary']['total_abundance']==6
-            resume=[sys.executable,str(ROOT/'alignview.py'),'--resume',str(target),'--lang','en',
+            resume=[sys.executable,str(ROOT/'alignview.py'),'--resume',str(target),
                     '--html-out',str(temporary/(action+'_resumed.html')),'--no-menu']
             resumed=subprocess.run(resume,capture_output=True,text=True,timeout=30)
             assert resumed.returncode==0,resumed.stdout+resumed.stderr

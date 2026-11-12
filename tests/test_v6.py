@@ -1,4 +1,4 @@
-"""V6: régression sur les unités, figures et modes de sortie."""
+"""v6 regressions for units, figures and output modes."""
 from __future__ import annotations
 import os
 import re
@@ -34,7 +34,7 @@ class V6Tests(unittest.TestCase):
         self.assertEqual(row['query_unit'],'nt')
         self.assertEqual(row['alignment_unit'],'aa')
         svg=tracks_svg([h],150,{'s':30},'blastx')
-        self.assertIn('QUERY : nt · RÉFÉRENCE : aa',svg)
+        self.assertIn('QUERY: nt · REFERENCE: aa',svg)
         self.assertIn('150 nt',svg)
         self.assertIn('30 aa',svg)
         self.assertNotIn('<line x1=',svg)
@@ -44,7 +44,7 @@ class V6Tests(unittest.TestCase):
         a=parse_args(['examples/example_query.fna','examples/example_refs.faa','--mode','blastx','--preset','strict','--no-menu'])
         self.assertEqual(a.evalue,1e-10)
         self.assertEqual(a.hits,100)
-        b=parse_args(['examples/example_query.fna','examples/example_refs.faa','--mode','blastx','--preset','sensible', '--evalue','0.5','--no-menu'])
+        b=parse_args(['examples/example_query.fna','examples/example_refs.faa','--mode','blastx','--preset','sensitive', '--evalue','0.5','--no-menu'])
         self.assertEqual(b.evalue,0.5)
         self.assertEqual(b.hits,100)
 
@@ -58,7 +58,7 @@ class V6Tests(unittest.TestCase):
             dot=session._compute_dotplot(ref,3)
             self.assertEqual((dot['xunit'],dot['yunit']),('aa','aa'))
             self.assertEqual(dot['qframe'],3)
-            self.assertIn('traduites',dot['note'])
+            self.assertIn('translated',dot['note'])
         finally:session.close()
 
     def test_export_report_and_figures(self):
@@ -67,7 +67,7 @@ class V6Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             destination=Path(tmp)/'results'
             p=subprocess.run([sys.executable,str(ROOT/'alignview.py'),str(ROOT/'examples/example_query.fna'),
-              str(ROOT/'examples/example_refs.faa'),'--mode','blastx','--msa','hits','--preset','sensible',
+              str(ROOT/'examples/example_refs.faa'),'--mode','blastx','--msa','hits','--preset','sensitive',
               '--export-profile','publication','--save','--out',str(destination),'--no-menu',
               '--module-policy','never'],env=env,capture_output=True,text=True,timeout=55)
             self.assertEqual(p.returncode,0,p.stdout+'\n'+p.stderr)
@@ -81,8 +81,8 @@ class V6Tests(unittest.TestCase):
             self.assertTrue((destination/'exports'/'report.html').is_file())
             self.assertTrue((destination/'exports'/'coordinate_units.tsv').is_file())
             self.assertEqual(len((destination/'exports'/'figures_catalog.tsv').read_text().splitlines())-1,len(figures))
-            self.assertIn('QUERY : nt · RÉFÉRENCE : aa',(destination/'figures'/'23_cartographie_hsp.svg').read_text())
-            self.assertIn('<strong>Unités :</strong> Recherche traduite',page)
+            self.assertIn('QUERY: nt · REFERENCE: aa',(destination/'figures'/'23_hsp_mapping.svg').read_text())
+            self.assertIn('<strong>Units:</strong> Translated search',page)
 
 if __name__=='__main__':unittest.main()
 
@@ -94,9 +94,9 @@ class UnitsReportTests(unittest.TestCase):
         h=HSP('p','g',100,20,5,24,180,121,1e-12,150,0,-1,'A'*20,'A'*20)
         figs,_=atlas_additions(prot,[genome],[h],None,'tblastn')
         self.assertIn('39_ratio_nt_aa_reference',figs)
-        self.assertIn('37_cadres_reference',figs)
-        self.assertIn('QUERY : aa · RÉFÉRENCE : nt',figs['35_pistes_query_reference'] if '35_pistes_query_reference' in figs else tracks_svg([h],55,{'g':330},'tblastn'))
-        self.assertNotIn('36_cadres_query_couverture',figs)
+        self.assertIn('37_reference_frames',figs)
+        self.assertIn('QUERY: aa · REFERENCE: nt',figs['35_pistes_query_reference'] if '35_pistes_query_reference' in figs else tracks_svg([h],55,{'g':330},'tblastn'))
+        self.assertNotIn('36_query_frame_coverage',figs)
 
     def test_both_nucleotide_translated(self):
         from av_report_v6 import atlas_additions
@@ -107,7 +107,7 @@ class UnitsReportTests(unittest.TestCase):
         self.assertTrue(rows[0]['query_consistent'])
         self.assertTrue(rows[0]['reference_consistent'])
         figs,_=atlas_additions(dna,[genome],[h],None,'tblastx')
-        self.assertIn('36_cadres_query_couverture',figs)
-        self.assertIn('37_cadres_reference',figs)
+        self.assertIn('36_query_frame_coverage',figs)
+        self.assertIn('37_reference_frames',figs)
         self.assertIn('38_ratio_nt_aa_query',figs)
         self.assertIn('39_ratio_nt_aa_reference',figs)

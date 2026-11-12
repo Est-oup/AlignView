@@ -12,10 +12,10 @@ import shutil
 from av_core import fasta_iter
 
 ACTIONS = {
-    'search': ('Recherche globale contre les références', 'Comparer la requête active aux références nucléotidiques'),
-    'dereplicate': ('Dédupliquer les séquences', 'Regrouper les séquences identiques et conserver leurs abondances'),
-    'cluster': ('Regrouper les séquences', 'Créer des groupes par identité et exporter leurs représentants'),
-    'chimeras': ('Détecter les chimères de novo', 'Déduplication puis UCHIME ; les abondances sont importantes'),
+    'search': ('Global search against references', 'Compare the active query against nucleotide references'),
+    'dereplicate': ('Dereplicate sequences', 'Merge identical sequences and retain their abundances'),
+    'cluster': ('Cluster sequences', 'Create identity-based clusters and export their representatives'),
+    'chimeras': ('Detect chimeras de novo', 'Dereplication followed by UCHIME; abundances matter'),
 }
 FIELDS = ('query','target','id','alnlen','qilo','qihi','tilo','tihi','qcov','tcov','qstrand','qrow','trow')
 
@@ -39,12 +39,12 @@ def commands(action, source, references, output, options):
     from av_parameters import validate
     validate(options,context='vsearch')
     output=Path(output)
-    if action not in ACTIONS:raise ValueError('Analyse VSEARCH inconnue : '+action)
+    if action not in ACTIONS:raise ValueError('Analyse VSEARCH inconnue: '+action)
     limits=['--minseqlength',str(options.vsearch_min_length),'--maxseqlength',str(options.vsearch_max_length)]
     sizein=['--sizein'] if options.vsearch_sizein else []
     common=['--threads',str(options.threads),'--strand',options.vsearch_strand]
     if action=='search':
-        if references is None:raise ValueError('VSEARCH recherche : un FASTA de références est nécessaire.')
+        if references is None:raise ValueError('VSEARCH search requires a reference FASTA.')
         args=['vsearch','--usearch_global',str(source),'--db',str(references),
             '--id',str(options.vsearch_id),'--iddef',str(options.vsearch_iddef),
             '--query_cov',str(options.vsearch_query_cov),'--target_cov',str(options.vsearch_target_cov),
@@ -53,25 +53,25 @@ def commands(action, source, references, output, options):
             '--qmask',options.vsearch_masking,'--dbmask',options.vsearch_masking,
             '--userout',str(output/'matches_raw.tsv'),'--userfields','+'.join(FIELDS),*common,*limits]
         if options.vsearch_n_mismatch:args+=['--n_mismatch']
-        return [Command(args,'VSEARCH : recherche globale','vsearch_search.log',allow_empty=True)]
+        return [Command(args,'VSEARCH: global search','vsearch_search.log',allow_empty=True)]
     if action=='cluster':
         args=['vsearch','--cluster_fast',str(source),'--id',str(options.vsearch_id),
             '--iddef',str(options.vsearch_iddef),'--centroids',str(output/'centroids.fasta'),
             '--uc',str(output/'clusters.uc'),'--sizeout','--qmask',options.vsearch_masking,
             *sizein,*common,*limits]
         if options.vsearch_n_mismatch:args+=['--n_mismatch']
-        return [Command(args,'VSEARCH : regroupement','vsearch_cluster.log')]
+        return [Command(args,'VSEARCH: clustering','vsearch_cluster.log')]
     unique=output/'unique.fasta'
     derep=['vsearch','--derep_fulllength',str(source),'--output',str(unique),
            '--uc',str(output/'dereplication.uc'),'--sizeout',*sizein,'--strand',options.vsearch_strand,*limits]
-    result=[Command(derep,'VSEARCH : déduplication','vsearch_dereplicate.log')]
+    result=[Command(derep,'VSEARCH: dereplication','vsearch_dereplicate.log')]
     if action=='chimeras':
         result.append(Command(['vsearch','--uchime_denovo',str(unique),
             '--chimeras',str(output/'chimeras.fasta'),'--nonchimeras',str(output/'nonchimeras.fasta'),
             '--borderline',str(output/'borderline.fasta'),'--uchimeout',str(output/'uchime.tsv'),
             '--abskew',str(options.vsearch_abskew),'--minh',str(options.vsearch_minh),
             '--qmask',options.vsearch_masking,*limits],
-            'VSEARCH : chimères de novo','vsearch_chimeras.log'))
+            'VSEARCH: de novo chimera detection','vsearch_chimeras.log'))
     return result
 
 
@@ -86,19 +86,19 @@ def summarize(action, output, input_count, eligible_count):
     preview=[]
     if action=='search':
         raw=output/'matches_raw.tsv'
-        if not raw.is_file():raise ValueError('VSEARCH : tableau de recherche absent.')
+        if not raw.is_file():raise ValueError('VSEARCH: missing search table.')
         matches=0;targets=set()
         with raw.open(encoding='utf-8') as stream, (output/'matches.tsv').open('w',encoding='utf-8',newline='') as target:
             writer=csv.writer(target,delimiter='\t');writer.writerow(FIELDS)
             for values in csv.reader(stream,delimiter='\t'):
                 if not values:continue
-                if len(values)!=len(FIELDS):raise ValueError('VSEARCH : nombre de colonnes inattendu.')
+                if len(values)!=len(FIELDS):raise ValueError('VSEARCH: unexpected column count.')
                 row=dict(zip(FIELDS,values))
                 for key in ('id','qcov','tcov'):
                     value=float(row[key])
-                    if not math.isfinite(value) or not 0<=value<=100:raise ValueError('VSEARCH : pourcentage invalide.')
+                    if not math.isfinite(value) or not 0<=value<=100:raise ValueError('VSEARCH: invalid percentage.')
                     row[key]=value
-                if row['qstrand'] not in ('+','-'):raise ValueError('VSEARCH : orientation invalide.')
+                if row['qstrand'] not in ('+','-'):raise ValueError('VSEARCH: invalid orientation.')
                 matches+=1;targets.add(row['target']);writer.writerow(values)
                 if len(preview)<200:
                     preview.append({k:row[k] for k in ('query','target','id','qcov','tcov','qstrand')})
@@ -107,22 +107,22 @@ def summarize(action, output, input_count, eligible_count):
     elif action in ('dereplicate','cluster'):
         filename='unique.fasta' if action=='dereplicate' else 'centroids.fasta'
         path=output/filename
-        if not path.is_file():raise ValueError('VSEARCH : représentants absents.')
+        if not path.is_file():raise ValueError('VSEARCH: missing representatives.')
         representatives=0;total=0
         for record in fasta_iter(path):
             size=re.search(r';size=(\d+)(?:;|$)',record.id)
             abundance=int(size[1]) if size else 1
             representatives+=1;total+=abundance
             if len(preview)<200:preview.append({'representative':record.id,'length_nt':len(record.seq),'abundance':abundance})
-        if not representatives:raise ValueError('VSEARCH : aucune séquence représentante.')
+        if not representatives:raise ValueError('VSEARCH: no representative sequences.')
         summary.update(representatives=representatives,total_abundance=total)
     else:
         for name in ('unique','chimeras','nonchimeras','borderline'):
             path=output/(name+'.fasta')
-            if not path.is_file():raise ValueError('VSEARCH : sortie absente : '+path.name)
+            if not path.is_file():raise ValueError('VSEARCH: sortie absente: '+path.name)
             summary[name]=count_fasta(path)
         if summary['unique']!=summary['chimeras']+summary['nonchimeras']+summary['borderline']:
-            raise ValueError('VSEARCH : classification des chimères incomplète.')
+            raise ValueError('VSEARCH: incomplete chimera classification.')
         for name in ('chimeras','borderline','nonchimeras'):
             for record in fasta_iter(output/(name+'.fasta')):
                 if len(preview)<200:preview.append({'sequence':record.id,'classification':name})
@@ -134,20 +134,20 @@ def report_section(work):
     if not index.is_file():return ''
     analyses=json.loads(index.read_text(encoding='utf-8'))
     esc=lambda value:html.escape(str(value),quote=True)
-    parts=['<section id="vsearch" class="section"><div class="panel"><h2>Analyses VSEARCH</h2>',
-        '<p>Analyses nucléotidiques. La recherche VSEARCH est globale : ni E-value ni bitscore BLAST ne sont calculés.</p>',
-        '<p class="hint">Aperçus limités à 200 lignes par analyse ; fichiers complets dans le sous-dossier vsearch du projet et des exports.</p></div>']
+    parts=['<section id="vsearch" class="section"><div class="panel"><h2>VSEARCH analyses</h2>',
+        '<p>Nucleotide analyses. VSEARCH search uses global alignment; BLAST E-values and bitscores are not calculated.</p>',
+        '<p class="hint">Previews are limited to 200 rows per analysis; full files are in the vsearch subdirectory of the project and exports.</p></div>']
     for action,result in analyses.items():
         parts.append('<article class="panel"><h2>'+esc(ACTIONS[action][0])+'</h2>')
         parts.append('<dl>'+''.join('<dt>'+esc(key)+'</dt><dd>'+esc(value)+'</dd>' for key,value in result['summary'].items())+'</dl>')
-        if action=='search':parts.append('<p class="hint">Identité selon iddef ; qcov/tcov VSEARCH en %, distincts d’une union de HSP locaux.</p>')
-        if action=='chimeras':parts.append('<p class="notice">Les abondances et la composition du jeu influencent UCHIME ; une absence de chimère détectée n’est pas une validation absolue.</p>')
+        if action=='search':parts.append('<p class="hint">Identity follows iddef; VSEARCH qcov/tcov are percentages and differ from a union of local HSPs.</p>')
+        if action=='chimeras':parts.append('<p class="notice">Abundances and dataset composition affect UCHIME; no detected chimera is not an absolute validation.</p>')
         rows=result.get('preview',[])
         if rows:
             columns=list(rows[0]);parts.append('<div class="tablewrap"><table><thead><tr>'+''.join('<th>'+esc(c)+'</th>' for c in columns)+'</tr></thead><tbody>')
             parts.extend('<tr>'+''.join('<td>'+esc(row.get(c,''))+'</td>' for c in columns)+'</tr>' for row in rows)
             parts.append('</tbody></table></div>')
-        else:parts.append('<p>Aucun résultat retenu pour cet aperçu.</p>')
-        parts.append('<details><summary>Outil et paramètres utilisés</summary><pre>'+esc(json.dumps({'settings':result['settings'],'commands':result['commands']},ensure_ascii=False,indent=2))+'</pre></details></article>')
+        else:parts.append('<p>No results retained for this preview.</p>')
+        parts.append('<details><summary>Tool and parameters used</summary><pre>'+esc(json.dumps({'settings':result['settings'],'commands':result['commands']},ensure_ascii=False,indent=2))+'</pre></details></article>')
     parts.append('</section>')
     return ''.join(parts)

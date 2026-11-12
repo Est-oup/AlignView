@@ -1,7 +1,7 @@
-"""Exports scientifiques documentés : formats ouverts, coordonnées explicites, provenance.
+"""Documented scientific exports: open formats, explicit coordinates and provenance.
 
-Aucun export n'est persistant tant qu'une destination n'est pas explicitement demandée.
-Les positions HSP entrantes sont 1-based inclusives; les BED sortants sont 0-based half-open.
+Exports persist only when a destination is explicitly requested.
+Incoming HSP positions are 1-based inclusive; outgoing BED intervals are 0-based half-open.
 """
 from __future__ import annotations
 import csv
@@ -21,9 +21,9 @@ from av_core import (Seq, HSP, coverage_data, sequence_stats, msa_metrics, dista
                      merge_intervals, missing_intervals, write_fasta, export_table, sha256)
 
 PRESETS={
-    'standard':'FASTA, QC, résultats par référence, HSP, couvertures, BED et provenance',
-    'publication':'Standard + CSV, GFF3, MSA (NEXUS/PHYLIP), distances et figures',
-    'complete':'Publication + données JSON/JSONL détaillées, régions sans HSP et inventaire',
+    'standard':'FASTA, QC, per-reference results, HSPs, coverage, BED and provenance',
+    'publication':'Standard + CSV, GFF3, MSA (NEXUS/PHYLIP), distances and figures',
+    'complete':'Publication + detailed JSON/JSONL data, regions without HSPs and a file inventory',
 }
 
 def _json(path, payload):
@@ -42,20 +42,20 @@ def _gff(value): return quote(str(value),safe='-_.~:')
 def _quality_report(records):
     types={r['kind'] for r in records}
     warnings=[]
-    if len(types)>1:warnings.append('Types ADN/protéines mixtes ou ambigus : vérifier les fichiers FASTA')
-    if len({r['id'] for r in records})!=len(records):warnings.append('Identifiants identiques dans les deux jeux FASTA : les exporter avec leur source')
+    if len(types)>1:warnings.append('Mixed or ambiguous DNA/protein types: check the FASTA inputs')
+    if len({r['id'] for r in records})!=len(records):warnings.append('Duplicate identifiers across FASTA inputs: export them with their source')
     for r in records:
-        if r.get('n_pct',0)>5:warnings.append(f"{r['id']}: plus de 5 % de N")
+        if r.get('n_pct',0)>5:warnings.append(f"{r['id']}: more than 5% N")
     return warnings
 
 def _nexus(records:list[Seq],path:Path):
     if not records:return
     length=len(records[0].seq)
-    if any(len(s.seq)!=length for s in records):raise ValueError('NEXUS : alignement requis')
+    if any(len(s.seq)!=length for s in records):raise ValueError('NEXUS: alignment required')
     from av_core import sequence_type
     types={sequence_type(s.seq) for s in records}
-    if types not in ({'ADN/ARN'},{'protéine'}):raise ValueError('NEXUS : types de séquences mélangés, export impossible')
-    molecule='DNA' if types=={'ADN/ARN'} else 'PROTEIN'
+    if types not in ({'DNA/RNA'},{'protein'}):raise ValueError('NEXUS: cannot export mixed sequence types')
+    molecule='DNA' if types=={'DNA/RNA'} else 'PROTEIN'
     with path.open('w',encoding='utf-8') as out:
         out.write(f'#NEXUS\nBEGIN DATA;\n DIMENSIONS NTAX={len(records)} NCHAR={length};\n FORMAT DATATYPE={molecule} MISSING=? GAP=-;\n MATRIX\n')
         for r in records:out.write("'"+r.id.replace("'","''")+"' "+r.seq.replace('.','-')+'\n')
@@ -64,8 +64,8 @@ def _nexus(records:list[Seq],path:Path):
 def _phylip(records:list[Seq],path:Path):
     if not records:return
     n=len(records[0].seq)
-    if any(len(s.seq)!=n for s in records):raise ValueError('PHYLIP : longueurs incohérentes')
-    # Format PHYLIP relaxed, pas d'identifiants tronqués à 10 caractères.
+    if any(len(s.seq)!=n for s in records):raise ValueError('PHYLIP: inconsistent sequence lengths')
+    # Relaxed PHYLIP format; identifiers are not truncated to 10 characters.
     ids=[];seen=set()
     for s in records:
         key=_sanitize(s.id)
@@ -78,9 +78,9 @@ def _phylip(records:list[Seq],path:Path):
     export_table(path.with_name('msa_phylip_ids.tsv'),[dict(original=s.id,phylip=k) for k,s in zip(ids,records)])
 
 def _stockholm(records:list[Seq],path:Path):
-    """Stockholm 1.0 : recommandé pour des MSA de protéines et les outils HMMER."""
+    """Stockholm 1.0: suitable for protein MSAs and HMMER tools."""
     if not records:return
-    if len({len(s.seq) for s in records})!=1:raise ValueError('Stockholm : MSA de longueurs identiques requis')
+    if len({len(s.seq) for s in records})!=1:raise ValueError('Stockholm: an equal-length MSA is required')
     aliases=[];used=set()
     for r in records:
         key=_sanitize(r.id)
@@ -95,10 +95,10 @@ def _stockholm(records:list[Seq],path:Path):
 
 
 def _clustal(records:list[Seq],path:Path):
-    """Format CLUSTAL standard, sans calcul artificiel de consensus."""
+    """Standard CLUSTAL format, without an artificial consensus calculation."""
     if not records:return
     length=len(records[0].seq)
-    if any(len(r.seq)!=length for r in records):raise ValueError('CLUSTAL : séquences pas alignées')
+    if any(len(r.seq)!=length for r in records):raise ValueError('CLUSTAL: sequences are not aligned')
     names=[];used=set()
     for s in records:
         base=_sanitize(s.id)[:37];name=base;k=2
@@ -114,12 +114,12 @@ def _clustal(records:list[Seq],path:Path):
 
 def _write_bed(path,rows):
     with path.open('w',encoding='utf-8',newline='') as f:
-        f.write('# BED 0-based half-open ; source : HSP BLAST/DIAMOND/MMseqs2\n')
+        f.write('# BED 0-based half-open ; source: HSP BLAST/DIAMOND/MMseqs2\n')
         for r in rows:f.write('\t'.join(str(x) for x in r)+'\n')
 
 def generate_exports(session,profile='standard'):
-    """Génère une arborescence temporaire. Aucune écriture permanente."""
-    if profile not in PRESETS:raise ValueError('Profil export invalide : '+profile)
+    """Generate a temporary directory tree without writing permanent outputs."""
+    if profile not in PRESETS:raise ValueError('Invalid export profile: '+profile)
     folder=session.work/'exports'
     if folder.exists():shutil.rmtree(folder)
     folder.mkdir(parents=True)
@@ -222,38 +222,24 @@ def generate_exports(session,profile='standard'):
               sha256_inputs={str(p):sha256(p) for p in (a.query_path,a.refs_path) if p},
               search_mode=a.mode,parameters=params,commands=a.tools.history,
               modules=a.tools.loaded,warning=_quality_report(qc),
-              definitions={'identite':'Identité locale HSP (pas identité de séquence complète)',
-                  'coverage':'Union des coordonnées QUERY couvertes / longueur QUERY',
-                  'missing':'Sans HSP détecté, pas absence démontrée d’homologie',
-                  'bed':'0-based half-open','tsv_gff3':'1-based inclusif',
-                  'blastx':'Les coordonnées QUERY sont nucléotidiques et les coordonnées de la référence protéiques',
-                  'msa_distance':'Distance p avec suppression des colonnes à gap ou ? par paire'})
+              definitions={'identity':'Local HSP identity (not whole-sequence identity)',
+                  'coverage':'Union of covered QUERY coordinates / QUERY length',
+                  'missing':'No detected HSP does not prove non-homology',
+                  'bed':'0-based half-open','tsv_gff3':'1-based inclusive',
+                  'blastx':'QUERY coordinates are nucleotides; reference coordinates are amino acids',
+                  'msa_distance':'p-distance excluding columns with gaps or ? for each pair'})
     _json(folder/'provenance.json',meta)
-    from av_i18n import language
-    explanation=(
-        f'ALIGNVIEW {VERSION} — EXPORTS\n\n'
-        'Les fichiers BED utilisent des coordonnées 0-based / end-exclusive.\n'
-        'coordinate_units.tsv décrit les unités nt/aa en fonction du mode BLAST.\n'
-        'coordinate_audit.tsv compare les étendues nucléotidiques avec les résidus alignés.\n'
-        'Les tableaux de positions et GFF3 utilisent des positions 1-based inclusives.\n'
-        'Les identités proviennent des HSP locaux, et non de séquences globalement alignées.\n'
-        'Les régions sans HSP ne prouvent pas une absence d’homologie.\n'
-        'Les distances p du MSA ignorent les positions avec gaps pour la paire concernée.\n'
-        'Les fichiers NEXUS/PHYLIP nécessitent un MSA et leur présence est conditionnelle.\n'
-        'Les profils publication/complete incluent le rapport HTML autonome et le dossier figures/ si calculés.\n'
-        'vsearch/ conserve les résultats globaux, groupes, uniques et chimères disponibles, sans E-value/bitscore fictifs.\n'
-        'Les tables NCBI sélectionnées et les paramètres historiques sont dans provenance.json.\n')
-    if language()=='en':
-        explanation=(f'ALIGNVIEW {VERSION} — EXPORTS\n\n'
-            'BED uses 0-based, half-open coordinates. TSV/GFF3 coordinates are 1-based inclusive.\n'
-            'coordinate_units.tsv documents native nt/aa units; coordinate_audit.tsv checks translated coordinates.\n'
-            'HSP identity is local, not whole-sequence identity. Coverage is an interval union.\n'
-            'An uncovered region is not proof of non-homology. MSA p-distances exclude gaps per pair.\n'
-            'Alignment exchange files require a valid MSA; some empty tables retain their column headers.\n'
-            'Publication/complete profiles include standalone HTML and generated SVG figures.\n'
-            'vsearch/ retains native global-search, clustering, dereplication and chimera results when available.\n'
-            'VSEARCH nucleotide results do not have invented BLAST E-values or bitscores.\n'
-            'Selected NCBI tables and historical calculation parameters are recorded in provenance.json.\n')
+
+    explanation=(f'ALIGNVIEW {VERSION} — EXPORTS\n\n'
+        'BED uses 0-based, half-open coordinates. TSV/GFF3 coordinates are 1-based inclusive.\n'
+        'coordinate_units.tsv documents native nt/aa units; coordinate_audit.tsv checks translated coordinates.\n'
+        'HSP identity is local, not whole-sequence identity. Coverage is an interval union.\n'
+        'An uncovered region is not proof of non-homology. MSA p-distances exclude gaps per pair.\n'
+        'Alignment exchange files require a valid MSA; some empty tables retain their column headers.\n'
+        'Publication/complete profiles include standalone HTML and generated SVG figures.\n'
+        'vsearch/ retains native global-search, clustering, dereplication and chimera results when available.\n'
+        'VSEARCH nucleotide results do not have invented BLAST E-values or bitscores.\n'
+        'Selected NCBI tables and historical calculation parameters are recorded in provenance.json.\n')
     (folder/'README_exports.txt').write_text(explanation,encoding='utf-8')
     files=sorted((x for x in folder.rglob('*') if x.is_file()),key=lambda p:str(p.relative_to(folder)))
     with (folder/'MANIFEST.tsv').open('w',encoding='utf-8') as f:

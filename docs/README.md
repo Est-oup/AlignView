@@ -1,41 +1,28 @@
-# Documentation d’AlignView
+# AlignView manual
 
-[English manual](en/README.md) · Interface : `--lang en` ou **Réglages et aide → Langue / Language**.
+AlignView is a Linux/SSH terminal workbench for sequence exploration, similarity searches, alignments and shareable reports. Start with the result you need, choose the input, inspect the engine and parameters, run the calculation, then save or export.
 
-AlignView sert à explorer des séquences, rechercher des correspondances, créer des alignements et partager les résultats. Il fonctionne dans un terminal Linux, y compris par SSH. Le rapport HTML se consulte dans un navigateur.
+## Find a guide
 
-## Partir de son besoin
-
-| Je veux… | Guide | Accès depuis la commande |
+| Task | Guide | Offline command |
 | --- | --- | --- |
-| Essayer sans installer de moteur | [Premiers pas](QUICKSTART.md) | `alignview --docs demarrage` |
-| Trouver une fonction et comprendre ses résultats | [Tous les parcours](USAGE.md) | `alignview --docs parcours` |
-| Savoir où sont l’application et mes sorties | [Dossiers et sauvegardes](FILES.md) | `alignview --docs fichiers` |
-| Installer, déplacer ou utiliser sur HPC | [Installation](INSTALLATION.md) | `alignview --docs installation` |
-| Choisir des paramètres et comprendre leurs effets | [Paramètres scientifiques](PARAMETERS.md) | `alignview --docs parametres` |
-| Lire le HTML, l’arbre et les figures | [Rapport HTML](HTML.md) | `alignview --docs html` |
-| Exporter vers R, Python ou un autre logiciel | [Formats et coordonnées](EXPORTS.md) | `alignview --docs exports` |
-| Automatiser ou retrouver une option | [Référence CLI complète](CLI.md) | `alignview --docs cli` |
-| Résoudre une erreur | [Dépannage](TROUBLESHOOTING.md) | `alignview --docs depannage` |
-| Comprendre FASTA, HSP, MSA, E-value… | [Glossaire](GLOSSARY.md) | `alignview --docs glossaire` |
+| First run and first results | [Getting started](QUICKSTART.md) | `alignview --docs quickstart` |
+| Every analysis and menu | [Usage](USAGE.md) | `alignview --docs usage` |
+| Understand directories and saving | [Files](FILES.md) | `alignview --docs files` |
+| Install or move the application | [Installation](INSTALLATION.md) | `alignview --docs installation` |
+| Adjust scientific settings | [Parameters](PARAMETERS.md) | `alignview --docs parameters` |
+| Use VSEARCH | [VSEARCH](VSEARCH.md) | `alignview --docs vsearch` |
+| Choose translation tables | [Genetic codes](GENETIC_CODES.md) | `alignview --docs translation` |
+| Read and share HTML and figures | [HTML report](HTML.md) | `alignview --docs html` |
+| Reuse outputs | [Exports](EXPORTS.md) | `alignview --docs exports` |
+| All available flags | [CLI reference](CLI.md) | `alignview --docs cli` |
+| Resolve a problem | [Troubleshooting](TROUBLESHOOTING.md) | `alignview --docs troubleshooting` |
+| Understand terminology | [Glossary](GLOSSARY.md) | `alignview --docs glossary` |
 
-Dans ces exemples, `alignview` est la commande installée. Avec le dossier portable, la remplacer par `/chemin/vers/AlignView/alignview.sh`. Aucune installation n’est nécessaire pour consulter la documentation ou la démonstration.
+In commands, `alignview` means the installed command. Without installation, replace it with `/path/to/AlignView/alignview.sh`. The manual is bundled with the portable folder, wheel and zipapp. It is available before loading data, and under **Advanced → Help → Complete manual**.
 
-[Analyses VSEARCH](VSEARCH.md) · [Tables de traduction](GENETIC_CODES.md).
+## English interface and user data
 
-## Depuis l’application
+All menus, prompts, error messages, reports and guides use English directly. There is no language selector or translation catalog. User-supplied sequence identifiers, input file names and raw engine output retain their original content. Saved projects preserve their scientific data and historical calculation settings.
 
-Au démarrage, choisir **Lire la documentation**. Dans un projet ouvert : **Réglages et aide → Documentation complète**. Les guides sont embarqués dans le dossier portable, le wheel et le fichier `.pyz` ; la consultation ne dépend pas d’Internet. Dans la page de lecture, les flèches déplacent le texte, `/` recherche et Échap revient au choix des guides.
-
-## Quatre distinctions utiles
-
-1. Un **FASTA** contient des séquences. Un **MSA** est un alignement de ces séquences, avec des colonnes comparables et éventuellement des gaps.
-2. Une **recherche de similarités** trouve des segments locaux. Elle ne construit pas automatiquement un alignement multiple de séquences entières.
-3. Un **projet** permet de reprendre les calculs ; un **HTML** présente les résultats ; des **exports** permettent de les réutiliser ailleurs.
-4. Les **réglages actuels** préparent le prochain calcul. Les **paramètres historiques** décrivent le calcul ayant réellement produit un résultat existant.
-
-## Pour contribuer ou publier
-
-[Développement et tests](DEVELOPMENT.md) · [Publication](RELEASING.md) · [Audit et limites](AUDIT.md) · [Revue de la navigation](UX_REVIEW.md) · [Revue des calculs](CALCULATION_REVIEW.md) · [Contribuer](../CONTRIBUTING.md).
-
-La version locale est 0.1.0. Les résultats des moteurs réels et les limites de validation sont décrits dans l’audit ; cette documentation ne présente pas la préparation locale comme une publication PyPI ou Bioconda.
+See [Validation scope](AUDIT.md), [Calculation review](CALCULATION_REVIEW.md) and [Interface review](UX_REVIEW.md) for implementation choices and known limits.

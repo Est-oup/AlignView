@@ -1,4 +1,4 @@
-"""Tests de la visionneuse MSA, y compris un terminal interactif simulé."""
+"""MSA viewer tests, including a simulated interactive terminal."""
 from pathlib import Path
 import os
 import sys
@@ -37,23 +37,23 @@ class MSAViewerTests(unittest.TestCase):
     def test_static_display(self):
         output=msa_static(self.seqs,width=20)
         self.assertIn('CONSENSUS',output)
-        self.assertIn('VARIABLES',output)
+        self.assertIn('VARIABLE SITES',output)
         self.assertIn('s1',output)
 
     def test_real_terminal_navigation(self):
         try:import pexpect
-        except ImportError:self.skipTest('pexpect non disponible')
+        except ImportError:self.skipTest('pexpect unavailable')
         script=("import sys;sys.path.insert(0,sys.argv[1]);"
                 "from av_core import Seq;from av_msa_tui import MSAViewer;"
                 "s=[Seq('q','q','ATGC-ATACG'),Seq('r','r','ATGTGATATG')];"
                 "print('RESULT:',MSAViewer(s,False).run())")
         p=pexpect.spawn(sys.executable,['-c',script,str(ROOT)],encoding='utf-8',timeout=8,env={**os.environ,'TERM':'xterm-256color'},dimensions=(32,110))
         try:
-            p.expect('AlignView / Alignement')
+            p.expect('AlignView / Alignment')
             p.send('\x1b[C')
             p.send('v')
             p.send('g')
-            p.expect('Aller à la colonne')
+            p.expect('Go to MSA column')
             p.sendline('9')
             p.send('w')
             p.expect('RESULT: web')

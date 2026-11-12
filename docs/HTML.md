@@ -1,81 +1,52 @@
-# Lire, créer et partager le rapport HTML
+# Read and share HTML reports
 
-## Créer un fichier qui reste disponible
 
-Dans l’application : **Enregistrer et partager → Créer un rapport HTML**, puis choisir le nom du fichier. Le HTML est copié à cet endroit et reste consultable après fermeture de la session.
+The main menu keeps Overview, Matches, Alignment, VSEARCH and Export when available. **Advanced** groups Sequences, Dotplot, Figures, Parameters and Understanding. **View tree** stays directly accessible from the overview even though the full atlas is in Advanced. Composition diagnostics no longer dominate the first view.
 
-En ligne de commande :
+## Create a persistent report
+
+Use **Save and share → Create an HTML report** and choose a destination. From the CLI:
 
 ```bash
-# Un seul HTML à partir d’un alignement existant.
-alignview aligne.fasta --msa view --html-out rapport.html --no-menu
-
-# HTML et tous les résultats dans un projet.
-alignview sequences.fasta --msa align --report --save --out mon_projet --no-menu
-
-# Refaire le HTML d’un projet, sans relancer les moteurs.
-alignview --resume mon_projet --html-out actualise.html --no-menu
-
-# Tables et HTML dans un dossier d’export, sans projet de reprise.
-alignview --resume mon_projet --export-profile publication --export-dir a_partager --no-menu
+alignview aligned.fasta --msa view --html-out report.html --no-menu
+alignview sequences.fasta --msa align --report --save --out project_01 --no-menu
+alignview --resume project_01 --html-out updated.html --no-menu
 ```
 
-`--html-out` suffit à demander la génération. `--report` seul prépare un fichier temporaire ; il faut le conserver avec `--save`, `--html-out` ou un export publication/complet. Les destinations relatives partent du dossier de lancement. Un fichier existant est refusé en batch.
+`--html-out` requests generation itself. `--report` alone prepares temporary HTML; add saving or a publication/complete export to retain it. Relative destinations start from the launch directory. Existing batch destinations are refused.
 
-Ouvrir le fichier dans un navigateur avec JavaScript activé. Le rapport contient ses données, son style, ses scripts et ses SVG ; il ne contacte pas de serveur et ne dépend pas d’un CDN. On peut copier ou envoyer le fichier seul. Il contient des séquences et des identifiants : partager avec les personnes auxquelles ces données sont destinées.
+The file contains its data, scripts, styles and SVG figures. Open it in a browser with JavaScript enabled. It needs neither a server nor Internet access and remains available after AlignView closes. Share the one file with the intended recipients of its sequence data. It is an instant snapshot, not a project that can resume calculations.
 
-## Navigation et lecture
+## Available views
 
-Le résumé propose **Par où commencer ?** et des accès aux données présentes. Les vues sans données ne sont pas proposées. Le bouton **Résumé** et l’historique du navigateur permettent de revenir à une vue précédente.
+The overview offers entry points for the available results. Empty views are hidden. Use Overview and browser history to navigate.
 
-| Vue | Ce qu’elle montre | Comment la lire |
-| --- | --- | --- |
-| Résumé | Données, compteurs, qualité et couverture | Vérifier le mode et le nombre de références retenues |
-| Correspondances | Références et HSP | Filtrer ou trier, puis choisir une référence et un HSP |
-| Séquences | Longueurs, GC, ambiguïtés, profils | Le GC concerne les séquences nucléotidiques |
-| Alignement | Visionneuse MSA et métriques | Déplacer les colonnes et parcourir les pages de séquences |
-| Dotplot | Points de mots identiques | Une diagonale est descriptive ; ce n’est pas un nouvel alignement |
-| Figures | Atlas SVG conditionnel | Filtrer par nom et par domaine, puis déplier une figure |
-| Exporter | Tables et séquences embarquées | Téléchargements locaux, limités aux données intégrées au HTML |
-| Paramètres et aide → Paramètres | Réglages actuels, calculs effectués et commandes | Distinguer les réglages préparés des paramètres historiques |
-| Paramètres et aide → Comprendre | Méthodes et limites | Lire avant une interprétation biologique |
+| View | Contents |
+| --- | --- |
+| Overview | Available results, counts and search coverage |
+| Matches | Reference search, sorting, HSP selection and local alignments |
+| Advanced → Sequences | Lengths, nucleotide GC, ambiguity and profiles |
+| Alignment | Paged MSA viewer and metrics |
+| Advanced → Dotplot | Exact shared words, when calculated |
+| Advanced → Figures | Expandable SVG atlas, text/category filtering and downloads |
+| VSEARCH | Independent summaries, table previews and engine provenance, when calculated |
+| Export | Browser-generated downloads of embedded data |
+| Parameters and help | Current/historical parameters, actual commands and method explanations |
 
-## Lire un alignement long
+MSA horizontal paging preserves vertical position. Sequence pages contain at most 100 rows; filtering can reach records beyond the first page. The HTML embeds at most 1000 MSA sequences. Hiding invariant columns changes only the view.
 
-Les commandes de la visionneuse déplacent les colonnes et les pages de séquences séparément. Le défilement vertical reste conservé lorsqu’on change de page horizontale. Le pavé tactile horizontal fonctionne aussi. Un filtre d’identifiant permet d’atteindre une séquence située au-delà de la première page.
+## Tree figure
 
-Une page comporte au plus 100 séquences. Le rapport intègre au plus 1 000 séquences de MSA. Le filtre et les téléchargements portent sur les données intégrées ; ils ne chargent pas les lignes absentes du fichier. La vue des sites variables ne modifie pas le MSA.
+Infer a tree from at least three aligned sequences using FastTree, then rebuild the report. **View the tree** opens and expands its figure under Figures/Phylogeny. Scroll the frame for a large tree. **Download SVG** retains the complete vector figure, including parts outside the current frame.
 
-## L’arbre
+Horizontal lengths and the scale represent substitutions per site. Vertical position organizes labels. The drawing root is arbitrary and does not imply an inferred ancestor or outgroup. Internal Newick labels are retained; FastTree SH-like supports are local, not tree bootstraps. Missing or all-zero lengths use an explicitly labelled cladogram without a distance scale.
 
-Calculer d’abord l’arbre dans **Explorer → Statistiques de l’alignement → Arbre exploratoire**, ou ajouter `--tree` à une commande qui ouvre/crée un MSA. Il faut au moins trois séquences alignées et FastTree pour ce calcul.
+A malformed Newick displays an unavailable-figure notice rather than reusing a stale SVG. Rebuilding an older project with a valid Newick adds the figure without rerunning FastTree. Project files are `tree_fasttree.nwk` and `figures/45_fasttree_tree.svg`.
 
-Le HTML propose alors **Voir l’arbre**, qui ouvre **Figures → Phylogénie** et déplie la figure. Pour un arbre très grand, faire défiler son cadre. **Télécharger SVG** conserve la figure entière, y compris les parties qui dépassent du cadre à l’écran. Le projet contient aussi `figures/45_arbre_fasttree.svg` et `tree_fasttree.nwk`.
+## Figures and downloads
 
-L’horizontale représente les longueurs de branches en **substitutions par site**. La verticale organise les étiquettes et ne constitue pas une échelle biologique. La racine du dessin est arbitraire : elle ne désigne pas un ancêtre inféré ni un groupe externe. Les étiquettes internes du Newick sont conservées ; les supports FastTree locaux SH-like ne sont pas des bootstraps.
+Figures are conditional: sequence composition/quality; HSP scores, spans and gaps; query/reference coverage; translated coordinate/frame checks; MSA conservation, entropy, occupancy, consensus and distances; and the inferred tree. Some distance heatmaps are limited to 45 sequences. `figures_catalog.tsv` documents the generated SVGs and units.
 
-Si les longueurs sont absentes ou toutes nulles, le dessin est explicitement un **cladogramme**, sans échelle de distance. Un Newick mal formé produit un message d’indisponibilité ; une ancienne figure n’est pas réutilisée. Un projet ancien contenant déjà un Newick obtient sa figure en reconstruisant le HTML, sans réexécuter FastTree.
+The browser's downloads use only embedded data: at most 2000 HSPs, 301 sequence-quality records, 1000 MSA sequences and 200 preview rows per VSEARCH analysis. Application exports retain their complete result files. VSEARCH identity/coverage are global-alignment metrics and are not BLAST HSP unions.
 
-## Quelles figures sont possibles ?
-
-L’atlas dépend des données. Une figure absente ne signifie pas automatiquement une erreur.
-
-| Domaine | Exemples de figures | Prérequis |
-| --- | --- | --- |
-| Séquences | Composition, longueurs, GC, motifs, ORF | Séquences et analyse correspondante lorsqu’elle est requise |
-| HSP et coordonnées | Longueurs, nombres, étendues, pistes par référence | Recherche ayant retenu des HSP |
-| Couvertures | Union des segments, couverture par référence, couverture cumulée | HSP et longueurs disponibles |
-| Qualité des HSP | Identité, substitutions, gaps, bitscores, E-values | HSP retenus |
-| Traduction | Cadres, contrôle du rapport 3 nt / aa | Recherche traduite et cadres disponibles |
-| MSA | Conservation, entropie, gaps, occupation, consensus, distances p | Alignement disponible ; certaines matrices sont limitées à 45 séquences |
-| Phylogénie | Arbre FastTree | Newick calculé et valide |
-
-Le catalogue `figures_catalog.tsv` associe chaque SVG à sa catégorie, sa description et ses unités. Les histogrammes de HSP décrivent des segments locaux : un HSP n’est pas une séquence entière et plusieurs segments d’une même référence peuvent se chevaucher.
-
-## Téléchargements, impression et limites
-
-Chaque figure propose un **SVG vectoriel**, utile pour modifier les dimensions sans pixellisation. **Imprimer / PDF** utilise le navigateur ; les figures se déplient à l’impression. Pour un arbre très grand, le SVG autonome reste le moyen de conserver l’ensemble lisiblement.
-
-Les téléchargements du navigateur utilisent seulement le contenu du HTML : au plus **2 000 HSP**, **301 statistiques de séquences** et **1 000 séquences de MSA**. Pour les tableaux complets, utiliser les exports depuis l’application. Le HTML est un instantané : modifier les paramètres dans AlignView ne modifie pas automatiquement un fichier HTML déjà enregistré. Le reconstruire après une nouvelle analyse.
-
-Le rapport affiche des résultats, mais n’exécute ni MAFFT, ni BLAST, ni FastTree. Pour changer un calcul, revenir dans AlignView. Pour reprendre le travail, conserver aussi le dossier de projet.
+Print/PDF uses your browser and expands figures. An independent SVG is preferable for a very large tree. The report never runs BLAST, MAFFT, FastTree or VSEARCH. Return to the application for new calculations, and rebuild the HTML after changes.

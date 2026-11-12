@@ -1,12 +1,12 @@
 ---
-name: Signaler un problème
-about: Décrire un problème reproductible
+name: Bug report
+about: Describe a reproducible problem
 ---
 
-Comportement attendu et comportement observé :
+Expected and observed behavior:
 
-Commande minimale ou parcours dans les menus :
+Minimal command or sequence of menu actions:
 
-Version d’AlignView, Python, Linux, terminal ; exécution locale / SSH / Slurm :
+AlignView, Python, Linux and terminal versions; local / SSH / Slurm execution:
 
-Sortie pertinente de `alignview --diagnose-json` et petit FASTA synthétique :
+Relevant `alignview --diagnose-json` output and a small synthetic FASTA:

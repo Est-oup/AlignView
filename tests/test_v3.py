@@ -1,4 +1,4 @@
-"""Parcours v3 : fichier HTML permanent, assistant d'entrée, sélection de requête."""
+"""v3 workflows: persistent HTML, startup wizard and query selection."""
 import os
 import subprocess
 import tempfile
@@ -11,9 +11,9 @@ from av_start import suggest_modes, is_fasta_name
 
 class V3Tests(unittest.TestCase):
     def test_methods(self):
-        self.assertEqual(suggest_modes('ADN/ARN','protéine')[0],'blastx')
-        self.assertEqual(suggest_modes('protéine','ADN/ARN')[0],'tblastn')
-        self.assertEqual(suggest_modes('ADN/ARN','ADN/ARN')[1],'global-dna')
+        self.assertEqual(suggest_modes('DNA/RNA','protein')[0],'blastx')
+        self.assertEqual(suggest_modes('protein','DNA/RNA')[0],'tblastn')
+        self.assertEqual(suggest_modes('DNA/RNA','DNA/RNA')[1],'global-dna')
         self.assertTrue(is_fasta_name('reads.fna'))
         self.assertFalse(is_fasta_name('config.txt'))
 

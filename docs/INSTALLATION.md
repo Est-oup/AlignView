@@ -1,121 +1,54 @@
-# Installer, lancer et déplacer AlignView
+# Install and move AlignView
 
-## Démarrer sans installation Python supplémentaire
+## Portable folder
 
-La cible principale est Linux avec Python 3.10+. Copier **tout le dossier `AlignView/`**, puis lancer :
+Copy the complete `AlignView/` folder and run `/path/to/AlignView/alignview.sh --demo`. Python 3.10+ and Linux are the primary target. No third-party Python package is needed for the application. The launcher keeps the caller's current directory. If executable permissions were lost, use `bash /path/to/AlignView/alignview.sh` or restore the executable bit.
 
-```bash
-/chemin/vers/AlignView/alignview.sh --version
-/chemin/vers/AlignView/alignview.sh --demo
-/chemin/vers/AlignView/alignview.sh --docs demarrage
-```
+The portable ZIP extracts to one `AlignView/` folder. `python3 /path/to/alignview.pyz --demo` is the single-file alternative, including offline documentation. Neither distribution embeds scientific binaries.
 
-Depuis l’intérieur du dossier, `./alignview.sh` suffit. Le lanceur n’a besoin d’aucun script dans son dossier parent et ne change pas le dossier courant. Pour séparer application et résultats :
+For an installed command, create a Python environment and install `dist/alignview-0.1.0-py3-none-any.whl` with pip. Installing the source folder is also supported with the build dependencies available. The optional `scripts/install_user.sh` copies the zipapp into `~/.local/bin/alignview`; skip it if you prefer to retain only the portable folder.
 
-```bash
-cd /chemin/vers/mes_donnees
-/chemin/vers/AlignView/alignview.sh
-```
+## Scientific engines
 
-Si le bit exécutable a été perdu, utiliser `bash /chemin/vers/AlignView/alignview.sh` ou le rétablir avec `chmod +x`. Il est aussi possible de lancer `python3 /chemin/vers/AlignView/alignview.py`.
-
-L’application ne nécessite pas de bibliothèque Python tierce pour fonctionner. Les moteurs scientifiques sont facultatifs ; ils deviennent nécessaires seulement pour les calculs correspondants. Sous Windows, utiliser un environnement Linux/WSL ; cette release vise Linux. macOS et les terminaux cibles restent à valider séparément.
-
-## Choisir un mode de distribution
-
-| Mode | Usage | Ce qu’il faut conserver |
+| Calculation | Engine | Setup profile |
 | --- | --- | --- |
-| Dossier portable | Utiliser, déplacer ou développer sans pip | Le dossier `AlignView/` entier |
-| Archive `AlignView-0.1.0-portable.zip` | Distribuer le dossier prêt à lancer | Extraire son dossier `AlignView/` |
-| `alignview.pyz` | Un seul fichier Python autonome | Le `.pyz`, Python et les moteurs nécessaires |
-| Wheel | Installer une commande `alignview` dans un environnement Python | L’environnement Python installé |
+| FASTA/MSA reading, internal analyses, SVG and HTML | None | None |
+| NCBI local/translated searches | BLAST+ | blast |
+| Protein and translated-query search | DIAMOND | diamond |
+| Protein search alternative | MMseqs2 | mmseqs |
+| MSA and fragment addition | MAFFT | mafft |
+| Alternative MSA | MUSCLE 5 / Clustal Omega | muscle / clustalo |
+| Global/local pairwise alignment | EMBOSS | emboss |
+| Exploratory tree | FastTree | fasttree |
+| Nucleotide global search, dereplication, clustering, Chimeras | VSEARCH | vsearch |
+| Optional external viewer | ALV | alv |
 
-Le `.pyz` contient aussi les guides. Il ne contient pas d’exécutables BLAST/MAFFT/FastTree. Exemple : `python3 /chemin/alignview.pyz --docs fichiers`.
-
-Pour une commande installée avec un wheel :
-
-```bash
-python3 -m venv /chemin/vers/venv_alignview
-source /chemin/vers/venv_alignview/bin/activate
-python -m pip install /chemin/vers/AlignView/dist/alignview-0.1.0-py3-none-any.whl
-alignview --demo
-```
-
-Depuis les sources, `python -m pip install /chemin/vers/AlignView` fonctionne également avec un environnement de construction approprié. Cette installation est facultative pour utiliser le lanceur du dossier.
-
-Le script `bash scripts/install_user.sh` copie volontairement le `.pyz` sous `~/.local/bin/alignview`. Il refuse un fichier existant sans `--force`. C’est une commodité optionnelle qui installe une copie hors du dossier ; ne pas l’utiliser si l’on veut conserver uniquement le dossier portable.
-
-## De quels moteurs ai-je besoin ?
-
-| Fonction | Moteur | Profil `--setup` |
-| --- | --- | --- |
-| Lire un FASTA/MSA, statistiques, motifs, traductions, HTML et SVG | Aucun | Aucun |
-| Recherche ADN/ADN, protéine/protéine, recherches traduites NCBI | BLAST+ | `blast` |
-| Recherche protéique / ADN traduit contre protéines | DIAMOND | `diamond` |
-| Recherche protéine/protéine alternative | MMseqs2 | `mmseqs` |
-| Alignement multiple et ajout de fragments | MAFFT | `mafft` |
-| Alignement multiple alternatif | MUSCLE 5 ou Clustal Omega | `muscle`, `clustalo` |
-| Comparaison globale/locale de deux séquences | EMBOSS Needle/Water | `emboss` |
-| Calcul d’arbre | FastTree | `fasttree` |
-| Visionneuse externe facultative | ALV | `alv` |
-| Recherche globale, déduplication, groupes et chimères nucléotidiques | VSEARCH | `vsearch` |
-
-Le profil `minimal` regroupe BLAST, DIAMOND et MAFFT. Le profil `full` ajoute les autres moteurs. La visionneuse interne suffit sans ALV. MUSCLE 3 n’est pas compatible avec les commandes prévues pour MUSCLE 5.
-
-## Installer les moteurs dans l’environnement dédié
-
-Il faut déjà disposer de **Micromamba, Mamba ou Conda**. AlignView choisit le premier disponible et affiche la commande avant installation. Le plan sans `--install-tools` n’installe rien.
+`minimal` includes BLAST, DIAMOND and MAFFT. `full` adds all other supported engines, including VSEARCH. The internal viewer does not need ALV. MUSCLE 3 is unsupported.
 
 ```bash
-./alignview.sh --setup mafft
-./alignview.sh --setup mafft --install-tools
-./alignview.sh --setup minimal --install-tools
-./alignview.sh --setup fasttree --install-tools
 ./alignview.sh --diagnose
+./alignview.sh --setup vsearch
+./alignview.sh --setup vsearch --install-tools
+./alignview.sh --setup full --install-tools
 ```
 
-Par défaut, le préfixe est `$XDG_DATA_HOME/alignview/tools`, ou `~/.local/share/alignview/tools`. Un préfixe existant n’est étendu que s’il contient `conda-meta`. Le shell de l’utilisateur n’est pas modifié et il n’est pas nécessaire d’activer cet environnement pour que l’application le détecte.
+Micromamba, Mamba or Conda must already be available. Without `--install-tools`, the command only shows a plan. The default dedicated prefix is `$XDG_DATA_HOME/alignview/tools` or `~/.local/share/alignview/tools`. It is detected without activating a shell environment.
 
-## Garder aussi les moteurs dans le dossier AlignView
+## Keep engines under the application folder
 
-Depuis le dossier de l’application :
+From inside `AlignView/`:
 
 ```bash
-./alignview.sh --setup full --tools-prefix "$PWD/tools"
 ./alignview.sh --setup full --tools-prefix "$PWD/tools" --install-tools
 ./alignview.sh --diagnose
 ```
 
-Les sources, la documentation et cet environnement se trouvent alors tous sous `AlignView/`. Le lanceur détecte automatiquement `tools/conda-meta` lors des lancements suivants. Un `ALIGNVIEW_TOOLS_PREFIX` explicite ou `--tools-prefix` reste prioritaire. Le Python lancé directement et une commande wheel utilisent le préfixe explicite ou le préfixe utilisateur : fournir `--tools-prefix /chemin/AlignView/tools` pour choisir ce dossier.
+The launcher detects `tools/conda-meta` on later runs. An explicit `ALIGNVIEW_TOOLS_PREFIX` or `--tools-prefix` takes priority. Direct Python, wheel and zipapp runs can select the same prefix explicitly. Conda binaries and scripts may contain installation-specific paths: copying their directory does not guarantee relocation to another machine/path. Check diagnostics and recreate that prefix when needed.
 
-Un environnement Conda contient des exécutables et parfois des chemins liés au poste d’installation. Le ranger dans l’application ne le transforme pas en environnement universellement transportable. Après un déplacement ou transfert, vérifier `--diagnose` et réinstaller le préfixe si nécessaire. Les distributions Python ne l’embarquent pas.
+Existing tools can be selected using repeated `--tools-dir /path/bin` or `--executable mafft=/path/mafft`. Resolution order is explicit executable, tool directories, existing PATH, dedicated prefix, then on-demand HPC modules when enabled.
 
-Pour un autre préfixe durable :
+## HPC and platforms
 
-```bash
-export ALIGNVIEW_TOOLS_PREFIX=/scratch/mon_compte/alignview-tools
-/chemin/vers/AlignView/alignview.sh --setup minimal --install-tools
-/chemin/vers/AlignView/alignview.sh --diagnose
-```
+Use `--module-policy auto` to try modules for missing programs or `never` to use existing paths and loaded modules only. Normal diagnostics do not load new modules. The tools menu offers an explicit module search. Set `TMPDIR` to suitable scratch space and choose the final output path explicitly. Standard FastTree remains single-threaded.
 
-## Utiliser les programmes déjà installés
-
-Ordre de résolution : `--executable` explicite, dossiers `--tools-dir`, PATH existant, préfixe dédié, puis modules HPC à la demande lorsque cette politique est activée.
-
-```bash
-alignview --diagnose --tools-dir /opt/bio/bin
-alignview seqs.fasta --msa align --executable mafft=/opt/mafft/bin/mafft --save --no-menu
-alignview --diagnose-json --module-policy never
-```
-
-On peut répéter `--tools-dir` et `--executable`. Un chemin invalide est signalé avant le calcul. Les fichiers `environment-minimal.yml` et `environment-full.yml` décrivent aussi les profils Conda fournis.
-
-## Linux distant et HPC
-
-Les modules peuvent être chargés à la demande lorsqu’un outil manque avec `--module-policy auto`. Pour utiliser seulement les chemins, l’environnement dédié et les modules déjà chargés : `--module-policy never`. Le diagnostic normal ne charge pas de nouveaux modules ; l’écran **Logiciels et installation → Rechercher les modules HPC** permet une recherche explicite.
-
-Les ressources de calcul se règlent avec `--threads`. FastTree standard reste monothread. Choisir `TMPDIR` et une destination de résultats adaptés au cluster ; voir [Dossiers et sauvegardes](FILES.md).
-
-**Enregistrer et partager → Préparer un calcul sur HPC** produit un script Slurm dans le projet. Il n’est jamais soumis automatiquement. Vérifier partition, mémoire, durée, chemin de l’application et disponibilité des moteurs avant `sbatch`. Les entrées du script sont celles du projet sauvegardé.
-
-Le HTML n’a pas besoin de serveur distant. Le transférer vers son poste avec `scp` ou l’explorateur distant et l’ouvrir dans un navigateur. Voir [Dépannage](TROUBLESHOOTING.md) pour les problèmes de moteurs, terminal ou chemins.
+Slurm scripts are prepared but never submitted automatically. Check partition, resources and engine availability before sbatch. Transfer standalone HTML to your local machine for browser viewing; no temporary web server is required. Linux/SSH is the validated target; Windows requires a Linux environment such as WSL, and macOS/other targets need separate validation.

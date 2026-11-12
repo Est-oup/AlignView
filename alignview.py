@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""AlignView — explorateur d'alignements ADN/protéines pour Linux et clusters HPC.
+"""AlignView: DNA/protein alignment exploration for Linux and HPC clusters.
 
-Bibliothèque standard Python uniquement. Les logiciels scientifiques sont optionnels et
-chargés à la demande depuis PATH / modules HPC. Tout travail est temporaire jusqu'à
-confirmation explicite de sauvegarde en fin de session.
+Only the Python standard library is required. Scientific tools are loaded on
+request from PATH or HPC modules. Results are temporary until explicitly saved.
 """
 from __future__ import annotations
 import argparse
@@ -34,7 +33,7 @@ from av_report_v6 import build_report_v6
 from av_tree import TREE_FIGURE, tree_svg
 from av_docs import TOPICS, ALIASES as DOC_ALIASES, read_document
 from av_vsearch import ACTIONS as VSEARCH_ACTIONS
-from av_i18n import set_language, language, translate as tr
+
 from av_units import units_for, coord_audit
 from av_exports import generate_exports,PRESETS
 from av_start import startup, StartRequest, suggest_modes, choose_file, choose_sequence
@@ -47,122 +46,110 @@ from av_setup import PACKAGES, setup_tools, software_hub, diagnostic
 from av_msa_tui import MSAViewer, msa_static
 
 MODES={
-    'vsearch':('VSEARCH','Recherche globale de similarité entre séquences nucléotidiques'),
-    'blastn':('BLASTN','ADN → ADN : recherche locale nucléotidique'),
-    'blastp':('BLASTP','Protéine → protéine : recherche locale'),
-    'blastx':('BLASTX','ADN → protéine : 6 cadres de traduction de QUERY'),
-    'tblastn':('TBLASTN','Protéine → ADN : 6 cadres côté références'),
-    'tblastx':('TBLASTX','ADN → ADN : traduction des 2 côtés'),
-    'diamond-blastp':('DIAMOND BLASTP','Recherche protéine → protéine, optimisée pour gros jeux'),
-    'diamond-blastx':('DIAMOND BLASTX','ADN → protéine, DIAMOND, QUERY traduite'),
-    'mmseqs-blastp':('MMseqs2','Protéine → protéine : recherche locale rapide, HSP inspectables'),
-    'global-dna':('GLOBAL ADN','Needle et MAFFT sans recherche de similarité'),
-    'global-aa':('GLOBAL PROTÉINES','Needle et MAFFT sans recherche de similarité'),
+    'vsearch':('VSEARCH','Global similarity search between nucleotide sequences'),
+    'blastn':('BLASTN','DNA → DNA: local nucleotide search'),
+    'blastp':('BLASTP','Protein → protein: local search'),
+    'blastx':('BLASTX','DNA → protein: six-frame QUERY translation'),
+    'tblastn':('TBLASTN','Protein → DNA: six-frame reference translation'),
+    'tblastx':('TBLASTX','DNA → DNA: translation on both sides'),
+    'diamond-blastp':('DIAMOND BLASTP','Protein → protein search optimized for large datasets'),
+    'diamond-blastx':('DIAMOND BLASTX','DNA → protein, DIAMOND, translated QUERY'),
+    'mmseqs-blastp':('MMseqs2','Protein → protein: fast local search with inspectable HSPs'),
+    'global-dna':('GLOBAL DNA','Needle and MAFFT without a similarity search'),
+    'global-aa':('GLOBAL PROTEINS','Needle and MAFFT without a similarity search'),
 }
 HELP_TEXT={
- 'blast':'BLAST/DIAMOND : homologues locaux (HSP). Ils peuvent ignorer les extrémités et des régions divergentes. Une absence de HSP n’est pas une preuve d’absence d’homologie.',
- 'coverage':'Couverture = longueur de l’union des intervalles QUERY touchés par les HSP / longueur totale QUERY. Plusieurs HSP qui se chevauchent ne sont pas comptés deux fois. Pour BLASTX les positions QUERY sont nucléotidiques.',
- 'identity':'Identité = correspondances exactes / longueur de l’alignement local (HSP). Ce n’est PAS une identité globale de la séquence. Les gaps et substitutions sont distingués.',
- 'needle':'EMBOSS Needle implémente un alignement global de type Needleman–Wunsch. Il impose un chemin de bout en bout et permet de voir les extrémités, parfois au prix de gaps artificiels si les séquences sont non colinéaires.',
- 'water':'EMBOSS Water implémente Smith–Waterman, alignement local optimal ; ses résultats peuvent différer de BLAST qui est heuristique.',
- 'mafft':'MAFFT global (G-INS-i) / local (L-INS-i) sont des stratégies d’alignement multiple, et non des recherches d’homologie. MAFFT --auto choisit suivant les données. ADD-FRAGMENTS ajoute une requête partielle à un alignement de références.',
- 'hsp':'MSA des HSP : segments alignables localement, sans les régions flanquantes. AlignView écarte les HSP ne recouvrant pas suffisamment la région ancre. Ne pas interpréter ce MSA comme des séquences intégrales.',
- 'dot':'Dotplot = correspondances exactes de k-mers à leurs positions. Une diagonale suggère une colinéarité, plusieurs diagonales peuvent indiquer des répétitions ou duplications ; cela ne mesure pas une identité globale.',
- 'orf':'ORF : segment entre un codon de départ et un STOP, dans la table NCBI choisie. Départs ATG par défaut ou initiateurs de la table. Les arrêts contextuels nécessitent une annotation CDS ; ce détecteur simple n’est pas un prédicteur de gènes.',
- 'msa':'Sites variables = au moins deux résidus distincts non-gap dans une colonne ; informatifs en parcimonie = au moins deux états représentés chacun ≥ 2 fois. Distances p ignorent les colonnes avec gap dans une paire.',
- 'save':'Tous les fichiers calculés sont temporaires. L’enregistrement est proposé une seule fois en fin de session, sauf si --save est indiqué explicitement. L’arrêt brutal de la session peut faire perdre les résultats.',
+ 'blast':'BLAST/DIAMOND find local high-scoring segments (HSPs). They can omit ends and divergent regions. No detected HSP is not proof of non-homology.',
+ 'coverage':'Coverage is the length of the union of QUERY intervals covered by HSPs divided by QUERY length. Overlaps are counted once. BLASTX QUERY positions use nucleotides.',
+ 'identity':'Identity is exact matches divided by local alignment length (HSP). It is not whole-sequence identity. Gaps and substitutions are reported separately.',
+ 'needle':'EMBOSS Needle performs global Needleman–Wunsch alignment. Its end-to-end path includes sequence ends and can introduce artificial gaps when sequences are not collinear.',
+ 'water':'EMBOSS Water performs optimal local Smith–Waterman alignment. Results can differ from heuristic BLAST searches.',
+ 'mafft':'MAFFT global (G-INS-i) and local (L-INS-i) are multiple-alignment strategies, not homology searches. MAFFT --auto chooses a strategy from the input. ADD-FRAGMENTS adds a partial query to an aligned reference set.',
+ 'hsp':'HSP MSA aligns local segments without flanking regions. AlignView excludes HSPs with insufficient overlap with the anchor region. Do not interpret this MSA as full-length sequences.',
+ 'dot':'Dotplots show exact k-mer matches at their positions. A diagonal suggests collinearity; multiple diagonals can indicate repeats or duplications. They do not measure whole-sequence identity.',
+ 'orf':'An ORF is a segment between a start and a stop codon under the selected NCBI code. Starts use ATG by default, or the code-specific initiators. Context-dependent stops require CDS annotation; this simple detector is not a gene predictor.',
+ 'msa':'Variable sites contain at least two distinct non-gap residues. Parsimony-informative sites contain at least two states, each appearing at least twice. Pairwise p-distances exclude gapped columns.',
+ 'save':'Calculated files are temporary until explicitly saved or exported. Abrupt termination can lose unsaved results.',
 }
 
 
 class CLIParser(argparse.ArgumentParser):
-    def error(self,message):super().error(tr(message))
+    def error(self,message):super().error(str(message))
 
 
 def build_parser():
     p=CLIParser(prog='alignview',formatter_class=argparse.RawDescriptionHelpFormatter,
-        description='AlignView — exploration, alignements, visualisation et diagnostic en terminal.',
-        epilog='Exemples :\n  ./alignview.sh query.fna refs.faa --mode blastx\n  ./alignview.sh sequences.fasta\n  ./alignview.sh query.fna refs.faa --mode diamond-blastx --report --save\n  ./alignview.sh query.fna refs.fna --mode blastn --msa full --save --no-menu')
-    section_0=p.add_argument_group('Entrées et reprise')
-    section_1=p.add_argument_group('Recherche et filtres')
-    section_2=p.add_argument_group('Alignements et analyses')
-    section_3=p.add_argument_group('Rapports, exports et sauvegardes')
-    section_4=p.add_argument_group('Moteurs scientifiques et installation')
-    section_5=p.add_argument_group('Interface et documentation')
-    section_0.add_argument('query',nargs='?',help='FASTA de la requête, ou FASTA unique à explorer')
-    section_0.add_argument('--query-id',default='',help='Identifiant FASTA à utiliser comme requête quand le premier fichier en contient plusieurs')
-    section_0.add_argument('references',nargs='?',help='FASTA des références')
-    section_0.add_argument('--mode',choices=['msa',*MODES],help='Programme de recherche ou alignement')
-    section_1.add_argument('--task',default='',help='Tâche NCBI compatible avec le programme')
-    section_1.add_argument('--evalue',type=float,default=1e-5,help='E-value maximale (1e-5 par défaut)')
-    section_1.add_argument('--identity',type=float,default=0,help='Identité locale minimale %% (0)')
-    section_1.add_argument('--coverage',type=float,default=0,help='Couverture QUERY par union des HSP %% (0)')
-    section_1.add_argument('--bitscore',type=float,default=0,help='Bitscore local minimal (0)')
-    section_1.add_argument('--hits',type=int,default=DEFAULT_HITS,help='Nombre maximal de références retenues (100 par défaut)')
-    section_1.add_argument('--preset',choices=['standard','sensible','strict'],default='standard',help='Profil de recherche : standard, sensible ou strict ; les options explicites sont prioritaires')
-    section_1.add_argument('--threads',type=int,default=4,help='Nombre de threads (4)')
+        description='AlignView — terminal sequence exploration, alignment, visualization and diagnostics.',
+        epilog='Examples:\n  ./alignview.sh query.fna refs.faa --mode blastx\n  ./alignview.sh sequences.fasta\n  ./alignview.sh query.fna refs.faa --mode diamond-blastx --report --save\n  ./alignview.sh query.fna refs.fna --mode blastn --msa full --save --no-menu')
+    section_0=p.add_argument_group('Input and resuming')
+    section_1=p.add_argument_group('Search and filtering')
+    section_2=p.add_argument_group('Alignments and analyses')
+    section_3=p.add_argument_group('Reports, exports and saving')
+    section_4=p.add_argument_group('Scientific engines and installation')
+    section_5=p.add_argument_group('Interface and documentation')
+    section_0.add_argument('query',nargs='?',help='Query FASTA, or a single FASTA to explore')
+    section_0.add_argument('--query-id',default='',help='FASTA identifier to use as the query when the first file contains several sequences')
+    section_0.add_argument('references',nargs='?',help='Reference FASTA')
+    section_0.add_argument('--mode',choices=['msa',*MODES],help='Search or alignment method')
+    section_1.add_argument('--task',default='',help='NCBI task compatible with the selected program')
+    section_1.add_argument('--evalue',type=float,default=1e-5,help='Maximum E-value (default: 1e-5)')
+    section_1.add_argument('--identity',type=float,default=0,help='Minimum local identity %% (0)')
+    section_1.add_argument('--coverage',type=float,default=0,help='Query coverage from the union of HSPs %% (0)')
+    section_1.add_argument('--bitscore',type=float,default=0,help='Minimum local bitscore (0)')
+    section_1.add_argument('--hits',type=int,default=DEFAULT_HITS,help='Maximum retained references (default: 100)')
+    section_1.add_argument('--preset',choices=['standard','sensitive','strict'],default='standard',help='Search preset: standard, sensible or strict; explicit options take priority')
+    section_1.add_argument('--threads',type=int,default=4,help='Number of threads (4)')
     section_1.add_argument('--sensitivity',choices=['fast','sensitive','more-sensitive','very-sensitive','ultra-sensitive'],default='sensitive')
     section_2.add_argument('--msa',choices=['none','view','align','full','hits','all','global','fragments','hsp'],default='none')
     section_2.add_argument('--mafft',choices=['auto','global','local','fast'],default='auto')
-    section_2.add_argument('--aligner',choices=['mafft','muscle','clustalo'],default='mafft',help='Moteur MSA : MAFFT, MUSCLE 5, Clustal Omega')
-    section_2.add_argument('--tree',action='store_true',help='Inférer un arbre exploratoire FastTree à partir du MSA calculé')
+    section_2.add_argument('--aligner',choices=['mafft','muscle','clustalo'],default='mafft',help='MSA engine: MAFFT, MUSCLE 5, Clustal Omega')
+    section_2.add_argument('--tree',action='store_true',help='Infer an exploratory FastTree tree from the MSA')
     section_2.add_argument('--pairwise',choices=['none','global','local'],default='none')
-    section_2.add_argument('--ref',type=int,default=1,help='Indice d’une référence (1)')
-    section_2.add_argument('--frame',type=int,choices=[-3,-2,-1,1,2,3],help='Forcer un cadre de traduction')
+    section_2.add_argument('--ref',type=int,default=1,help='Reference index (1)')
+    section_2.add_argument('--frame',type=int,choices=[-3,-2,-1,1,2,3],help='Select a translation frame')
     section_2.add_argument('--gapopen',type=float,default=10)
     section_2.add_argument('--gapextend',type=float,default=.5)
-    section_2.add_argument('--matrix',default='',help='Matrice de substitution EMBOSS')
-    section_2.add_argument('--free-ends',action='store_true',help='Ne pas pénaliser les gaps terminaux Needle')
-    section_3.add_argument('--report',action='store_true',help='Préparer le HTML et ses SVG ; conserver avec --save, --export-dir ou --html-out')
-    section_3.add_argument('--html-out',metavar='FICHIER.html',default='',help='Enregistrer un HTML autonome à cet endroit, même sans --save ; refuse d’écraser')
-    section_3.add_argument('--no-open',action='store_true',help='Ne pas ouvrir automatiquement le HTML dans le navigateur')
+    section_2.add_argument('--matrix',default='',help='EMBOSS substitution matrix')
+    section_2.add_argument('--free-ends',action='store_true',help='Do not penalize terminal gaps in Needle')
+    section_3.add_argument('--report',action='store_true',help='Prepare HTML and SVG figures; retain them using --save, --export-dir or --html-out')
+    section_3.add_argument('--html-out',metavar='FILE.html',default='',help='Save a standalone HTML here, even without --save; refuses to overwrite')
+    section_3.add_argument('--no-open',action='store_true',help='Do not automatically open HTML in the browser')
     section_3.add_argument('--preview-port',type=int,default=8765,help=argparse.SUPPRESS)
-    section_2.add_argument('--dotplot',action='store_true',help='Générer dotplot QUERY / meilleure référence')
-    section_2.add_argument('--kmer',type=int,default=9,help='Longueur des mots du dotplot (9)')
-    section_2.add_argument('--motif',default='',help='Motif IUPAC sur la requête')
-    section_2.add_argument('--vsearch',choices=['none',*VSEARCH_ACTIONS],default='none',help='Analyse nucléotidique VSEARCH : recherche, déduplication, regroupement ou chimères')
-    section_5.add_argument('--list-genetic-codes',action='store_true',help='Afficher les tables de traduction NCBI disponibles, puis quitter')
-    section_3.add_argument('--out',default='',help='Dossier du projet avec --save ; chemin relatif au dossier de lancement, créé à la fin')
-    section_3.add_argument('--save',action='store_true',help='Sauvegarde explicite à la fin (batch compris)')
-    section_5.add_argument('--no-menu',action='store_true',help='Sans menu interactif')
-    section_5.add_argument('--simple-ui',action='store_true',help='Menus numérotés classiques')
-    section_5.add_argument('--no-color',action='store_true',help='Sans couleurs ANSI')
-    section_4.add_argument('--executable',action='append',default=[],metavar='COMMANDE=/chemin',
-                   help='Chemin exact vers un outil externe, répétable, ex. blastx=/opt/ncbi/bin/blastx')
-    section_4.add_argument('--tools-dir',action='append',default=[],metavar='DOSSIER',
-                   help='Ajouter des exécutables locaux au PATH d’AlignView (répétable)')
+    section_2.add_argument('--dotplot',action='store_true',help='Generate a query / best-reference dotplot')
+    section_2.add_argument('--kmer',type=int,default=9,help='Dotplot word length (9)')
+    section_2.add_argument('--motif',default='',help='IUPAC motif in the query')
+    section_2.add_argument('--vsearch',choices=['none',*VSEARCH_ACTIONS],default='none',help='VSEARCH nucleotide analysis: search, dereplication, clustering or chimeras')
+    section_5.add_argument('--list-genetic-codes',action='store_true',help='List available NCBI translation tables and exit')
+    section_3.add_argument('--out',default='',help='Project directory with --save; relative to the launch directory, created at the end')
+    section_3.add_argument('--save',action='store_true',help='Explicitly save at the end, including batch runs')
+    section_5.add_argument('--no-menu',action='store_true',help='Without interactive menus')
+    section_5.add_argument('--simple-ui',action='store_true',help='Classic numbered menus')
+    section_5.add_argument('--no-color',action='store_true',help='Without ANSI colors')
+    section_4.add_argument('--executable',action='append',default=[],metavar='COMMAND=/path',
+                   help='Exact external-tool path, repeatable, e.g. blastx=/opt/ncbi/bin/blastx')
+    section_4.add_argument('--tools-dir',action='append',default=[],metavar='DIRECTORY',
+                   help='Add local executable directories to AlignView\'s PATH (repeatable)')
     section_4.add_argument('--module-policy',choices=['auto','never'],default='auto',
-                   help='auto : modules HPC si commande absente ; never : PATH et chemins seulement')
+                   help='auto: try HPC modules for missing commands; never: use existing paths and the managed environment')
     section_3.add_argument('--export-profile',choices=list(PRESETS),default='standard',
-                   help='standard / publication / complete : fichiers préparés en cas de sauvegarde')
-    section_3.add_argument('--export-dir',default='',metavar='DOSSIER',
-                   help='Exporter explicitement les fichiers tabulaires dans ce dossier, même sans --save')
-    section_4.add_argument('--diagnose',action='store_true',help='Diagnostic PATH/modules puis sortie')
-    section_5.add_argument('--list-tools',action='store_true',help='Lister les fonctionnalités')
-    section_5.add_argument('--docs',nargs='?',const='index',choices=[*TOPICS,*DOC_ALIASES],help='Consulter un guide hors ligne, sans ouvrir de données (défaut : index)')
-    section_0.add_argument('--resume',metavar='PROJET',help='Reprendre un projet sauvegardé sans relancer ses calculs')
-    section_0.add_argument('--demo',action='store_true',help='Explorer un exemple embarqué sans outil externe')
-    section_4.add_argument('--setup',choices=sorted(PACKAGES),help='Préparer l’installation de moteurs via Conda/Mamba')
-    section_4.add_argument('--install-tools',action='store_true',help='Exécuter le plan --setup dans un environnement dédié')
-    section_4.add_argument('--tools-prefix',help='Préfixe Conda dédié (ou ALIGNVIEW_TOOLS_PREFIX)')
-    section_4.add_argument('--diagnose-json',action='store_true',help='Diagnostic machine-readable JSON, sans chargement de modules')
+                   help='standard / publication / complete: files prepared when saving')
+    section_3.add_argument('--export-dir',default='',metavar='DIRECTORY',
+                   help='Explicitly export files to this directory, even without --save')
+    section_4.add_argument('--diagnose',action='store_true',help='Report available executables and versions, then exit')
+    section_5.add_argument('--list-tools',action='store_true',help='List features')
+    section_5.add_argument('--docs',nargs='?',const='index',choices=[*TOPICS,*DOC_ALIASES],help='Read an offline guide without opening data (default: index)')
+    section_0.add_argument('--resume',metavar='PROJECT',help='Resume a saved project without rerunning its calculations')
+    section_0.add_argument('--demo',action='store_true',help='Explore a bundled example without external tools')
+    section_4.add_argument('--setup',choices=sorted(PACKAGES),help='Prepare engine installation using Conda/Mamba')
+    section_4.add_argument('--install-tools',action='store_true',help='Run the --setup plan in a dedicated environment')
+    section_4.add_argument('--tools-prefix',help='Dedicated Conda prefix (or ALIGNVIEW_TOOLS_PREFIX)')
+    section_4.add_argument('--diagnose-json',action='store_true',help='Machine-readable JSON diagnostics without loading modules')
     section_5.add_argument('--version',action='version',version='AlignView '+VERSION)
-    section_5.add_argument('--lang',choices=('fr','en'),default='en' if os.environ.get('ALIGNVIEW_LANG')=='en' else 'fr',help='Langue de l’interface, du HTML et des guides (ou ALIGNVIEW_LANG)')
     add_arguments(p)
-    for group in p._action_groups:
-        group.title=tr(group.title)
-        for action in group._group_actions:
-            if action.help and action.help!=argparse.SUPPRESS:action.help=tr(action.help)
-    p.description=tr(p.description);p.epilog=tr(p.epilog)
     return p
 
 
 def parse_args(argv=None):
-    raw=list(argv if argv is not None else sys.argv[1:])
-    selected='en' if os.environ.get('ALIGNVIEW_LANG')=='en' else 'fr'
-    for i,token in enumerate(raw):
-        if token.startswith('--lang='):selected=token.split('=',1)[1]
-        elif token=='--lang' and i+1<len(raw):selected=raw[i+1]
-    set_language(selected if selected in ('fr','en') else 'fr')
     p=build_parser()
     a=p.parse_args(argv)
     source=list(argv if argv is not None else sys.argv[1:])
@@ -180,30 +167,30 @@ def parse_args(argv=None):
     if a.load_profile and 'preset' in explicit:a._profile_overrides.update(evalue=a.evalue,sensitivity=a.sensitivity)
     try:validate_parameters(a)
     except ValueError as exc:p.error(str(exc))
-    # Sans fichiers, l'interface démarre sur l'écran d'accueil (sauf en batch).
-    if not a.query and a.no_menu and not (a.diagnose or a.diagnose_json or a.list_tools or a.list_genetic_codes or a.docs or a.setup or a.resume or a.demo or a.write_profile):p.error('Préciser un FASTA en mode --no-menu')
+    # Without input files, start at Home unless running in batch mode.
+    if not a.query and a.no_menu and not (a.diagnose or a.diagnose_json or a.list_tools or a.list_genetic_codes or a.docs or a.setup or a.resume or a.demo or a.write_profile):p.error('Provide a FASTA in --no-menu mode')
     if a.mode=='vsearch' and a.vsearch=='none':a.vsearch='search'
     if a.vsearch=='search' and a.mode is None and not a.resume:a.mode='vsearch'
-    if a.vsearch!='none' and a.mode not in (None,'msa','vsearch'):p.error('Utiliser --vsearch sans mode BLAST/DIAMOND ; les analyses ont des métriques différentes.')
+    if a.vsearch!='none' and a.mode not in (None,'msa','vsearch'):p.error('Use --vsearch without a BLAST/DIAMOND mode; these analyses use different metrics.')
     if not all(math.isfinite(x) for x in (a.evalue,a.identity,a.coverage,a.bitscore,a.gapopen,a.gapextend)) or a.ref<1 or a.gapopen<0 or a.gapextend<0 or a.evalue<=0 or a.hits<1 or a.threads<1 or a.kmer<2 or a.kmer>60 or not 0<=a.identity<=100 or not 0<=a.coverage<=100 or a.bitscore<0 or not 0<=a.preview_port<=65535:
-        p.error('Valeurs invalides : evalue > 0, hits/threads > 0, 2 ≤ kmer ≤ 60, identité/couverture entre 0 et 100')
-    if a.install_tools and not a.setup:p.error('--install-tools nécessite --setup PROFIL')
-    if a.resume and (a.query or a.references or a.demo):p.error('--resume ne se combine pas avec des fichiers ou --demo')
-    if a.resume and explicit & {'mode','query_id'}:p.error('Pour changer de méthode ou de séquence après --resume, utiliser les menus Analyser / Données.')
-    if a.html_out and Path(a.html_out).suffix.lower()!='.html':p.error('--html-out attend un nom de fichier avec l’extension .html')
-    if a.references and a.mode=='msa':p.error('--mode msa uniquement avec un seul FASTA')
-    if a.query and not a.references and a.mode not in (None,'msa'):p.error('Ce mode nécessite un FASTA de références.')
-    if a.query and not a.references and a.msa in ('hits','hsp','fragments'):p.error('Cette stratégie MSA nécessite un FASTA de références.')
-    if a.references and a.msa=='view':p.error('--msa view nécessite un seul FASTA déjà aligné.')
+        p.error('Invalid values: evalue > 0, hits/threads > 0, 2 ≤ kmer ≤ 60, identity/coverage between 0 and 100')
+    if a.install_tools and not a.setup:p.error('--install-tools requires --setup PROFILE')
+    if a.resume and (a.query or a.references or a.demo):p.error('--resume cannot be combined with input files or --demo')
+    if a.resume and explicit & {'mode','query_id'}:p.error('To change the method or query after --resume, use Compare with references / Files and query.')
+    if a.html_out and Path(a.html_out).suffix.lower()!='.html':p.error('--html-out requires a filename ending in .html')
+    if a.references and a.mode=='msa':p.error('--mode msa requires a single FASTA')
+    if a.query and not a.references and a.mode not in (None,'msa'):p.error('This mode requires a reference FASTA.')
+    if a.query and not a.references and a.msa in ('hits','hsp','fragments'):p.error('This MSA strategy requires a reference FASTA.')
+    if a.references and a.msa=='view':p.error('--msa view requires a single aligned FASTA.')
     return a
 
 
 def show_file(file:Path,ui:UI,max_lines=160):
-    if not file.exists():ui.warn('Fichier absent');return
+    if not file.exists():ui.warn('File absent');return
     ui.page(file.read_text(errors='replace'),file.name)
 
 
-def text_segments(spans):return ', '.join(f'{a:,}–{b:,} ({b-a+1:,})' for a,b in spans) if spans else 'aucune'
+def text_segments(spans):return ', '.join(f'{a:,}–{b:,} ({b-a+1:,})' for a,b in spans) if spans else 'none'
 
 
 def ascii_bar(spans,length,width=62,color=True):
@@ -223,7 +210,7 @@ class Session:
         self.query_path=Path(args.query).expanduser().resolve()
         self.refs_path=Path(args.references).expanduser().resolve() if args.references else None
         for path in (self.query_path,self.refs_path):
-            if path and not path.is_file():raise ValueError(f'Fichier introuvable : {path}')
+            if path and not path.is_file():raise ValueError(f'File not found: {path}')
         self.source_query_path=self.query_path;self.source_refs_path=self.refs_path
         self.temporary=tempfile.TemporaryDirectory(prefix='alignview_')
         self.work=Path(self.temporary.name)/'results';self.work.mkdir()
@@ -244,19 +231,19 @@ class Session:
         if args.query_id or (not self.single and len(self.query_list)>1):
             candidate=next((r for r in self.query_list if r.id==args.query_id),None) if args.query_id else None
             if args.query_id and candidate is None:
-                raise ValueError(f'Identifiant QUERY introuvable : {args.query_id}')
+                raise ValueError(f'Identifiant QUERY introuvable: {args.query_id}')
             if candidate is None and (args.no_menu or not ui.tty):
-                raise ValueError('FASTA QUERY multiple : préciser --query-id en mode non interactif.')
+                raise ValueError('Multiple query sequences: provide --query-id in non-interactive mode.')
             if candidate is None:
-                labels=[(str(i),r.id,f'{len(r.seq):,} caractères · {sequence_type(r.seq)}','SÉQUENCES') for i,r in enumerate(self.query_list,1)]
-                choice=ui.menu('Choisir la requête active',labels,
-                               f'{len(self.query_list)} séquences · analyses ciblées sur une requête')
+                labels=[(str(i),r.id,f'{len(r.seq):,} characters · {sequence_type(r.seq)}','SEQUENCES') for i,r in enumerate(self.query_list,1)]
+                choice=ui.menu('Choose the active query',labels,
+                               f'{len(self.query_list)} sequences · analyses focus on one query')
                 if choice is None:raise KeyboardInterrupt
                 candidate=self.query_list[int(choice)-1]
             self.query=candidate
             self.query_search_path=self.work/'query_active.fasta'
             write_fasta([self.query],self.query_search_path)
-            ui.info(f'Requête sélectionnée : {self.query.id} · {len(self.query.seq):,} caractères')
+            ui.info(f'Selected query: {self.query.id} · {len(self.query.seq):,} characters')
         # Normalized plain FASTA inputs also support gzip sources for every engine.
         self.query_search_path=self.work/'query_active.fasta'
         write_fasta([self.query] if not self.single else self.query_list,self.query_search_path)
@@ -269,6 +256,7 @@ class Session:
         self.start=datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.check_type()
         self.save_settings()
+        self.dirty=False
 
     def close(self):
         self.temporary.cleanup()
@@ -278,27 +266,26 @@ class Session:
         if self.single:return
         ref_type=collections.Counter(sequence_type(r.seq) for r in self.references).most_common(1)[0][0]
         types={
-            'vsearch':('ADN/ARN','ADN/ARN'),
-            'blastn':('ADN/ARN','ADN/ARN'),'blastp':('protéine','protéine'),
-            'blastx':('ADN/ARN','protéine'),'mmseqs-blastp':('protéine','protéine'),'tblastn':('protéine','ADN/ARN'),
-            'tblastx':('ADN/ARN','ADN/ARN'),'diamond-blastp':('protéine','protéine'),
-            'diamond-blastx':('ADN/ARN','protéine'),'global-dna':('ADN/ARN','ADN/ARN'),
-            'global-aa':('protéine','protéine')}
+            'vsearch':('DNA/RNA','DNA/RNA'),
+            'blastn':('DNA/RNA','DNA/RNA'),'blastp':('protein','protein'),
+            'blastx':('DNA/RNA','protein'),'mmseqs-blastp':('protein','protein'),'tblastn':('protein','DNA/RNA'),
+            'tblastx':('DNA/RNA','DNA/RNA'),'diamond-blastp':('protein','protein'),
+            'diamond-blastx':('DNA/RNA','protein'),'global-dna':('DNA/RNA','DNA/RNA'),
+            'global-aa':('protein','protein')}
         if self.mode in types:
             want=types[self.mode]
             if (qtype,ref_type)!=want:
-                self.ui.warn(f'Types FASTA détectés : QUERY={qtype}, REFS≈{ref_type} ; attendus pour {self.mode} : {want[0]}/{want[1]}.')
-                if self.mode.startswith('global-') and qtype!='inconnu' and ref_type!='inconnu':
-                    raise ValueError('MAFFT global : types ADN/protéine incompatibles ; utiliser un FASTA homogène ou traduire les séquences.')
+                self.ui.warn(f'Detected FASTA types: QUERY={qtype}, REFS≈{ref_type} ; expected for {self.mode}: {want[0]}/{want[1]}.')
+                if self.mode.startswith('global-') and qtype!='unknown' and ref_type!='unknown':
+                    raise ValueError('Global MAFFT: incompatible DNA/protein types; use homogeneous FASTA input or translate the sequences.')
 
     def settings(self):
         keys=('mode','task','evalue','identity','coverage','bitscore','hits','threads','sensitivity',
               'preset','msa','mafft','aligner','tree','frame','gapopen','gapextend','matrix','free_ends','kmer')
         d={k:getattr(self.a,k) for k in keys};d['mode']=self.mode
         d.update({p.name:getattr(self.a,p.name,p.default) for p in PARAMETERS})
-        d['native_defaults']='Options non transmises : défauts de la version du moteur enregistrée dans commands.json.'
+        d['native_defaults']='Options not supplied use defaults from the engine version recorded in commands.json.'
         d['calculation_runs']=self.calculation_runs
-        d['language']=language()
         d['vsearch_analyses']={action:{k:value for k,value in result.items() if k!='preview'} for action,result in self.vsearch_results.items()}
         u=units_for(self.mode,sequence_type(self.query.seq))
         d['units']={'query_coordinates':u.query,'reference_coordinates':u.subject,'alignment_columns':u.aligned,'msa_columns':u.msa}
@@ -328,11 +315,11 @@ class Session:
             for r in self.coverage_rows()],sep='\t')
         (self.work/'hsps.json').write_text(json.dumps(selected,ensure_ascii=False,indent=2))
         with (self.work/'hsp_query.bed').open('w') as f:
-            f.write('# Query BED 0-based half-open; BlastX query coordinates = nucléotides\n')
+            f.write('# Query BED 0-based half-open; BlastX query coordinates = nucleotides\n')
             for h in [h for g in self.selected.values() for h in g]:
                 a,b=h.qspan; f.write(f'{h.query}\t{a-1}\t{b}\t{h.subject}\t{min(1000,round(h.bitscore))}\t{"-" if h.qstart>h.qend else "+"}\n')
         with (self.work/'hsp_reference.bed').open('w') as f:
-            f.write('# Reference BED 0-based half-open; TBLASTN/TBLASTX reference coordinates = nucléotides\n')
+            f.write('# Reference BED 0-based half-open; TBLASTN/TBLASTX reference coordinates = nucleotides\n')
             for h in [h for g in self.selected.values() for h in g]:
                 a,b=h.sspan;f.write(f'{h.subject}\t{a-1}\t{b}\t{h.query}\t{min(1000,round(h.bitscore))}\t{"-" if h.sstart>h.send else "+"}\n')
 
@@ -346,48 +333,48 @@ class Session:
         labels=list(self.selected) if self.selected else [r.id for r in self.references]
         if self.a.no_menu or not self.ui.tty:
             n=self.a.ref
-            if not 1<=n<=len(labels):raise ValueError('Indice de référence hors plage : '+str(n))
+            if not 1<=n<=len(labels):raise ValueError('Reference index out of range: '+str(n))
             return self.refmap[labels[n-1]],n
         options=[]
         for i,name in enumerate(labels,1):
             group=self.selected.get(name,[])
-            detail=f'{group[0].identity:.1f}% · E={group[0].evalue:.2g}' if group else f'{len(self.refmap[name].seq):,} caractères'
-            options.append((str(i),name,detail,'RÉFÉRENCES'))
-        choice=self.ui.menu('CHOISIR UNE RÉFÉRENCE',options,f'{len(labels):,} références · / rechercher')
+            detail=f'{group[0].identity:.1f}% · E={group[0].evalue:.2g}' if group else f'{len(self.refmap[name].seq):,} characters'
+            options.append((str(i),name,detail,'REFERENCES'))
+        choice=self.ui.menu('CHOOSE A REFERENCE',options,f'{len(labels):,} references · / search')
         if choice is None:return None,0
         n=int(choice);self.a.ref=n
         return self.refmap[labels[n-1]],n
 
     def show_dashboard(self):
-        self.ui.banner('SESSION  /  paramètres et données en mémoire')
-        self.ui.heading('ÉTAT DE LA SESSION')
+        self.ui.banner('SESSION / settings and data in memory')
+        self.ui.heading('SESSION STATUS')
         for k,v in [
-            ('Requête',f'{self.query_path.name} · {len(self.query_list)} séq. · {len(self.query.seq):,} positions'),
-            ('Références',f'{self.refs_path.name} · {len(self.references):,} séq.' if self.refs_path else 'aucune — un FASTA'),
-            ('Programme',self.mode.upper()),('Seuils',f'E ≤ {self.a.evalue:g} · id ≥ {self.a.identity}% · couverture QUERY ≥ {self.a.coverage}%'),
-            ('Recherche',f'{len(self.hsps)} HSP · {len(self.selected)} références retenues'),
-            ('Alignement',self.msa_file.name if self.msa_file else 'non généré'),
-            ('Dotplot','généré' if self.dot_data else 'non généré'),
-            ('Dossier de lancement',str(Path.cwd())),
-            ('Sauvegarde','modifications à enregistrer' if self.dirty else 'projet enregistré')]:
-            print('  '+self.ui.c(GREY,f'{tr(k):<23}')+tr(v))
-        self.ui.info('Modules chargés : '+(', '.join(m for _,m in self.tools.loaded) or tr('aucun, PATH utilisé')))
-        if self.last_saved:self.ui.info('Dernière copie enregistrée : '+str(self.last_saved))
+            ('Query',f'{self.query_path.name} · {len(self.query_list)} seq. · {len(self.query.seq):,} positions'),
+            ('References',f'{self.refs_path.name} · {len(self.references):,} seq.' if self.refs_path else 'none — single FASTA'),
+            ('Program',self.mode.upper()),('Thresholds',f'E ≤ {self.a.evalue:g} · id ≥ {self.a.identity}% · coverage QUERY ≥ {self.a.coverage}%'),
+            ('Search',f'{len(self.hsps)} HSP · {len(self.selected)} retained references'),
+            ('Alignment',self.msa_file.name if self.msa_file else 'not generated'),
+            ('Dotplot','generated' if self.dot_data else 'not generated'),
+            ('Launch directory',str(Path.cwd())),
+            ('Saving','unsaved changes' if self.dirty else 'project saved')]:
+            print('  '+self.ui.c(GREY,f'{str(k):<23}')+str(v))
+        self.ui.info('Loaded modules: '+(', '.join(m for _,m in self.tools.loaded) or str('none; using PATH')))
+        if self.last_saved:self.ui.info('Last saved copy: '+str(self.last_saved))
 
 
     def _change_numeric(self,key,label,cast,minimum=None,maximum=None):
         previous=getattr(self.a,key)
-        answer=self.ui.ask(label,str(previous),'Entrée = conserver · q = annuler')
-        if answer.lower() in ('q','annuler'):return False
+        answer=self.ui.ask(label,str(previous),'Enter = keep · q = cancel')
+        if answer.lower() in ('q','cancel'):return False
         try:
             value=cast(answer)
             if not math.isfinite(float(value)):raise ValueError
             if minimum is not None and value<minimum:raise ValueError
             if maximum is not None and value>maximum:raise ValueError
         except ValueError:
-            self.ui.warn('Valeur invalide : paramètre inchangé.');return False
+            self.ui.warn('Invalid value: parameter unchanged.');return False
         setattr(self.a,key,value);self.save_settings()
-        self.ui.success(f'{label} : {previous} → {value}')
+        self.ui.success(f'{label}: {previous} → {value}')
         return value!=previous
 
     def choose_preset(self):
@@ -401,10 +388,10 @@ class Session:
 
     def search(self):
         if self.mode.startswith('global-') or self.single:return
-        self.ui.heading('RECHERCHE / EXÉCUTION')
+        self.ui.heading('SEARCH / EXECUTION')
         validate_parameters(self.a,context='search',mode=self.mode)
         max_target=self.a.search_candidates or max(100,self.a.hits*10)
-        self.ui.info(f'{self.mode.upper()} · {len(self.references)} références · {self.a.threads} threads')
+        self.ui.info(f'{self.mode.upper()} · {len(self.references)} references · {self.a.threads} threads')
         self._calculation_start=len(self.tools.history)
         self.hsps=self.tools.search(self.mode,self.query_search_path,self.refs_search_path,self.a.threads,self.a.evalue,
                                     max_target,self.a.sensitivity,self.a.task,options=self.a)
@@ -412,7 +399,7 @@ class Session:
         self.search_parameters=calculation_settings('search',self.a,self.mode)
         self.record_calculation('search',self.search_parameters)
         self.apply_filters()
-        self.ui.success(f'{len(self.hsps)} HSP trouvés · {len(self.selected)} références retenues')
+        self.ui.success(f'{len(self.hsps)} HSPs found · {len(self.selected)} retained references')
 
     def search_preview(self,mode=None):
         mode=mode or self.mode
@@ -447,19 +434,19 @@ class Session:
 
     def show_hits(self):
         if self.single or self.mode.startswith('global-'):
-            self.ui.warn('Aucune recherche locale : choisir BLAST / DIAMOND pour obtenir des hits.');return
-        rows=self.coverage_rows();self.ui.heading(f'RÉSULTATS  /  {len(rows)} RÉFÉRENCES')
-        print(f'  {"#":>2}  {"Référence":<30} {"Id.%":>7} {"Cov.%":>7} {"HSP":>5} {"E-value":>11} {"Bits":>8}')
+            self.ui.warn('No local search: choose BLAST / DIAMOND to obtain matches.');return
+        rows=self.coverage_rows();self.ui.heading(f'RESULTS  /  {len(rows)} REFERENCES')
+        print(f'  {"#":>2}  {"Reference":<30} {"Id.%":>7} {"Cov.%":>7} {"HSP":>5} {"E-value":>11} {"Bits":>8}')
         for i,r in enumerate(rows,1):
             print(f'  {i:>2}  {r["subject"][:30]:<30} {r["best_identity"]:7.1f} {r["query_coverage"]:7.1f} {r["hsps"]:5d} {r["best_evalue"]:11.2g} {r["best_bitscore"]:8.1f}')
-        if not rows:self.ui.warn('Aucun hit après filtrage. Réduire les seuils ou changer de méthode.')
+        if not rows:self.ui.warn('No hits after filtering. Relax thresholds or change the method.')
         units=units_for(self.mode,sequence_type(self.query.seq))
-        self.ui.info(f'Identité = % sur HSP ; couverture = union sur QUERY ({units.query}) ; alignement HSP ({units.aligned}).')
+        self.ui.info(f'Identity = % per HSP; coverage = union on QUERY ({units.query}) ; HSP alignment ({units.aligned}).')
 
     def show_coverage(self,by_ref=False):
-        if not self.selected:self.ui.warn('Aucun HSP retenu ; couverture indisponible.');return
+        if not self.selected:self.ui.warn('No retained HSPs; coverage unavailable.');return
         rows=self.coverage_rows();q_len=len(self.query.seq)
-        self.ui.heading('CARTES DE COUVERTURE / RÉFÉRENCES' if by_ref else 'CARTE DE COUVERTURE / QUERY')
+        self.ui.heading('COVERAGE MAPS / REFERENCES' if by_ref else 'COVERAGE MAP / QUERY')
         if not by_ref:
             all_spans=merge_intervals([h.qspan for grp in self.selected.values() for h in grp],q_len)
             pct=100*interval_length(all_spans)/q_len
@@ -470,17 +457,17 @@ class Session:
             pct=r['reference_coverage'] if by_ref else r['query_coverage']
             print(f'  {r["subject"][:24]:24}  {ascii_bar(segments,length,57,self.ui.color)}  {pct or 0:5.1f}%')
             miss=r['reference_uncovered'] if by_ref else r['query_uncovered']
-            print('     '+self.ui.c(GREY,'Sans HSP : '+text_segments(miss)))
+            print('     '+self.ui.c(GREY,'Sans HSP: '+text_segments(miss)))
         units=units_for(self.mode,sequence_type(self.query.seq))
-        self.ui.info(f'█ HSP · gris = sans HSP · QUERY en {units.query} · RÉFÉRENCE en {units.subject} · colonnes alignées en {units.aligned}')
+        self.ui.info(f'█ HSP · gray = no HSP · QUERY in {units.query} · REFERENCE in {units.subject} · aligned columns in {units.aligned}')
         if 'blastx' in self.mode or self.mode=='tblastx':
-            self.ui.warn('BLASTX/TBLASTX : QUERY en nucléotides, alignements internes en acides aminés.')
+            self.ui.warn('BLASTX/TBLASTX: QUERY uses nucleotides; internal alignments use amino acids.')
         if by_ref and self.mode in ('tblastn','tblastx'):
-            self.ui.warn('TBLASTN/TBLASTX : coordonnées référence en nucléotides.')
+            self.ui.warn('TBLASTN/TBLASTX: reference coordinates use nucleotides.')
 
     def inspect_hit(self):
-        if not self.selected:self.ui.warn('Aucun HSP à explorer.');return
-        self.ui.heading('INSPECTEUR / RÉFÉRENCE ET HSP')
+        if not self.selected:self.ui.warn('No HSPs to explore.');return
+        self.ui.heading('INSPECTOR / REFERENCE AND HSP')
         ref,_=self.ref_select()
         if ref is None:return
         rows=self.selected.get(ref.id,[])
@@ -489,7 +476,7 @@ class Session:
             print(f'  {self.ui.c(CYAN,str(i))}  Q {h.qstart}–{h.qend}  /  S {h.sstart}–{h.send} '
                   f'· {h.identity:.1f}% identiques · E={h.evalue:.2g} · bits={h.bitscore:.1f} · frame Q {h.qframe}/S {h.sframe}')
         if not rows:return
-        val=self.ui.ask('Numéro de HSP (0 = tous)','0')
+        val=self.ui.ask('HSP number (0 = all)','0')
         try:ix=int(val)
         except ValueError:ix=0
         if ix>len(rows) or ix<0:self.ui.warn('Index incorrect');return
@@ -497,14 +484,14 @@ class Session:
         output=io.StringIO()
         with contextlib.redirect_stdout(output):
             for h in rows if ix==0 else [rows[ix-1]]:self.print_alignment(h)
-        self.ui.page(output.getvalue(),f'Alignements HSP / {ref.id}')
+        self.ui.page(output.getvalue(),f'Alignments HSP / {ref.id}')
 
     def print_alignment(self,h:HSP,width=64):
-        self.ui.heading(f'HSP  /  {h.subject}  ·  {h.identity:.1f}% identité')
-        self.ui.info(f'QUERY {h.qstart} → {h.qend} · REF {h.sstart} → {h.send} · {h.align_length} colonnes · E={h.evalue:g}')
-        self.ui.info(f'{h.matches} identiques · {h.mismatches} substitutions · {h.gap_columns} colonnes avec gap · cadre Q={h.qframe}, S={h.sframe}')
+        self.ui.heading(f'HSP  /  {h.subject}  ·  {h.identity:.1f}% identity')
+        self.ui.info(f'QUERY {h.qstart} → {h.qend} · REF {h.sstart} → {h.send} · {h.align_length} columns · E={h.evalue:g}')
+        self.ui.info(f'{h.matches} identiques · {h.mismatches} substitutions · {h.gap_columns} columns with gaps · frame Q={h.qframe}, S={h.sframe}')
         qa=h.qseq;sa=h.sseq
-        if not qa or not sa:self.ui.warn('L’alignement HSP ne contient pas qseq/sseq.');return
+        if not qa or not sa:self.ui.warn('The HSP alignment has no qseq/sseq.');return
         nt_q=self.mode in ('blastx','diamond-blastx','tblastx')
         nt_s=self.mode in ('tblastn','tblastx')
         qstep=3 if nt_q else 1;sstep=3 if nt_s else 1
@@ -524,23 +511,23 @@ class Session:
             print(f'  {"":>11}  {marks}')
             print(f'  S {sp:>8}  {cs}  {ends}\n')
             qp+=qsign*qn*qstep;sp+=ssign*sn*sstep
-        self.ui.info('Vert = identité, jaune = substitution, rouge = gap. Coordonnées locales aux HSP.')
+        self.ui.info('Green = identity, yellow = substitution, red = gap. Coordinates are local to HSPs.')
 
     def hsp_diagnostics(self):
-        self.ui.heading('DIAGNOSTIC / SUBSTITUTIONS, GAPS ET CADRES')
+        self.ui.heading('DIAGNOSTICS / SUBSTITUTIONS, GAPS AND FRAMES')
         for ref,items in self.selected.items():
             groups=collections.Counter(h.qframe for h in items)
             spans=merge_intervals([h.qspan for h in items],len(self.query.seq))
             total_cols=sum(len(h.qseq) for h in items)
             gaps=sum(h.gap_columns for h in items);subs=sum(h.mismatches for h in items)
             self.ui.info(f'{ref} · {len(items)} HSP · {interval_length(spans)} positions QUERY uniques')
-            print(f'      {total_cols} colonnes cumulées (HSP, chevauchements possibles), {subs} substitutions, {gaps} colonnes gap ; cadres {dict(groups)}')
-        self.ui.warn('La somme des substitutions sur HSP se chevauchant peut compter certaines positions plusieurs fois.')
+            print(f'      {total_cols} cumulative columns (HSPs can overlap), {subs} substitutions, {gaps} columns gap ; frames {dict(groups)}')
+        self.ui.warn('Summing substitutions across overlapping HSPs can count positions more than once.')
 
     def identity_coverage(self):
-        self.ui.heading('DIAGRAMME / IDENTITÉ LOCALE VS COUVERTURE QUERY')
+        self.ui.heading('PLOT / LOCAL IDENTITY VS QUERY COVERAGE')
         rows=self.coverage_rows()
-        if not rows:self.ui.warn('Aucun hit');return
+        if not rows:self.ui.warn('No hits');return
         W=56;H=16;board=[[' ' for _ in range(W+1)] for _ in range(H+1)]
         for i in range(H+1):board[i][0]='│'
         for j in range(W+1):board[H][j]='─'
@@ -550,13 +537,13 @@ class Session:
             y=min(H-1,max(0,H-1-round(r['best_identity']/100*(H-1))))
             board[y][x]=str(i%10)
         for row in board:print('     '+''.join(row))
-        print('     0% couverture QUERY'+' '*(W-23)+'100%')
-        for i,r in enumerate(rows,1):print(f'    {i:>2}. {r["subject"]}: {r["best_identity"]:.1f}% identité HSP / {r["query_coverage"]:.1f}% couverture')
-        self.ui.warn('Ces deux métriques ne sont pas un pourcentage global d’identité de séquence.')
+        print('     0% coverage QUERY'+' '*(W-23)+'100%')
+        for i,r in enumerate(rows,1):print(f'    {i:>2}. {r["subject"]}: {r["best_identity"]:.1f}% identity HSP / {r["query_coverage"]:.1f}% coverage')
+        self.ui.warn('These metrics do not represent whole-sequence percent identity.')
 
     def run_pairwise(self,algorithm,reference=None,preview=False):
-        if self.single:self.ui.warn('Fournir un second FASTA pour Needle/Water.');return
-        self.ui.heading(f'{algorithm.upper()} / ALIGNEMENT PAIRWISE')
+        if self.single:self.ui.warn('Provide a second FASTA for Needle/Water.');return
+        self.ui.heading(f'{algorithm.upper()} / PAIRWISE ALIGNMENT')
         ref=reference
         if ref is None:ref,_=self.ref_select()
         if ref is None:return
@@ -565,7 +552,7 @@ class Session:
         qframe=self.a.frame or (h.qframe if h else 1)
         sframe=self.a.sframe or (h.sframe if h and h.sframe else 1)
         if self.mode in ('blastx','diamond-blastx','tblastx','tblastn'):
-            self.ui.warn(f'Traduction de la séquence entière : Q frame {qframe}, REF frame {sframe} si applicable.')
+            self.ui.warn(f'Full-sequence translation: Q frame {qframe}, REF frame {sframe} where applicable.')
         prefix=self.work/f'{algorithm}_{re.sub("[^A-Za-z0-9_.-]","_",ref.id)}'
         self._calculation_start=len(self.tools.history)
         result=self.tools.emboss(algorithm,self.query,ref,prefix,mode=self.mode,
@@ -573,8 +560,8 @@ class Session:
                         free_ends=self.a.free_ends,matrix=self.a.matrix,frame=qframe,sframe=sframe,options=self.a,preview=preview)
         if preview:
             translated=self.mode in ('blastx','diamond-blastx','tblastx','tblastn')
-            return (f'Séquences : {self.query.id} / {ref.id}.\n'+
-                (f'Traduction complète : QUERY cadre {qframe}, table {self.a.genetic_code} ; référence cadre {sframe}, table {self.a.reference_genetic_code or self.a.genetic_code} ; STOP conservés.\n' if translated else '')+result)
+            return (f'Sequences: {self.query.id} / {ref.id}.\n'+
+                (f'Full translation: QUERY frame {qframe}, table {self.a.genetic_code} ; reference frame {sframe}, table {self.a.reference_genetic_code or self.a.genetic_code} ; stop codons retained.\n' if translated else '')+result)
         file,_=result
         self.a.pairwise='global' if algorithm=='needle' else 'local'
         self.record_calculation(algorithm,calculation_settings(algorithm,self.a,self.mode),
@@ -588,32 +575,32 @@ class Session:
         engine='mafft' if strategy=='fragments' else self.a.aligner
         effective=argparse.Namespace(**vars(self.a));effective.aligner=engine
         validate_parameters(effective,context='msa')
-        self.ui.heading(f'{engine.upper()} / ALIGNEMENT MULTIPLE')
+        self.ui.heading(f'{engine.upper()} / MULTIPLE ALIGNMENT')
         self._calculation_start=len(self.tools.history)
         self._msa_preparation={}
         pending=self.work/'pending_msa';pending.mkdir(exist_ok=True)
         if self.single:
             selected=self.query_list
-            if len(selected)<2:self.ui.warn('Un MSA requiert au moins deux séquences.');return
+            if len(selected)<2:self.ui.warn('An MSA requires at least two sequences.');return
             input_file=self.query_search_path
         else:
             if strategy=='hsp':return self._msa_hsps(preview=preview)
             if self.mode in ('tblastn','tblastx'):
-                self.ui.warn('MAFFT full non proposé pour TBLASTN/TBLASTX : plusieurs cadres/ORF possibles. Extraire les ORF protéiques au préalable.');return
+                self.ui.warn('Full MAFFT is unavailable for TBLASTN/TBLASTX: multiple frames/ORFs are possible. Extract protein ORFs first.');return
             selected=self.references if strategy=='all' or self.mode.startswith('global-') or (strategy=='fragments' and not self.selected) else [self.refmap[k] for k in self.selected]
-            if not selected:self.ui.warn('Aucune référence retenue ; utiliser all ou réduire les seuils.');return
+            if not selected:self.ui.warn('No retained references; use all or relax thresholds.');return
             if self.mode in ('blastx','diamond-blastx'):
                 frames={h.qframe for v in self.selected.values() for h in v if h.qframe}
                 frame=self.a.frame or (next(iter(self.selected.values()))[0].qframe if self.selected else None)
                 if frame is None:
                     frame=1
-                    self.ui.warn('Aucun cadre détecté ou forcé : utilisation explicite du cadre QUERY +1 (--frame pour changer).')
-                if frame not in (-3,-2,-1,1,2,3):self.ui.warn('Cadre invalide');return
-                if len(frames)>1:self.ui.warn(f'Cadres différents {sorted(frames)} : seule QUERY frame {frame} est utilisée.')
+                    self.ui.warn('No frame detected or forced: explicitly using QUERY frame +1 (change with --frame).')
+                if frame not in (-3,-2,-1,1,2,3):self.ui.warn('Invalid frame');return
+                if len(frames)>1:self.ui.warn(f'Different frames {sorted(frames)}: only QUERY frame {frame} is used.')
                 tr=translate_nt(self.query.seq,frame,self.a.genetic_code).replace('*','X')
-                self._msa_preparation.update(query_frame=frame,genetic_code=self.a.genetic_code,stop_handling='STOP remplacés par X')
+                self._msa_preparation.update(query_frame=frame,genetic_code=self.a.genetic_code,stop_handling='stop codons replaced with X')
                 query_record=Seq('QUERY',f'QUERY_frame_{frame}',tr)
-                self.ui.info('QUERY ADN traduite en protéine (STOP remplacés par X pour MAFFT).')
+                self.ui.info('QUERY DNA translated to protein (stop codons replaced with X for MAFFT).')
             else:query_record=Seq('QUERY','QUERY',self.query.seq)
             ref_records=[Seq('REF_'+str(i),f'REF_{i} {r.id}',r.seq) for i,r in enumerate(selected,1)]
             input_file=self.work/'msa_input.fasta'
@@ -628,12 +615,12 @@ class Session:
                 frag=self.work/'msa_fragment.fasta';write_fasta([query_record],frag)
                 out=pending/'alignment_fragments.fasta'
                 commands.append(self.tools.mafft_command(ref_aln,out,'auto',self.a.threads,fragments=frag,options=self.a))
-                if preview:return self.msa_preparation_text()+'\nAligner les références, puis ajouter QUERY ; moteur MAFFT imposé par addfragments.\n'+self.tools.describe(commands)
+                if preview:return self.msa_preparation_text()+'\nAlign references, then add QUERY; addfragments requires MAFFT.\n'+self.tools.describe(commands)
                 self.tools.execute(commands)
                 return self._set_msa(out,'fragments')
             write_fasta([query_record,*ref_records],input_file)
         if self.a.aligner=='mafft' and self.a.mafft in ('global','local') and len(selected)>200:
-            self.ui.warn('G-INS-i/L-INS-i coûteux > 200 séquences : utiliser --mafft auto.');return
+            self.ui.warn('G-INS-i/L-INS-i is expensive above 200 sequences: use --mafft auto.');return
         out=pending/('alignment_'+strategy+'.fasta')
         if preview:return self.msa_preparation_text()+'\n'+self.tools.describe([self.tools.msa_command(input_file,out,engine=self.a.aligner,strategy=self.a.mafft,threads=self.a.threads,options=self.a)])
         self.tools.msa(input_file,out,engine=self.a.aligner,strategy=self.a.mafft,threads=self.a.threads,options=self.a)
@@ -641,14 +628,14 @@ class Session:
 
     def msa_preparation_text(self):
         if self._msa_preparation.get('query_frame'):
-            return f'Préparation : QUERY traduite en cadre {self._msa_preparation["query_frame"]}, table NCBI {self.a.genetic_code}, STOP remplacés par X.'
-        return 'Préparation : séquences intégrales ; aucune traduction supplémentaire.'
+            return f'Preparation: QUERY translated in frame {self._msa_preparation["query_frame"]}, table NCBI {self.a.genetic_code}, stop codons replaced with X.'
+        return 'Preparation: full-length sequences; no additional translation.'
 
     def _msa_hsps(self,preview=False):
-        if not self.selected:self.ui.warn('Aucun HSP pour MAFFT HSP.');return
+        if not self.selected:self.ui.warn('No HSPs for HSP alignment.');return
         anchor=next(iter(self.selected.values()))[0]
         self._msa_preparation=dict(anchor_subject=anchor.subject,anchor_query_span=anchor.qspan,
-            hsp_gap_handling='Gaps retirés avant réalignement',stop_handling='STOP remplacés par X',
+            hsp_gap_handling='Gaps removed before realignment',stop_handling='stop codons replaced with X',
             inherited_search_parameters=dict(self.search_parameters))
         anchor_intervals=anchor.qspan
         kept=[Seq('QUERY_HSP',f'QUERY_HSP_{anchor.qstart}_{anchor.qend}',anchor.qseq.replace('-','').replace('*','X'))]
@@ -665,19 +652,19 @@ class Session:
                                  qstart=best.qstart,qend=best.qend))
             if accepted:kept.append(Seq(name,name,best.sseq.replace('-','').replace('*','X')))
         if not preview:export_table(self.work/'msa_hsp_selection.tsv',manifest)
-        if len(kept)<2:self.ui.warn(f'Aucun HSP ne recouvre au moins {self.a.hsp_overlap:.0%} de la région ancre.');return
+        if len(kept)<2:self.ui.warn(f'No HSP covers at least {self.a.hsp_overlap:.0%} of the anchor region.');return
         self.ui.info(f'{len(kept)-1} HSP compatibles, {len(manifest)-(len(kept)-1)} exclus.')
         input_file=self.work/'msa_hsp_input.fasta';out=self.work/'pending_msa'/'alignment_hsp.fasta'
         write_fasta(kept,input_file)
-        if preview:return f'Préparation : ancre {anchor.subject} Q {anchor.qstart}–{anchor.qend} ; seuil {self.a.hsp_overlap:.0%} ; {len(kept)} séquences ; gaps retirés et STOP → X.\n'+self.tools.describe([self.tools.msa_command(input_file,out,engine=self.a.aligner,strategy=self.a.mafft,threads=self.a.threads,options=self.a)])
+        if preview:return f'Preparation: ancre {anchor.subject} Q {anchor.qstart}–{anchor.qend} ; seuil {self.a.hsp_overlap:.0%} ; {len(kept)} sequences ; gaps removed and stop codons converted to X.\n'+self.tools.describe([self.tools.msa_command(input_file,out,engine=self.a.aligner,strategy=self.a.mafft,threads=self.a.threads,options=self.a)])
         self.tools.msa(input_file,out,engine=self.a.aligner,strategy=self.a.mafft,threads=self.a.threads,options=self.a)
-        self.ui.warn('MSA exploratoire : les HSP peuvent représenter des domaines non équivalents.')
+        self.ui.warn('Exploratory MSA: HSPs can represent non-equivalent domains.')
         return self._set_msa(out,'hsp')
 
     def _set_msa(self,out,strategy):
         records=read_fasta(out)
         if len({len(record.seq) for record in records})!=1:
-            raise CommandError('Le moteur a produit des séquences de longueurs différentes.')
+            raise CommandError('The engine produced sequences with different lengths.')
         target=self.work/out.name
         if out!=target:out.replace(target)
         out=target
@@ -690,33 +677,32 @@ class Session:
         self.record_calculation('msa',calculation_settings('msa',self.a,self.mode,strategy),
             preparation=getattr(self,'_msa_preparation',{}),output_sha256=sha256(out))
         engine='mafft' if strategy=='fragments' else self.a.aligner
-        self.ui.success(f'MSA {engine}/{strategy} · {len(self.msa_records)} séquences · {len(self.msa_records[0].seq)} colonnes')
+        self.ui.success(f'MSA {engine}/{strategy} · {len(self.msa_records)} sequences · {len(self.msa_records[0].seq)} columns')
         self.show_msa_window();return out
 
     def load_msa(self):
         if self.msa_records:return self.msa_records
         if self.single and (len(self.query_list)>=2 or self.a.msa=='view') and len({len(r.seq) for r in self.query_list})==1:
-            # Même longueur != preuve d'alignement. Le mode --msa view est une affirmation explicite.
+            # Equal length is not proof of alignment. --msa view is an explicit user assertion.
             if self.a.msa!='view' and self.ui.tty and not self.a.no_menu:
-                self.ui.warn('Toutes les séquences ont la même longueur ; cela ne prouve pas qu’elles sont déjà alignées.')
-                if not self.ui.yesno('Ce FASTA est-il déjà aligné ?',False):
-                    self.ui.info('Choisir Analyser → Créer un alignement pour aligner ce fichier.')
+                self.ui.warn('All sequences have the same length; this does not prove they are aligned.')
+                if not self.ui.yesno('Is this FASTA already aligned?',False):
+                    self.ui.info('Choose Align sequences to align this file.')
                     return None
             self.msa_records=self.query_list;self.msa_file=self.query_path
-            self.dirty=True
             return self.msa_records
-        self.ui.warn('Aucun MSA disponible ; aligner les séquences avec MAFFT.')
+        self.ui.warn('No MSA available; align sequences first.')
         return None
 
     def show_msa_window(self):
-        """Visionneuse plein écran : défilement bi-directionnel, sites variables, recherche."""
+        """Full-screen viewer: two-way scrolling, variable sites and search."""
         seqs=self.load_msa()
         if not seqs:return
         ncol=len(seqs[0].seq)
         if any(len(r.seq)!=ncol for r in seqs):
-            self.ui.warn('Longueurs différentes : FASTA non aligné. Utiliser MAFFT au préalable.');return
+            self.ui.warn('Different lengths: FASTA is not aligned. Run an aligner first.');return
         if not self.ui.tty:
-            print(tr(msa_static(seqs,width=75,limit=40,color=False)))
+            print(str(msa_static(seqs,width=75,limit=40,color=False)))
             return
         if self._viewer is None or self._viewer.seqs is not seqs:
             self._viewer=MSAViewer(seqs,color=self.ui.color)
@@ -732,16 +718,16 @@ class Session:
         seqs=self.load_msa()
         if not seqs:return
         metric=msa_metrics(seqs)
-        self.ui.heading('CONSERVATION / SITES VARIABLES')
-        self.ui.info(f'{metric["n"]} séquences, {metric["length"]:,} colonnes, {metric["variable"]:,} variables')
-        self.ui.info(f'{metric["parsimony_informative"]:,} informatives en parcimonie, {metric["gapped"]:,} avec gap, {metric["invariant"]:,} strictement invariantes')
+        self.ui.heading('CONSERVATION / VARIABLE SITES')
+        self.ui.info(f'{metric["n"]} sequences, {metric["length"]:,} columns, {metric["variable"]:,} variables')
+        self.ui.info(f'{metric["parsimony_informative"]:,} parsimony-informative, {metric["gapped"]:,} with gaps, {metric["invariant"]:,} strictly invariant')
         export_table(self.work/'msa_positions.tsv',metric['positions'])
         write_fasta([Seq('CONSENSUS','CONSENSUS',metric['consensus'])],self.work/'msa_consensus.fasta')
         scores=[dict(center=r['position'],value=r['conservation']) for r in metric['positions']]
-        (self.work/'msa_conservation.svg').write_text(plot_svg(scores,'Conservation MSA (%)'))
+        (self.work/'msa_conservation.svg').write_text(plot_svg(scores,'MSA conservation (%)'))
         for r in metric['positions'][:20]:
             print(f'  {r["position"]:>5}  {r["consensus"]}  conserv. {r["conservation"]:5.1f}% · gap {r["gap_pct"]:5.1f}% · entropie {r["entropy"]:.2f}')
-        if len(metric['positions'])>20:self.ui.info('Toutes les colonnes dans msa_positions.tsv.')
+        if len(metric['positions'])>20:self.ui.info('All columns are in msa_positions.tsv.')
 
     def msa_distances(self):
         seqs=self.load_msa()
@@ -751,25 +737,25 @@ class Session:
             f.write('sequence\t'+'\t'.join(labels)+'\n')
             for name,row in zip(labels,matrix):f.write(name+'\t'+'\t'.join(f'{v:.6g}' if v is not None else 'NA' for v in row)+'\n')
         self.ui.heading('DISTANCES P / GAPS EXCLUS')
-        self.ui.info('Les numéros des lignes et colonnes renvoient à ces séquences :')
+        self.ui.info('Row and column numbers refer to these sequences :')
         for i,name in enumerate(labels,1):print(f'  {i:>3}  {name}')
         print('\n       '+' '.join(f'{i:>7}' for i in range(1,len(labels)+1)))
         for i,row in enumerate(matrix,1):
             print(f'  {i:>3}  '+' '.join('     NA' if value is None else f'{value:7.3f}' for value in row))
-        self.ui.info('Distance p non corrigée ; les colonnes à gap sont exclues par paire. Maximum 250 séquences.')
+        self.ui.info('Uncorrected p-distance; gapped columns are excluded for each pair. Maximum 250 sequences.')
 
     def vsearch_run(self,action,preview=False):
         from av_vsearch import commands, summarize, publish_directory
         source=[self.query] if action=='search' else self.query_list
         references=self.references if action=='search' else []
-        if action=='search' and not references:raise ValueError('VSEARCH recherche : charger un FASTA de références.')
-        if any(sequence_type(record.seq)!='ADN/ARN' for record in [*source,*references]):
-            raise ValueError('VSEARCH nécessite des séquences nucléotidiques ; les protéines ne sont pas prises en charge.')
+        if action=='search' and not references:raise ValueError('VSEARCH search: load a reference FASTA.')
+        if any(sequence_type(record.seq)!='DNA/RNA' for record in [*source,*references]):
+            raise ValueError('VSEARCH requires nucleotide sequences; proteins are not supported.')
         def normalized(records):
             return [Seq(r.id,r.id,r.seq.upper().replace('-','').replace('.','').replace('U','T')) for r in records]
         normalized_source=normalized(source)
         eligible=sum(self.a.vsearch_min_length<=len(r.seq)<=self.a.vsearch_max_length for r in normalized_source)
-        if not eligible:raise ValueError('VSEARCH : aucune séquence dans les limites de longueur choisies.')
+        if not eligible:raise ValueError('VSEARCH: no sequences meet the selected length limits.')
         pending=self.work/('pending_vsearch_'+action)
         if pending.exists():shutil.rmtree(pending)
         pending.mkdir()
@@ -777,7 +763,7 @@ class Session:
         refs=pending/'references.fasta' if references else None
         if refs:write_fasta(normalized(references),refs)
         prepared=commands(action,input_file,refs,pending,self.a)
-        preparation=f'{len(source)} séquences · gaps retirés et U→T · {eligible} dans les limites de longueur.'
+        preparation=f'{len(source)} sequences · gaps removed and U converted to T · {eligible} within the length limits.'
         if preview:return preparation+'\n\n'+self.tools.describe(prepared)
         self.ui.info(preparation)
         self._calculation_start=len(self.tools.history)
@@ -796,18 +782,18 @@ class Session:
         (parent/'analyses.json').write_text(json.dumps(self.vsearch_results,ensure_ascii=False,indent=2),encoding='utf-8')
         self.record_calculation('vsearch_'+action,settings,summary=summary)
         self.dirty=True
-        self.ui.success('Analyse VSEARCH terminée : '+action)
-        for key,value in summary.items():self.ui.info(f'{key} : {value}')
-        self.ui.info('Fichiers : vsearch/'+action+'/ · résultats intégrés au prochain HTML.')
+        self.ui.success('VSEARCH analysis completed: '+action)
+        for key,value in summary.items():self.ui.info(f'{key}: {value}')
+        self.ui.info('Files: vsearch/'+action+'/ · results included in the next HTML report.')
         return result
 
     def make_tree(self,preview=False):
-        """FastTree sur MSA préexistant ; méthode exploratoire, non datée."""
+        """FastTree on an existing MSA; exploratory inference without molecular dating."""
         if not self.msa_records or not self.msa_file:
-            self.ui.warn('Créer un MSA avant FastTree.');return
+            self.ui.warn('Create an MSA before running FastTree.');return
         if len(self.msa_records)<3:
-            self.ui.warn('FastTree nécessite au moins 3 séquences.');return
-        nucleotide=all(sequence_type(r.seq)=='ADN/ARN' for r in self.msa_records)
+            self.ui.warn('FastTree requires at least 3 sequences.');return
+        nucleotide=all(sequence_type(r.seq)=='DNA/RNA' for r in self.msa_records)
         pending=self.work/'pending_tree';pending.mkdir(exist_ok=True)
         output=pending/'tree_fasttree.nwk'
         if preview:return self.tools.describe([self.tools.fasttree_command(self.msa_file,output,nucleotide,self.a)])
@@ -824,42 +810,42 @@ class Session:
             alignment_sha256=sha256(self.msa_file),output_sha256=sha256(output))
         self.dirty=True
         self.created.append(output.name)
-        self.ui.success('Arbre exploratoire créé : tree_fasttree.nwk (Newick)')
-        self.ui.info('Figure SVG : figures/'+TREE_FIGURE+'.svg · intégrée au prochain rapport HTML.')
-        self.ui.warn('FastTree fournit une phylogénie approximative ; vérifier modèle, support et qualité du MSA pour publication.')
+        self.ui.success('Exploratory tree created: tree_fasttree.nwk (Newick)')
+        self.ui.info('Figure SVG: figures/'+TREE_FIGURE+'.svg · included in the next HTML report.')
+        self.ui.warn('FastTree provides an approximate phylogeny; check the model, support and MSA quality before publication.')
 
     def select_aligner(self):
         from av_navigation import Workbench
         return Workbench(self).choose_aligner()
 
     def show_stats(self):
-        self.ui.heading('CONTRÔLE QUALITÉ FASTA')
+        self.ui.heading('FASTA QUALITY CHECK')
         seqs=self.query_list if self.single else [self.query,*self.references]
         rows=[sequence_stats(r) for r in seqs]
         export_table(self.work/'fasta_statistics.tsv',rows)
-        print(f'  {"Séquence":<27} {"Type":<11} {"Taille":>10} {"GC %":>7} {"N %":>6} {"H(bits)":>8}')
+        print(f'  {"Sequence":<27} {"Type":<11} {"Length":>10} {"GC %":>7} {"N %":>6} {"H(bits)":>8}')
         for r in rows:
             print(f'  {r["id"][:27]:<27} {r["kind"]:<11} {r["length"]:>10,} {r["gc_pct"] if r["gc_pct"] is not None else "—":>7} {r["n_pct"]:>6} {r["entropy"]:>8}')
 
     def motif(self):
-        self.ui.heading('RECHERCHE DE MOTIF IUPAC / DEUX BRINS')
+        self.ui.heading('IUPAC MOTIF SEARCH / BOTH STRANDS')
         seqs=[self.query]
-        motif=self.ui.ask('Motif IUPAC (ex. ATG, NNNGTT)','ATG')
+        motif=self.ui.ask('IUPAC motif (e.g. ATG, NNNGTT)','ATG')
         if not motif:return
         data=[]
         for r in seqs:data.extend(find_motifs(r,motif,True))
         self.motif_rows=data;export_table(self.work/'motifs.tsv',data,['seqid','start','end','strand','matched'])
         self.ui.info(f'{len(data)} occurrence(s) · motif {motif}')
         for r in data[:50]:print(f'  {r["seqid"][:23]:23} {r["start"]:>8}–{r["end"]:<8} {r["strand"]}  {r["matched"]}')
-        if len(data)>50:self.ui.warn('Affichage limité à 50 occurrences, export complet dans motifs.tsv.')
+        if len(data)>50:self.ui.warn('Display limited to 50 occurrences; full export is in motifs.tsv.')
 
     def find_orfs(self):
         self.ui.heading('ORF FINDER / SIX CADRES')
-        if sequence_type(self.query.seq)!='ADN/ARN':self.ui.warn('QUERY nucléotidique requise.');return
-        n=self.ui.ask('Longueur minimale en acides aminés','60',f'ORF : table NCBI {self.a.genetic_code} · départs {self.a.orf_starts}')
+        if sequence_type(self.query.seq)!='DNA/RNA':self.ui.warn('Nucleotide QUERY required.');return
+        n=self.ui.ask('Minimum length in amino acids','60',f'ORF: table NCBI {self.a.genetic_code} · starts {self.a.orf_starts}')
         try:min_aa=int(n)
-        except ValueError:self.ui.warn('Longueur invalide');return
-        if min_aa<1:self.ui.warn('Longueur positive requise');return
+        except ValueError:self.ui.warn('Invalid length');return
+        if min_aa<1:self.ui.warn('Length positive requise');return
         rows=orfs(self.query,min_aa,include_partial=False,table=self.a.genetic_code,starts=self.a.orf_starts);self.orf_rows=rows
         export_table(self.work/'orfs.tsv',rows,['seqid','start','end','frame','strand','length_aa','complete'])
         write_fasta([Seq(f'ORF_{i}',f'ORF_{i} {r["seqid"]}:{r["start"]}-{r["end"]} frame={r["frame"]}',r['protein'])
@@ -867,13 +853,13 @@ class Session:
         self._calculation_start=len(self.tools.history)
         self.record_calculation('orfs',calculation_settings('translation',self.a,self.mode),
             engine='AlignView Python',version=VERSION,minimum_aa=min_aa,output_sha256=sha256(self.work/'orfs.faa'))
-        self.ui.info(f'{len(rows)} ORF complètes (≥{min_aa} aa)')
-        for r in rows[:35]:print(f'  {r["start"]:>9}–{r["end"]:<9}  cadre {r["frame"]:>2}  {r["length_aa"]:>5} aa  {r["strand"]}')
-        self.ui.warn('Ce détecteur simple ne remplace pas Prodigal/GeneMark ni une annotation structurale.')
+        self.ui.info(f'{len(rows)} ORF complete (≥{min_aa} aa)')
+        for r in rows[:35]:print(f'  {r["start"]:>9}–{r["end"]:<9}  frame {r["frame"]:>2}  {r["length_aa"]:>5} aa  {r["strand"]}')
+        self.ui.warn('This simple detector does not replace Prodigal/GeneMark or structural annotation.')
 
     def translate_frames(self):
-        self.ui.heading(f'TRADUCTION SIX CADRES / TABLE NCBI {self.a.genetic_code}')
-        if sequence_type(self.query.seq)!='ADN/ARN':self.ui.warn('QUERY nucléotidique requise.');return
+        self.ui.heading(f'SIX-FRAME TRANSLATION / NCBI TABLE {self.a.genetic_code}')
+        if sequence_type(self.query.seq)!='DNA/RNA':self.ui.warn('Nucleotide QUERY required.');return
         seqs=[]
         for frame in (1,2,3,-1,-2,-3):
             aa=translate_nt(self.query.seq,frame,self.a.genetic_code)
@@ -883,61 +869,61 @@ class Session:
         self._calculation_start=len(self.tools.history)
         self.record_calculation('translation',calculation_settings('translation',self.a,self.mode),
             engine='AlignView Python',version=VERSION,output_sha256=sha256(self.work/'six_frames.faa'))
-        self.ui.info('Traductions complètes dans six_frames.faa (sur demande de sauvegarde).')
+        self.ui.info('Complete translations are in six_frames.faa when saved.')
 
     def extract_region(self):
-        self.ui.heading('EXTRAIRE UNE RÉGION / QUERY')
+        self.ui.heading('EXTRACT A REGION / QUERY')
         try:
-            start=int(self.ui.ask('Début (1-indexée)','1'))
-            end=int(self.ui.ask('Fin (incluse)',str(min(300,len(self.query.seq)))))
+            start=int(self.ui.ask('Start (1-based)','1'))
+            end=int(self.ui.ask('End (inclusive)',str(min(300,len(self.query.seq)))))
         except ValueError:self.ui.warn('Bornes invalides');return
         if not 1<=start<=end<=len(self.query.seq):self.ui.warn(f'Bornes hors plage 1–{len(self.query.seq)}');return
-        s=self.query.seq[start-1:end];rc=self.ui.yesno('Complément inverse ?')
+        s=self.query.seq[start-1:end];rc=self.ui.yesno('Reverse complement?')
         if rc:
-            if sequence_type(self.query.seq)!='ADN/ARN':self.ui.warn('Complément inverse réservé aux acides nucléiques');return
+            if sequence_type(self.query.seq)!='DNA/RNA':self.ui.warn('Reverse complement requires nucleic acids');return
             s=reverse_complement(s)
         out=self.work/f'query_{start}_{end}.fasta'
         write_fasta([Seq(f'{self.query.id}_{start}_{end}',f'{self.query.id}_{start}_{end}'+('_RC' if rc else ''),s)],out)
-        self.ui.success(f'{len(s)} caractères extraits : {out.name}')
+        self.ui.success(f'{len(s)} characters extracted: {out.name}')
         for i in range(0,min(200,len(s)),70):print('  '+s[i:i+70])
 
     def profiles(self):
-        self.ui.heading('PROFILS EN FENÊTRES GLISSANTES')
-        metric=self.ui.ask('Métrique : gc, entropy ou gap','gc' if sequence_type(self.query.seq)=='ADN/ARN' else 'entropy')
+        self.ui.heading('SLIDING-WINDOW PROFILES')
+        metric=self.ui.ask('Metric: gc, entropy or gap','gc' if sequence_type(self.query.seq)=='DNA/RNA' else 'entropy')
         try:
-            w=int(self.ui.ask('Fenêtre',str(min(101,len(self.query.seq)))))
-            st=int(self.ui.ask('Pas',str(max(1,w//4))))
-            if metric=='gc' and sequence_type(self.query.seq)!='ADN/ARN':self.ui.warn('Le GC ne s’applique pas aux protéines.');return
+            w=int(self.ui.ask('Window',str(min(101,len(self.query.seq)))))
+            st=int(self.ui.ask('Step',str(max(1,w//4))))
+            if metric=='gc' and sequence_type(self.query.seq)!='DNA/RNA':self.ui.warn('GC does not apply to proteins.');return
             data=sliding_scores(self.query.seq,w,st,metric)
         except ValueError as e:self.ui.warn(str(e));return
         export_table(self.work/f'profile_{metric}.tsv',data)
-        (self.work/f'profile_{metric}.svg').write_text(plot_svg(data,f'Profil {metric} (fenêtre {w}, pas {st})'))
+        (self.work/f'profile_{metric}.svg').write_text(plot_svg(data,f'Profile {metric} (window {w}, step {st})'))
         numeric=[r['value'] for r in data if r['value'] is not None]
-        self.ui.info(f'{len(data)} fenêtres · moyenne {sum(numeric)/len(numeric):.2f}' if numeric else 'Aucune donnée')
+        self.ui.info(f'{len(data)} windows · mean {sum(numeric)/len(numeric):.2f}' if numeric else 'No data')
         for r in data[:30]:print(f'  {r["start"]:>7}–{r["end"]:<7}  {r["value"]}')
-        self.ui.info(f'Graphique : profile_{metric}.svg (conservé après sauvegarde)')
+        self.ui.info(f'Chart: profile_{metric}.svg (retained after saving)')
 
     def composition(self):
-        self.ui.heading('COMPOSITION / K-MERS DE QUERY')
-        k=self.ui.ask('k (1–8)','3' if sequence_type(self.query.seq)=='ADN/ARN' else '2')
+        self.ui.heading('COMPOSITION / QUERY K-MERS')
+        k=self.ui.ask('k (1–8)','3' if sequence_type(self.query.seq)=='DNA/RNA' else '2')
         try:k=int(k)
-        except ValueError:self.ui.warn('k invalide');return
-        if not 1<=k<=8:self.ui.warn('k entre 1 et 8');return
+        except ValueError:self.ui.warn('Invalid k');return
+        if not 1<=k<=8:self.ui.warn('k must be between 1 and 8');return
         c=collections.Counter(self.query.seq[i:i+k] for i in range(len(self.query.seq)-k+1)
                               if '-' not in self.query.seq[i:i+k] and '?' not in self.query.seq[i:i+k])
         rows=[dict(kmer=key,count=count,frequency=count/max(1,sum(c.values()))) for key,count in c.most_common()]
         export_table(self.work/f'kmers_{k}.tsv',rows)
-        n=sum(c.values());self.ui.info(f'{len(c)} mots distincts de taille {k} sur {n:,} fenêtres')
+        n=sum(c.values());self.ui.info(f'{len(c)} distinct words of length {k} across {n:,} windows')
         for row in rows[:30]:
             bar='▰'*min(30,round(30*row['count']/max(1,rows[0]['count'])))
             print(f'  {row["kmer"]:<12} {row["count"]:>8,}  {100*row["frequency"]:>6.2f}%  {self.ui.c(GREEN,bar)}')
 
     def _compute_dotplot(self,ref,k):
-        """Seules des séquences dans le même alphabet sont comparées dans le dotplot.
+        """Dotplots compare sequences using the same alphabet only.
 
-        En BLASTX/TBLASTN/TBLASTX, projection en AA du/des FASTA nucléotidiques
-        selon le HSP de meilleur score. Les axes deviennent des aa traduits,
-        et ne sont PAS des positions ADN originales.
+        For BLASTX/TBLASTN/TBLASTX, project nucleotide FASTA input into amino acids
+        using the highest-scoring HSP. Axes then use translated amino acids,
+        rather than original DNA positions.
         """
         u=units_for(self.mode,sequence_type(self.query.seq))
         q=self.query.seq;r=ref.seq;frame_q=None;frame_s=None
@@ -945,51 +931,51 @@ class Session:
         best=hs[0] if hs else None
         if u.translated_query:
             frame_q=self.a.frame or (best.qframe if best else None)
-            if not frame_q:raise ValueError('Dotplot traduit : un HSP avec cadre QUERY ou --frame explicite est nécessaire.')
+            if not frame_q:raise ValueError('Translated dotplot requires an HSP QUERY frame or explicit --frame.')
             q=translate_nt(q,frame_q,self.a.genetic_code).replace('*','X')
         if u.translated_subject:
             frame_s=best.sframe if best else None
-            if not frame_s:raise ValueError('Dotplot traduit : un HSP avec cadre de référence connu est nécessaire.')
+            if not frame_s:raise ValueError('Translated dotplot requires a known reference frame from an HSP.')
             r=translate_nt(r,frame_s,self.a.reference_genetic_code or self.a.genetic_code).replace('*','X')
         dtypeq='aa' if u.translated_query else u.query
         dtypes='aa' if u.translated_subject else u.subject
-        if dtypeq!=dtypes:raise ValueError('Dotplot : alphabets incompatibles ; traduire les séquences avant comparaison.')
+        if dtypeq!=dtypes:raise ValueError('Dotplot: incompatible alphabets; translate sequences before comparison.')
         data=dotplot(q,r,k)
         data.update(xunit=dtypeq,yunit=dtypes,qframe=frame_q,sframe=frame_s,
-                    note='Dotplot de séquences traduites en aa ; cadres Q/S '+str(frame_q)+'/'+str(frame_s) if frame_q or frame_s else 'Dotplot en '+dtypeq)
+                    note='Dotplot of translated amino-acid sequences; Q/S frames '+str(frame_q)+'/'+str(frame_s) if frame_q or frame_s else 'Dotplot in '+dtypeq)
         return data
 
     def make_dotplot(self):
-        if self.single and len(self.query_list)<2:self.ui.warn('Dotplot : au moins deux séquences nécessaires.');return
-        self.ui.heading('DOTPLOT / COMPARAISON DE MOTIFS EXACTS')
+        if self.single and len(self.query_list)<2:self.ui.warn('Dotplot requires at least two sequences.');return
+        self.ui.heading('DOTPLOT / EXACT WORD MATCHES')
         ref,_=self.ref_select() if not self.single else (self.query_list[1],2)
         if ref is None:return
-        default_k='3' if (self.mode in ('blastx','tblastn','tblastx','blastp','diamond-blastp','diamond-blastx','mmseqs-blastp') or sequence_type(self.query.seq)=='protéine') else str(self.a.kmer)
-        k_str=self.ui.ask('Longueur k du motif exact',default_k,'ADN : 8–12 ; protéines : 3–5. Les axes sont précisés dans la figure.')
+        default_k='3' if (self.mode in ('blastx','tblastn','tblastx','blastp','diamond-blastp','diamond-blastx','mmseqs-blastp') or sequence_type(self.query.seq)=='protein') else str(self.a.kmer)
+        k_str=self.ui.ask('Exact-match word length k',default_k,'DNA: 8–12; proteins: 3–5. Axis units are shown in the figure.')
         try:k=int(k_str)
-        except ValueError:self.ui.warn('k invalide');return
-        if not 2<=k<=60:self.ui.warn('k entre 2 et 60');return
+        except ValueError:self.ui.warn('Invalid k');return
+        if not 2<=k<=60:self.ui.warn('k must be between 2 and 60');return
         self.dot_data=self._compute_dotplot(ref,k)
         (self.work/'dotplot.svg').write_text(dotplot_svg(self.dot_data,f'{self.query.id} ({self.dot_data["xunit"]})',f'{ref.id} ({self.dot_data["yunit"]})'),encoding='utf-8')
         (self.work/'dotplot.json').write_text(json.dumps(self.dot_data))
         self.ui.success(f'{len(self.dot_data["points"]):,} correspondances (k={k}) ; dotplot.svg')
         self.ui.info(self.dot_data['note'])
-        if self.dot_data['truncated']:self.ui.warn('Limite de points atteinte ; augmenter k.')
+        if self.dot_data['truncated']:self.ui.warn('Point limit reached; increase k.')
 
     def make_report(self, open_preview=True):
-        """Construit un rapport HTML entièrement autonome ; aucun serveur éphémère."""
-        self.ui.heading('RAPPORT / EXPLORATION DANS LE NAVIGATEUR')
+        """Build a fully standalone HTML report without a temporary server."""
+        self.ui.heading('REPORT / BROWSER EXPLORATION')
         refs=self.query_list[1:] if self.single else self.references
         report=build_report_v6(self.work,self.query,refs,
                 [h for group in self.selected.values() for h in group],self.mode,self.settings(),
                 self.tools.history,self.msa_records,self.dot_data,
                 sha_query=sha256(self.query_path),sha_refs=sha256(self.refs_path) if self.refs_path else '',
                 motifs=self.motif_rows,orf_rows=self.orf_rows)
-        self.ui.success('Rapport construit · fichier HTML autonome · aucune connexion réseau nécessaire.')
+        self.ui.success('Report created · standalone HTML file · no network connection required.')
         if open_preview and self.ui.tty and not self.a.no_menu:
             self.open_report()
         else:
-            self.ui.info('HTML temporaire préparé ; sauvegarde avec --save / demande à la fermeture.')
+            self.ui.info('Temporary HTML prepared; retain it with --save, --html-out or saving on exit.')
         return report
 
     def _html_target(self):
@@ -999,12 +985,12 @@ class Session:
     def export_html(self,destination):
         """Persist one self-contained HTML with no implicit project save."""
         target=Path(destination).expanduser().resolve()
-        if target.suffix.lower()!='.html':raise ValueError('Extension .html requise.')
-        if target.exists():raise ValueError('Le HTML existe déjà : '+str(target)+'. Choisir un autre nom.')
+        if target.suffix.lower()!='.html':raise ValueError('The .html extension is required.')
+        if target.exists():raise ValueError('The HTML already exists: '+str(target)+'. Choose another name.')
         report=self.make_report(open_preview=False)
         target.parent.mkdir(parents=True,exist_ok=True)
         with target.open('xb') as output:output.write(report.read_bytes())
-        self.ui.success('HTML indépendant créé : '+str(target))
+        self.ui.success('Standalone HTML created: '+str(target))
         return target
 
     def resume_actions(self):
@@ -1013,7 +999,7 @@ class Session:
         if 'vsearch' in explicit and self.a.vsearch!='none':self.vsearch_run(self.a.vsearch)
         if 'msa' in explicit and self.a.msa!='none':
             if self.single and self.a.msa in ('hits','hsp','fragments'):
-                raise ValueError('Cette stratégie MSA nécessite un FASTA de références.')
+                raise ValueError('This MSA strategy requires a reference FASTA.')
             if self.a.msa=='view':self.load_msa()
             else:
                 strategy='all' if self.single else 'hits' if self.a.msa in ('align','full','global') else self.a.msa
@@ -1028,27 +1014,27 @@ class Session:
             self.motif_rows=rows;export_table(self.work/'motifs.tsv',rows,['seqid','start','end','strand','matched'])
             self.dirty=True
         if 'tree' in explicit and self.a.tree:
-            if not self.msa_records:raise ValueError('Créer un MSA avant --tree : ajouter --msa align, ou utiliser les menus.')
+            if not self.msa_records:raise ValueError('Create an MSA before --tree: add --msa align, or use the menus.')
             self.make_tree()
         if 'report' in explicit and self.a.report:self.make_report(open_preview=False)
 
     def _publish_html(self):
-        """Uniquement à l'initiative de l'utilisateur ; n'exporte pas la session complète."""
-        # Reconstruire le rapport à chaque demande pour inclure les nouveaux HSP/MSA.
+        """Only on explicit user request; does not export the complete session."""
+        # Rebuild the report on each request to include new HSP/MSA results.
         report=self.make_report(open_preview=False)
         default=self._html_target()
-        self.ui.info('Le HTML sera conservé indépendamment de la session (action explicite).')
-        dest=self.ui.ask('Fichier HTML de destination',str(default),
-                         'Chemin local permanent : ne dépend pas de /tmp ni d’un serveur HTTP')
+        self.ui.info('The HTML will be retained independently of the session (explicit export).')
+        dest=self.ui.ask('Destination HTML file',str(default),
+                         'Permanent local path: independent of /tmp or an HTTP server')
         if not dest:return None
         target=Path(os.path.expanduser(dest)).resolve()
-        if target.suffix.lower()!='.html':self.ui.warn('Extension .html requise.');return None
-        if target.exists() and not self.ui.yesno('Le rapport existe. Remplacer le fichier ?',False):
-            self.ui.info('Copie annulée.');return None
+        if target.suffix.lower()!='.html':self.ui.warn('The .html extension is required.');return None
+        if target.exists() and not self.ui.yesno('The report exists. Replace the file?',False):
+            self.ui.info('Copy cancelled.');return None
         target.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(report,target)
-        self.ui.success(f'HTML indépendant créé : {target}')
-        self.ui.info(f'Ouvrir en local : {target.as_uri()}')
+        self.ui.success(f'Standalone HTML created: {target}')
+        self.ui.info(f'Open locally: {target.as_uri()}')
         return target
 
     def _open_local_html(self,target):
@@ -1058,25 +1044,25 @@ class Session:
             import webbrowser
             try:
                 if webbrowser.open(target.as_uri(),new=2):
-                    self.ui.success('Ouvert dans le navigateur local.');return
+                    self.ui.success('Opened in the local browser.');return
             except (OSError,webbrowser.Error):pass
-            self.ui.warn('Ouverture du navigateur impossible ; utiliser le chemin ci-dessus.')
+            self.ui.warn('Cannot open the browser; use the path above.')
         if remote:
             import socket,getpass
             user=getpass.getuser();host=socket.gethostname()
-            self.ui.info('Accès via VS Code Remote SSH : ouvrir le fichier avec l’explorateur distant.')
-            self.ui.info('Ou récupérer le fichier depuis un terminal sur TON ordinateur (si hôte joignable) :')
+            self.ui.info('VS Code Remote SSH: open the file through the remote explorer.')
+            self.ui.info('Or retrieve the file from a terminal on your computer if the host is reachable :')
             print('    scp '+shlex.quote(f'{user}@{host}:{target}')+' .')
-            self.ui.info('Sur un nœud SLURM privé, utiliser le nœud login (scp -J) ou VS Code Remote.')
-        self.ui.info('Aucune URL HTTP avec jeton : le rapport ne renverra plus de 404 à la fermeture.')
+            self.ui.info('On a private Slurm node, use the login node (scp -J) or VS Code Remote.')
+        self.ui.info('The local HTML remains available after the session closes.')
 
     def open_report(self):
-        self.ui.heading('OUVRIR / RAPPORT AUTONOME')
+        self.ui.heading('OPEN / STANDALONE REPORT')
         target=self._publish_html()
         if target:self._open_local_html(target)
 
     def copy_report(self):
-        self.ui.heading('EXPORTER / UN SEUL FICHIER HTML')
+        self.ui.heading('EXPORT / STANDALONE HTML')
         target=self._publish_html()
         if target:self._open_local_html(target)
 
@@ -1088,8 +1074,10 @@ class Session:
             m=msa_metrics(self.msa_records)
             export_table(self.work/'msa_positions.tsv',m['positions'])
             write_fasta([Seq('CONSENSUS','CONSENSUS',m['consensus'])],self.work/'msa_consensus.fasta')
+        was_dirty=self.dirty
         self.save_settings()
-        # Les profils publication/complete comprennent le rapport ET les figures exportables.
+        self.dirty=was_dirty
+        # Publication/complete profiles include the report and exportable figures.
         if self.a.export_profile in ('publication','complete'):
             self.make_report(open_preview=False)
         (self.work/'commands.json').write_text(json.dumps(self.tools.history,ensure_ascii=False,indent=2))
@@ -1099,24 +1087,46 @@ class Session:
                      generated_utc=datetime.datetime.now(datetime.timezone.utc).isoformat())
         (self.work/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2))
         export_dir=generate_exports(self,self.a.export_profile)
-        self.ui.success(f'Exports scientifiques prêts : {len(list(export_dir.iterdir()))} fichiers · profil {self.a.export_profile}')
+        self.ui.success(f'Scientific exports ready: {len(list(export_dir.iterdir()))} files · profile {self.a.export_profile}')
+
+    def export_artifact(self,kind,destination):
+        """Write one requested scientific result without changing session state."""
+        import csv
+        import io
+        if kind=='msa':
+            if not self.msa_records:raise ValueError('No alignment available.')
+            content=''.join('>'+r.id+'\n'+r.seq+'\n' for r in self.msa_records)
+        elif kind=='hits':
+            if not self.search_completed and not self.hsps:raise ValueError('No comparison available.')
+            rows=self.coverage_rows()
+            columns=list(rows[0]) if rows else ['subject','best_identity','query_coverage','hsps']
+            output=io.StringIO();writer=csv.DictWriter(output,fieldnames=columns,delimiter='\t',lineterminator='\n')
+            writer.writeheader();writer.writerows(rows);content=output.getvalue()
+        elif kind=='tree':
+            from av_tree import tree_svg
+
+            content=str(tree_svg((self.work/'tree_fasttree.nwk').read_text()))
+        else:raise ValueError('Type d’export unknown: '+kind)
+        target=Path(destination).expanduser().resolve();target.parent.mkdir(parents=True,exist_ok=True)
+        with target.open('x',encoding='utf-8') as stream:stream.write(content)
+        return target
 
     def export_center(self):
         from av_navigation import Workbench
         return Workbench(self).export()
 
     def export_explicit_directory(self):
-        """Pour le batch, export demandé indépendamment de --save."""
+        """Batch export requested independently of --save."""
         if not self.a.export_dir:return
         self.export_summary()
         target=Path(self.a.export_dir).expanduser().resolve()
-        if target.exists():raise ValueError(f'Répertoire d’export déjà présent : {target}')
+        if target.exists():raise ValueError(f'Export directory already exists: {target}')
         target.parent.mkdir(parents=True,exist_ok=True)
         shutil.copytree(self.work/'exports',target)
-        self.ui.success(f'Exports demandés : {target}')
+        self.ui.success(f'Requested exports: {target}')
 
     def slurm_script(self):
-        self.ui.heading('SLURM / GÉNÉRER UN SCRIPT SBATCH')
+        self.ui.heading('SLURM / GENERATE AN SBATCH SCRIPT')
         threads=self.a.threads
         jobname=re.sub('[^A-Za-z0-9_-]','_',self.query.id)[:30]
         location=f'alignview_{jobname}_slurm'
@@ -1143,21 +1153,20 @@ class Session:
         if self.a.dotplot:command+=['--dotplot','--kmer',str(self.a.kmer)]
         if self.a.motif:command+=['--motif',self.a.motif]
         if self.a.vsearch!='none':command+=['--vsearch',self.a.vsearch]
-        command+=['--lang',self.a.lang]
         if self.a.tools_prefix:command+=['--tools-prefix',self.a.tools_prefix]
         command+=extra_cli(self.a)
         command+=['--threads',str(threads),'--hits',str(self.a.hits),'--evalue',str(self.a.evalue),
                   '--identity',str(self.a.identity),'--coverage',str(self.a.coverage),'--no-menu','--report','--save','--out',location]
         contents=(f'#!/bin/bash\n#SBATCH --job-name=alignview_{jobname}\n#SBATCH --cpus-per-task={threads}\n'
                   '#SBATCH --mem=8G\n#SBATCH --time=04:00:00\n#SBATCH --output=alignview_%j.log\n'
-                  'set -euo pipefail\n# Exécuter depuis le dossier du projet sauvegardé.\n'
-                  'cd -- "$(dirname -- "${BASH_SOURCE[0]}")"\n# Ajuster la partition et les ressources selon le cluster.\n'
+                  'set -euo pipefail\n# Run from the saved project directory.\n'
+                  'cd -- "$(dirname -- "${BASH_SOURCE[0]}")"\n# Adjust the partition and resources for the cluster.\n'
                   +shlex.join(command)+'\n')
         file=self.work/'alignview_job.sbatch';file.write_text(contents)
         self.dirty=True
-        self.ui.success(f'Fichier préparé : {file.name}')
+        self.ui.success(f'File prepared: {file.name}')
         show_file(file,self.ui)
-        self.ui.info('Aucune soumission automatique : vérifier puis sbatch après sauvegarde.')
+        self.ui.info('No automatic submission: inspect the script, save the project, then run sbatch.')
 
     def diagnostics(self):
         rows=diagnostic(self.tools)
@@ -1165,31 +1174,31 @@ class Session:
             self.ui.info(f'{row["command"]}: '+(f'{row["path"]} · {row["version"]}' if row['available'] else f'absent → alignview --setup {row["setup_profile"]} --install-tools'))
 
     def guide(self):
-        self.ui.heading('GUIDE DES MÉTHODES / LIMITES SCIENTIFIQUES')
+        self.ui.heading('METHOD GUIDE / SCIENTIFIC LIMITS')
         for key,text in HELP_TEXT.items():
             print();print('  '+self.ui.c(CYAN+BOLD,key.upper()))
             self.ui.wrapped(text,'    ')
 
     def edit_filters(self):
-        self.ui.heading('FILTRES / RECLASSER LES HSP SANS RELANCER BLAST')
-        self.ui.info('Réapplique identité, couverture ou bitscore aux HSP déjà récupérés.')
+        self.ui.heading('FILTERS / RERANK HSPS WITHOUT RERUNNING BLAST')
+        self.ui.info('Reapply identity, coverage or bitscore filters to existing HSPs.')
         changes={}
-        for k,label in [('identity','Identité minimale (%)'),('coverage','Couverture QUERY union (%)'),
-                        ('bitscore','Bitscore minimal'),('hits','Nombre maximal de références')]:
+        for k,label in [('identity','Minimum identity (%)'),('coverage','Coverage QUERY union (%)'),
+                        ('bitscore','Bitscore minimal'),('hits','Maximum number of references')]:
             current=getattr(self.a,k)
             value=self.ui.ask(label,str(current))
             try:changes[k]=int(value) if k=='hits' else float(value)
-            except ValueError:self.ui.warn('Valeur non valide ; seuil inchangé')
+            except ValueError:self.ui.warn('Invalid value; threshold unchanged')
         if not 0<=changes.get('identity',self.a.identity)<=100 or not 0<=changes.get('coverage',self.a.coverage)<=100 or changes.get('hits',self.a.hits)<1 or changes.get('bitscore',self.a.bitscore)<0:
-            self.ui.warn('Seuils hors plage : utiliser des valeurs valides.');return
+            self.ui.warn('Thresholds out of range: use valid values.');return
         for key,value in changes.items():setattr(self.a,key,value)
         self.apply_filters()
-        self.ui.success(f'{len(self.selected)} références retenues sans nouvelle recherche.')
+        self.ui.success(f'{len(self.selected)} retained references without rerunning the search.')
         self.show_hits()
 
     def rerun(self):
-        if self.single or self.mode.startswith('global-'):self.ui.warn('Pas de recherche locale pour ce mode.');return
-        if self.ui.yesno('Relancer la recherche et remplacer les résultats BLAST de cette session ?'):
+        if self.single or self.mode.startswith('global-'):self.ui.warn('This mode has no local search.');return
+        if self.ui.yesno('Rerun the search and replace this session\'s BLAST results?'):
             self.msa_records=None;self.msa_file=None;self.dot_data=None;self.search()
 
     def single_intro(self):
@@ -1198,20 +1207,25 @@ class Session:
         elif self.a.msa in ('align','full','all','global'):self.msa_run('all')
 
     def initial(self):
-        if self.ui.tty and not self.a.no_menu and (getattr(self.a,'_guided',False) or not self.mode):
+        explicit_actions=self.a.msa!='none' or self.a.tree or self.a.vsearch!='none' or self.a.pairwise!='none' or self.a.dotplot or self.a.motif or self.a.report
+        if self.ui.tty and not self.a.no_menu and (getattr(self.a,'_guided',False) or not self.mode or not explicit_actions):
+            from av_navigation import Workbench
+            workbench=Workbench(self)
+            intent=getattr(self.a,'_intent','')
             if self.single and self.a.msa=='view':
                 if len({len(r.seq) for r in self.query_list})!=1:
                     self.a.msa='none'
-                    self.ui.notice='Longueurs différentes : créer d’abord un alignement dans Analyser.'
-                    self.save_settings();return
+                    self.ui.notice='Different lengths: choose Align sequences.'
+                    return
                 self.load_msa()
             elif not self.single and not self.mode:
-                from av_navigation import Workbench
-                self.mode=Workbench(self).recommended_mode() or ''
+                self.mode=workbench.recommended_mode() or ''
                 self.a.mode=self.mode
-            self.save_settings()
+            if intent in ('view','demo'):self.show_msa_window()
+            elif intent=='align':workbench.run_action(workbench.align)
+            elif intent=='compare':workbench.run_action(workbench.compare)
             return
-        self.ui.banner('ALIGNEMENTS / EXPLORATION GUIDÉE')
+        self.ui.banner('ALIGNMENTS / GUIDED EXPLORATION')
         if self.a.vsearch!='none':
             self.vsearch_run(self.a.vsearch)
             if self.a.msa=='view':self.load_msa()
@@ -1233,12 +1247,12 @@ class Session:
             if self.a.report:self.make_report()
             return
         if not self.mode:
-            if self.a.no_menu:raise ValueError('Mode requis en non-interactif : --mode blastx, blastn, etc.')
+            if self.a.no_menu:raise ValueError('Non-interactive mode requires --mode: --mode blastx, blastn, etc.')
             from av_navigation import Workbench
             self.mode=Workbench(self).recommended_mode() or 'blastn'
             self.a.mode=self.mode
         if self.mode.startswith('global-'):
-            self.ui.info('Mode GLOBAL : pas de recherche BLAST, alignement sur demande.')
+            self.ui.info('GLOBAL mode: no BLAST search; alignment runs on request.')
             if self.a.msa in ('align','full','all','global','hits'):self.msa_run('all')
         else:
             self.search()
@@ -1248,7 +1262,7 @@ class Session:
         if self.a.motif:
             data=find_motifs(self.query,self.a.motif,True)
             self.motif_rows=data;export_table(self.work/'motifs.tsv',data,['seqid','start','end','strand','matched'])
-            self.ui.success(f'Motif {self.a.motif} : {len(data)} occurrence(s)')
+            self.ui.success(f'Motif {self.a.motif}: {len(data)} occurrence(s)')
         if self.a.dotplot:self._dot_batch()
         if self.a.tree:
             if not self.msa_records:self.msa_run('all')
@@ -1275,25 +1289,25 @@ class Session:
 
     def show_alv(self):
         if not self.msa_file:self.load_msa()
-        if not self.msa_file:self.ui.warn('Alignement multiple absent');return
+        if not self.msa_file:self.ui.warn('Alignment multiple absent');return
         print(self.tools.alv(self.msa_file)[:150000])
 
     def list_outputs(self):
-        self.ui.heading('FICHIERS / ESPACE TEMPORAIRE')
+        self.ui.heading('FILES / TEMPORARY WORKSPACE')
         for file in sorted(self.work.rglob('*')):
             if file.is_file() and 'database' not in str(file):
                 print(f'  {str(file.relative_to(self.work)):<48} {file.stat().st_size/1024:9.1f} Kio')
-        self.ui.info('Travail temporaire : aucune conservation sans export explicite ou confirmation à la sortie.')
+        self.ui.info('Temporary work: save or export explicitly to retain results.')
 
     def save_checkpoint(self):
         default=self.a.out or f'alignview_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}'
-        selected=self.ui.ask('Dossier du projet (q = annuler)',default)
+        selected=self.ui.ask('Project directory (q to cancel)',default)
         if selected.lower()=='q':return None
         self.export_summary()
         target=save_project(self,selected)
         self.last_saved=target;self.dirty=False
-        self.ui.success(f'Projet enregistré : {target}')
-        self.ui.info('Reprendre : alignview --resume '+shlex.quote(str(target)))
+        self.ui.success(f'Project saved: {target}')
+        self.ui.info('Resume: alignview --resume '+shlex.quote(str(target)))
         return target
 
     def data_hub(self):
@@ -1301,63 +1315,65 @@ class Session:
         return Workbench(self).data()
 
     def save_and_exit(self):
+        if self.exit_decision=='clean':
+            self.ui.info('Session closed.');return
         if self.exit_decision=='saved':
-            self.ui.info(f'Projet conservé : {self.last_saved}');return
+            self.ui.info(f'Project retained: {self.last_saved}');return
         if self.exit_decision=='discard':
-            self.ui.info('Session quittée sans sauvegarder les résultats temporaires.');return
+            self.ui.info('Session closed without saving temporary results.');return
         if not self.a.save:
             if not self.ui.tty:
-                if self.a.out:self.ui.info('--out désigne un dossier ; ajouter --save pour y conserver le projet.')
+                if self.a.out:self.ui.info('--out names a directory; add --save to retain the project there.')
                 if self.a.report and not (self.a.html_out or self.a.export_dir):
-                    self.ui.warn('Rapport non conservé : ajouter --html-out rapport.html, --save ou --export-dir DOSSIER.')
-                self.ui.info('Fin : résultats temporaires effacés (--save pour les conserver).')
+                    self.ui.warn('Report not retained: add --html-out report.html, --save or --export-dir DIRECTORY.')
+                self.ui.info('Finished: temporary results removed (use --save to retain them).')
                 return
-            self.ui.heading('FIN DE SESSION / ENREGISTREMENT')
-            self.ui.info('Les analyses sont temporaires. Sans sauvegarde, elles seront supprimées.')
-            if not self.ui.yesno('Conserver les fichiers de cette session ?'):
-                self.ui.info('Session terminée ; fichiers temporaires supprimés.');return
+            self.ui.heading('END SESSION / SAVE')
+            self.ui.info('Analysis files are temporary. Unsaved files will be removed.')
+            if not self.ui.yesno('Keep this session\'s files?'):
+                self.ui.info('Session ended; temporary files removed.');return
         self.export_summary()
         target=self.a.out or f'alignview_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}'
         target_path=Path(target).expanduser().resolve()
         if target_path.exists():
-            self.ui.warn(f'Dossier déjà présent : {target_path}')
-            if not self.ui.tty:raise ValueError(f'Répertoire de sortie déjà présent : {target_path}. Choisir --out avec un chemin libre.')
+            self.ui.warn(f'Directory already exists: {target_path}')
+            if not self.ui.tty:raise ValueError(f'Output directory already exists: {target_path}. Choose --out with an unused path.')
             n=2
             while target_path.with_name(f'{target_path.name}_{n}').exists():n+=1
             proposed=target_path.with_name(f'{target_path.name}_{n}')
-            selected=self.ui.ask('Nouveau dossier (q = annuler la sauvegarde)',str(proposed))
+            selected=self.ui.ask('New directory (q = cancel saving)',str(proposed))
             if selected.lower()=='q':
-                if self.ui.yesno('Abandonner la sauvegarde et supprimer les temporaires ?',False):return
+                if self.ui.yesno('Cancel saving and remove temporary files?',False):return
                 selected=str(proposed)
             target_path=Path(selected).expanduser().resolve()
             if target_path.exists():
-                self.ui.warn('Dossier déjà présent : choix automatique du dossier alternatif libre.')
+                self.ui.warn('Directory already exists: automatically choosing an unused alternative directory.')
                 target_path=proposed
         target_path.parent.mkdir(parents=True,exist_ok=True)
         save_project(self,target_path)
-        self.ui.success(f'Résultats enregistrés : {target_path}')
-        if (target_path/'report.html').exists():self.ui.info('Ouvrir report.html dans le navigateur, sans connexion nécessaire.')
+        self.ui.success(f'Results saved: {target_path}')
+        if (target_path/'report.html').exists():self.ui.info('Open report.html in a browser; no network connection is required.')
 
 
 def show_tool_list():
     groups={
-        'Homologie et couverture':['MMseqs2 BLASTP pour références protéiques','BLASTN, BLASTP, BLASTX, TBLASTN, TBLASTX','DIAMOND BLASTP / BLASTX',
-                                  'HSP multiples, union de couverture, gaps, substitutions et cadres',
-                                  'Cartes QUERY et références, identité × couverture'],
-        'Alignements':['MUSCLE 5, Clustal Omega et FastTree','Needle global, Water local','MAFFT hits / all / fragments / HSP',
-                      'ALV et visionneuse MSA ANSI','Consensus, conservation, sites variables, distances p'],
-        'Séquences':['Contrôle FASTA, GC, N, ambiguïtés','Motifs IUPAC deux brins, extraction de région',
-                    'Traduction six cadres, ORF ATG→STOP','Entropie, profils glissants, k-mers'],
-        'Visualisation & reproductibilité':['Atlas SVG conditionnel et arbre FastTree avec échelle et supports','Rapport HTML autonome, navigation guidée et exports SVG','SVG couverture, dotplot, profils et MSA',
-                                           'CSV, TSV, JSON/JSONL, BED, GFF3, NEXUS, PHYLIP, Stockholm et SHA256','Script Slurm, modules automatiques et logs',
-                                           'Documentation hors ligne : --docs ; HTML seul : --html-out rapport.html']}
+        'Homology and coverage':['MMseqs2 BLASTP for protein references','BLASTN, BLASTP, BLASTX, TBLASTN, TBLASTX','DIAMOND BLASTP / BLASTX',
+                                  'Multiple HSPs, union coverage, gaps, substitutions and frames',
+                                  'QUERY and reference maps, identity × coverage'],
+        'Alignments':['MUSCLE 5, Clustal Omega and FastTree','Needle global, Water local','MAFFT hits / all / fragments / HSP',
+                      'ALV and ANSI MSA viewer','Consensus, conservation, variable sites and p-distances'],
+        'Sequences':['FASTA checks, GC, N and ambiguous symbols','Both-strand IUPAC motifs and region extraction',
+                    'Six-frame translation, start-to-stop ORFs','Entropy, sliding profiles and k-mers'],
+        'Visualization and reproducibility':['Conditional SVG atlas and FastTree tree with scale and support','Standalone HTML report, guided navigation and SVG exports','SVG coverage, dotplot, profiles and MSA',
+                                           'CSV, TSV, JSON/JSONL, BED, GFF3, NEXUS, PHYLIP, Stockholm and SHA256','Slurm scripts, automatic modules and logs',
+                                           'Offline manual: --docs; standalone HTML: --html-out report.html']}
     for group,items in groups.items():
-        print('\n'+tr(group))
-        for item in items:print('  • '+tr(item))
+        print('\n'+str(group))
+        for item in items:print('  • '+str(item))
 
 
 def _apply_start(args,request,demo_root):
-    args._guided=True
+    args._guided=True;args._intent=request.intent
     args.query_id='';args.mode=None;args.msa='none';args.resume=None
     if request.intent=='resume':
         args.query=None;args.references=None;args.resume=str(request.query)
@@ -1374,7 +1390,7 @@ def _apply_start(args,request,demo_root):
 def _select_start(args,ui,demo_root):
     if args.demo:_apply_start(args,StartRequest('demo'),demo_root)
     if not args.query and not args.resume:
-        if not ui.tty:raise ValueError('Lancer dans un terminal interactif ou fournir un FASTA, --demo ou --resume.')
+        if not ui.tty:raise ValueError('Use an interactive terminal or supply a FASTA, --demo or --resume.')
         request=startup(ui)
         if request is None:return False
         _apply_start(args,request,demo_root)
@@ -1388,7 +1404,7 @@ def main(argv=None):
     ui=UI(not args.no_color,args.simple_ui)
     if args.write_profile:
         try:
-            path=write_profile(args,args.write_profile);ui.success('Profil de calcul enregistré : '+str(path));return 0
+            path=write_profile(args,args.write_profile);ui.success('Calculation profile saved: '+str(path));return 0
         except (OSError,ValueError) as exc:ui.error(str(exc));return 1
     if args.tools_prefix:os.environ['ALIGNVIEW_TOOLS_PREFIX']=str(Path(args.tools_prefix).expanduser().resolve())
     if args.docs:
@@ -1402,7 +1418,7 @@ def main(argv=None):
     if args.list_genetic_codes:
         from av_genetics import TABLES, context_dependent
         for identifier,(name,_,_) in TABLES.items():
-            print(f'{identifier:>2}  {name}'+(' · arrêts contextuels' if context_dependent(identifier) else ''))
+            print(f'{identifier:>2}  {name}'+(' · context-dependent stops' if context_dependent(identifier) else ''))
         return 0
     if args.setup:
         try:setup_tools(ui,args.setup,args.tools_prefix,args.install_tools);return 0
@@ -1435,12 +1451,12 @@ def main(argv=None):
                 except HomeRequested:pass
                 except CommandError as exc:
                     if args.no_menu or not ui.tty:raise
-                    ui.error(str(exc));ui.info('Le projet reste ouvert. Réglages permet de préparer les logiciels ; Analyser relance le calcul.')
+                    ui.error(str(exc));ui.info('The project remains open. Use Advanced → Tools and provenance to set up tools.')
                     ui.pause()
             while True:
                 if session.a.export_dir:session.export_explicit_directory()
                 if session.a.html_out:session.export_html(session.a.html_out)
-                if not session.a.no_menu and ui.tty:session.nav()
+                if not session.pending and not session.a.no_menu and ui.tty:session.nav()
                 if not session.pending:break
                 request,value=session.pending;session.pending=None
                 archive=workspace/f'analysis_{len(history)+1:03d}'
@@ -1450,12 +1466,17 @@ def main(argv=None):
                 fresh.html_out='';fresh._explicit=set()
                 fresh.msa='none';fresh.tree=False;fresh.pairwise='none';fresh.report=False;fresh.dotplot=False
                 fresh.vsearch='none'
-                if request in ('query','reconfigure'):
+                if request in ('query','reconfigure','references'):
                     from av_project import read_project
                     root,state=read_project(archive)
                     fresh.query=str(root/state['inputs']['query']['path'])
                     fresh.references=str(root/state['inputs']['references']['path']) if state['inputs'].get('references') else None
-                    if request=='query':fresh.query_id=value
+                    fresh._guided=True;fresh._intent='compare' if request=='references' else ''
+                    if request=='query':
+                        fresh.query_id=value
+                        if not session.single:fresh._intent='compare'
+                    elif request=='references':
+                        fresh.references=str(value);fresh.mode=None;fresh.query_id=''
                     else:fresh.mode=None
                 elif request=='files':
                     _apply_start(fresh,value,workspace/'demo')
@@ -1463,9 +1484,9 @@ def main(argv=None):
                 replacement=None
                 try:
                     replacement=resume_project(fresh.resume,fresh,ui) if fresh.resume else Session(fresh,ui)
-                    if request in ('query','reconfigure'):
+                    if request in ('query','reconfigure','references'):
                         replacement.source_query_path=Path(state['inputs']['query'].get('original_path',replacement.source_query_path))
-                        if replacement.refs_path:
+                        if replacement.refs_path and request!='references':
                             replacement.source_refs_path=Path(state['inputs']['references'].get('original_path',replacement.source_refs_path))
                     if request=='query' and session.single and session.msa_records:
                         target=replacement.work/'alignment_active.fasta'
@@ -1483,13 +1504,14 @@ def main(argv=None):
                         shutil.copytree(path,imported);history.append(imported)
                 except (ValueError,CommandError,OSError,KeyboardInterrupt) as exc:
                     if replacement:replacement.close()
-                    ui.error(str(exc) or 'Changement annulé.');ui.pause();continue
+                    ui.error(str(exc) or 'Change canceled.');ui.pause();continue
                 history.append(archive)
                 session.close();session=replacement;session.history=history
+                session.dirty=True
             session.save_and_exit()
             return 0
         except KeyboardInterrupt:
-            ui.warn('Session interrompue.')
+            ui.warn('Session interrupted.')
             failed=True
             return 130
         except (ValueError,CommandError,OSError) as exc:
@@ -1501,11 +1523,11 @@ def main(argv=None):
                     try:
                         recovery=Path(tempfile.mkdtemp(prefix='alignview_recovery_'))/'project'
                         save_project(session,recovery)
-                        ui.warn(f'Récupération conservée : {recovery}\n  Reprendre : alignview --resume '+shlex.quote(str(recovery)))
+                        ui.warn(f'Recovery copy retained: {recovery}\n  Resume: alignview --resume '+shlex.quote(str(recovery)))
                     except (ValueError,OSError) as exc:
                         # Keep the original workspace if even the recovery copy failed.
                         session.temporary._finalizer.detach()
-                        ui.warn(f'Copie de récupération impossible ({exc}). Travail conservé dans {session.work}')
+                        ui.warn(f'Cannot create recovery copy ({exc}). Work retained in {session.work}')
                 session.close() if not (failed and session.work.exists() and not session.temporary._finalizer.alive) else None
 
 if __name__=='__main__':raise SystemExit(main())

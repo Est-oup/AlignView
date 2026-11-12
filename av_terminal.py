@@ -40,8 +40,8 @@ def fit(text, width):
 
 
 def draw(lines):
-    from av_i18n import translate
-    lines=[translate(line) for line in lines]
+
+    lines=[str(line) for line in lines]
     size = shutil.get_terminal_size((104, 32))
     frame = '\x1b[K\r\n'.join(fit(line, size.columns - 1) for line in lines[:max(1, size.lines - 1)])
     sys.stdout.write('\x1b[H' + frame + '\x1b[K\x1b[J')

@@ -1,4 +1,4 @@
-"""Algorithmes et modèles biologiques AlignView, bibliothèque standard uniquement."""
+"""AlignView biological algorithms and models, using only the standard library."""
 from __future__ import annotations
 import collections
 import csv
@@ -75,10 +75,10 @@ def fasta_iter(path: Path | str) -> Iterable[Seq]:
             if line.startswith('>'):
                 if name is not None: yield Seq(name,description,''.join(parts).upper())
                 description=line[1:].strip()
-                if not description: raise ValueError(f'En-tête FASTA vide (ligne {line_no})')
+                if not description: raise ValueError(f'Empty FASTA header (line {line_no})')
                 name=description.split()[0]; parts=[]
             elif name is None:
-                raise ValueError(f'Contenu avant le premier en-tête FASTA (ligne {line_no})')
+                raise ValueError(f'Content before the first FASTA header (line {line_no})')
             else:
                 if re.search(r'\s',line): line=''.join(line.split())
                 parts.append(line)
@@ -88,12 +88,12 @@ def fasta_iter(path: Path | str) -> Iterable[Seq]:
 def read_fasta(path: Path | str, max_sequences: int | None = None) -> list[Seq]:
     seqs=[]; seen=set()
     for record in fasta_iter(path):
-        if record.id in seen: raise ValueError(f'ID FASTA en double : {record.id}')
-        if not record.seq: raise ValueError(f'Séquence vide : {record.id}')
-        if re.search(r'[^A-Z*?\-.]', record.seq): raise ValueError(f'Caractères invalides dans {record.id}')
+        if record.id in seen: raise ValueError(f'Duplicate FASTA ID: {record.id}')
+        if not record.seq: raise ValueError(f'Empty sequence: {record.id}')
+        if re.search(r'[^A-Z*?\-.]', record.seq): raise ValueError(f'Invalid characters in {record.id}')
         seqs.append(record);seen.add(record.id)
-        if max_sequences and len(seqs)>max_sequences: raise ValueError(f'Plus de {max_sequences} séquences ; utiliser un sous-ensemble')
-    if not seqs: raise ValueError(f'Aucune séquence FASTA : {path}')
+        if max_sequences and len(seqs)>max_sequences: raise ValueError(f'More than {max_sequences} sequences; use a subset')
+    if not seqs: raise ValueError(f'No FASTA sequences: {path}')
     return seqs
 
 
@@ -106,10 +106,10 @@ def write_fasta(seqs: Iterable[Seq], path: Path, width: int = 80):
 
 def sequence_type(seq: str) -> str:
     a=set(seq.upper())-set('-.?')
-    if not a: return 'inconnu'
-    if a <= NUCLEOTIDES: return 'ADN/ARN'
-    if a <= set('ABCDEFGHIKLMNPQRSTVWXYZJUO*'): return 'protéine'
-    return 'inconnu'
+    if not a: return 'unknown'
+    if a <= NUCLEOTIDES: return 'DNA/RNA'
+    if a <= set('ABCDEFGHIKLMNPQRSTVWXYZJUO*'): return 'protein'
+    return 'unknown'
 
 
 def sequence_stats(r: Seq) -> dict:
@@ -118,10 +118,10 @@ def sequence_stats(r: Seq) -> dict:
     count=collections.Counter(valid)
     probs=[v/n for v in count.values()] if n else []
     return dict(id=r.id,length=total,ungapped=n,gaps=total-n,kind=sequence_type(s),
-                gc_pct=round(100*gc/n,3) if n and sequence_type(s)=='ADN/ARN' else None,
+                gc_pct=round(100*gc/n,3) if n and sequence_type(s)=='DNA/RNA' else None,
                 n_pct=round(100*count['N']/n,3) if n else 0,
                 entropy=round(-sum(p*math.log2(p) for p in probs),4),
-                ambiguous=sum(c not in 'ACGTU' for c in valid) if sequence_type(s)=='ADN/ARN' else None)
+                ambiguous=sum(c not in 'ACGTU' for c in valid) if sequence_type(s)=='DNA/RNA' else None)
 
 
 def merge_intervals(intervals: Iterable[tuple[int,int]], end: int | None = None) -> list[tuple[int,int]]:
@@ -151,35 +151,35 @@ def missing_intervals(intervals, length):
 
 
 def parse_blast_tab(path, engine='blast') -> list[HSP]:
-    """NCBI: 15 colonnes ; DIAMOND: 13, sframe absent. Chaque ligne = un HSP."""
+    """NCBI: 15 columns; DIAMOND: 13, without sframe. Each line represents one HSP."""
     result=[]
     with open(path,encoding='utf-8') as f:
         for index,line in enumerate(f,1):
             if not line.strip() or line.startswith('#'): continue
             a=line.rstrip('\n').split('\t')
             expected=15 if engine=='blast' else 13
-            if len(a)!=expected: raise ValueError(f'HSP ligne {index} : {len(a)} champs au lieu de {expected}')
+            if len(a)!=expected: raise ValueError(f'HSP row {index}: {len(a)} fields instead of {expected}')
             try:
                 if engine=='blast':
                     result.append(HSP(a[0],a[1],float(a[2]),int(a[3]),int(a[4]),int(a[5]),int(a[6]),int(a[7]),float(a[8]),float(a[9]),int(float(a[11])),int(float(a[12])),a[13],a[14]))
                 else:
                     result.append(HSP(a[0],a[1],float(a[2]),int(a[3]),int(a[4]),int(a[5]),int(a[6]),int(a[7]),float(a[8]),float(a[9]),int(float(a[10])),0,a[11],a[12]))
-            except (ValueError,IndexError) as e: raise ValueError(f'Parsing HSP ligne {index} : {e}') from e
+            except (ValueError,IndexError) as e: raise ValueError(f'Parsing HSP row {index}: {e}') from e
     return sorted(result,key=lambda h:(-h.bitscore,h.evalue,h.subject))
 
 
 def parse_mmseqs_tab(path) -> list[HSP]:
-    """MMseqs easy-search, pident est en pourcentage, positions 1-based."""
+    """MMseqs easy-search, pident is a percentage; positions are 1-based."""
     rows=[]
     with open(path,encoding='utf-8') as stream:
         for index,line in enumerate(stream,1):
             if not line.strip() or line.startswith('#'):continue
             fields=line.rstrip('\n').split('\t')
-            if len(fields)!=12:raise ValueError(f'MMseqs2 ligne {index} : 12 champs attendus, reçus {len(fields)}')
+            if len(fields)!=12:raise ValueError(f'MMseqs2 ligne {index}: expected 12 fields, received {len(fields)}')
             try:
                 q,t,pid,alen,qs,qe,ts,te,e,bits,qaln,taln=fields
                 rows.append(HSP(q,t,float(pid),int(alen),int(qs),int(qe),int(ts),int(te),float(e),float(bits),0,0,qaln,taln))
-            except ValueError as exc:raise ValueError(f'MMseqs2 ligne {index} : {exc}') from exc
+            except ValueError as exc:raise ValueError(f'MMseqs2 ligne {index}: {exc}') from exc
     return sorted(rows,key=lambda h:(-h.bitscore,h.evalue,h.subject))
 
 def group_hsps(hsps: list[HSP]) -> dict[str,list[HSP]]:
@@ -220,7 +220,7 @@ def reverse_complement(seq): return seq.translate(COMPLEMENT)[::-1].replace('U',
 def translate_nt(seq, frame=1, table=1):
     from av_genetics import code_table, translate_codon
     code_table(table)
-    if frame not in (1,2,3,-1,-2,-3): raise ValueError('Cadre de traduction invalide')
+    if frame not in (1,2,3,-1,-2,-3): raise ValueError('Invalid translation frame')
     seq=seq.upper().replace('U','T').replace('-','').replace('.','')
     if frame<0: seq=reverse_complement(seq)
     offset=abs(frame)-1
@@ -230,10 +230,10 @@ def translate_nt(seq, frame=1, table=1):
 def orfs(seq:Seq,min_aa=60,include_partial=False,table=1,starts='atg'):
     from av_genetics import stop_codons, start_codons, context_dependent
     stops=stop_codons(table)
-    if context_dependent(table):raise ValueError(f'Table {table} : arrêts contextuels ; la détection simple d’ORF nécessite un contexte CDS absent ici.')
-    if starts not in ('atg','table'):raise ValueError('Politique de démarrage ORF invalide.')
+    if context_dependent(table):raise ValueError(f'Table {table}: context-dependent stops; simple ORF detection requires a CDS context that is unavailable here.')
+    if starts not in ('atg','table'):raise ValueError('Invalid ORF start policy.')
     initiators={'ATG'} if starts=='atg' else start_codons(table)
-    if sequence_type(seq.seq)!='ADN/ARN': raise ValueError('Détection d’ORF : fichier nucléotidique requis')
+    if sequence_type(seq.seq)!='DNA/RNA': raise ValueError('ORF detection requires nucleotide input')
     found=[]; normalized=seq.seq.upper().replace('-','').replace('.','').replace('U','T');n=len(normalized)
     for strand in (1,-1):
         dna=normalized if strand==1 else reverse_complement(normalized)
@@ -263,15 +263,15 @@ def orfs(seq:Seq,min_aa=60,include_partial=False,table=1,starts='atg'):
 
 
 def find_motifs(seq:Seq,motif:str,both_strands=True,regex=False):
-    if len(motif)>200: raise ValueError('Motif trop long (200 caractères max)')
+    if len(motif)>200: raise ValueError('Motif too long (maximum 200 characters)')
     if regex: expr=motif
     else:
         try: expr=''.join(IUPAC[c] for c in motif.upper())
-        except KeyError as e: raise ValueError(f'Code IUPAC inconnu : {e}')
+        except KeyError as e: raise ValueError(f'Unknown IUPAC code: {e}')
     try: pattern=re.compile(f'(?=({expr}))',re.I)
-    except re.error as e: raise ValueError(f'Expression régulière invalide : {e}')
+    except re.error as e: raise ValueError(f'Invalid regular expression: {e}')
     out=[]; n=len(seq.seq)
-    for strand,s in [('+',seq.seq),('-',reverse_complement(seq.seq))] if both_strands and sequence_type(seq.seq)=='ADN/ARN' else [('+',seq.seq)]:
+    for strand,s in [('+',seq.seq),('-',reverse_complement(seq.seq))] if both_strands and sequence_type(seq.seq)=='DNA/RNA' else [('+',seq.seq)]:
         for m in pattern.finditer(s):
             length=len(m.group(1))
             if length==0: continue
@@ -283,7 +283,7 @@ def find_motifs(seq:Seq,motif:str,both_strands=True,regex=False):
 
 
 def sliding_scores(seq:str,window=101,step=25,kind='gc'):
-    if window<1 or step<1: raise ValueError('Fenêtre et pas doivent être positifs')
+    if window<1 or step<1: raise ValueError('Window and step must be positive')
     scores=[]
     if len(seq)<window: window=len(seq)
     for i in range(0,len(seq)-window+1,step):
@@ -295,7 +295,7 @@ def sliding_scores(seq:str,window=101,step=25,kind='gc'):
             valid=sum(v for k,v in c.items() if k not in '-.?')
             val=-sum((v/valid)*math.log2(v/valid) for k,v in c.items() if valid and k not in '-.?') if valid else None
         elif kind=='gap': val=100*sum(c[x] for x in '-.')/len(part)
-        else: raise ValueError(f'Métrique inconnue : {kind}')
+        else: raise ValueError(f'Unknown metric: {kind}')
         scores.append(dict(start=i+1,end=i+window,center=i+1+(window-1)/2,value=round(val,5) if val is not None else None))
     return scores
 
@@ -303,7 +303,7 @@ def sliding_scores(seq:str,window=101,step=25,kind='gc'):
 def msa_metrics(seqs:list[Seq]):
     if not seqs: raise ValueError('MSA vide')
     size=len(seqs[0].seq)
-    if any(len(r.seq)!=size for r in seqs): raise ValueError('Longueurs différentes : aligner avec MAFFT')
+    if any(len(r.seq)!=size for r in seqs): raise ValueError('Different lengths: align with MAFFT')
     consensus=[]; positions=[];variable=0;info=0;gapped=0;invariant=0
     for j in range(size):
         counter=collections.Counter(r.seq[j] for r in seqs)
@@ -324,8 +324,8 @@ def msa_metrics(seqs:list[Seq]):
 
 
 def distance_matrix(seqs:list[Seq]):
-    if len(seqs)>250: raise ValueError('Matrice limitée à 250 séquences (coût quadratique)')
-    if len({len(s.seq) for s in seqs})>1: raise ValueError('Alignement multiple requis')
+    if len(seqs)>250: raise ValueError('Matrix limited to 250 sequences (quadratic cost)')
+    if len({len(s.seq) for s in seqs})>1: raise ValueError('Multiple alignment required')
     out=[]
     for i,a in enumerate(seqs):
         row=[]
@@ -340,8 +340,8 @@ def distance_matrix(seqs:list[Seq]):
 
 
 def dotplot(seq_a,seq_b,k=9,limit=60000, max_repeat=30):
-    """Points exacts par k-mers, limités pour éviter les répétitions pathologiques."""
-    if not 2<=k<=60: raise ValueError('k compris entre 2 et 60')
+    """Exact k-mer points, capped to avoid pathological repetitions."""
+    if not 2<=k<=60: raise ValueError('k must be between 2 and 60')
     index=collections.defaultdict(list)
     for j in range(len(seq_b)-k+1):
         w=seq_b[j:j+k]

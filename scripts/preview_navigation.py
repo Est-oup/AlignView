@@ -18,7 +18,7 @@ from av_ui import UI
 
 def svg_frame(lines,destination,columns=100):
     width=columns*8.6+28;height=len(lines)*22+36
-    svg=[f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="Aperçu généré à partir de l’écran AlignView">',
+    svg=[f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="Preview generated from the AlignView screen">',
          f'<rect width="{width}" height="{height}" rx="12" fill="#0d1729"/>']
     for i,raw in enumerate(lines):
         line=re.sub(r'\x1b\[[0-9;]*m','',fit(raw,columns-1))
@@ -35,7 +35,7 @@ session=Session(parse_args([str(ROOT/'examples/example_msa.fasta'),'--msa','view
 try:
     session.load_msa();workbench=Workbench(session);workbench.refresh_context()
     with patch('shutil.get_terminal_size',return_value=os.terminal_size((100,28))):
-        home=ui._menu_frame('Projet',[item(*entry) for entry in HOME_ITEMS],hint='L’alignement est prêt : ouvrir Explorer pour le lire.')
+        home=ui._menu_frame('Project',[item(*entry) for entry in HOME_ITEMS],hint='Results ready: press Enter to open them.')
         svg_frame(home.lines,ROOT/'docs/navigation-preview.svg')
         svg_frame(MSAViewer(session.msa_records,False)._frame(),ROOT/'docs/terminal-preview.svg')
 finally:session.close()

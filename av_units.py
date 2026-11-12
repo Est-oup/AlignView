@@ -1,9 +1,9 @@
-"""Unités biologiques explicites : coordonnées natives versus alignement traduit.
+"""Explicit biological units: native coordinates versus translated alignment.
 
-BLASTX: QUERY nt, sujet aa, colonnes d'alignement aa.
-TBLASTN: QUERY aa, sujet nt, colonnes aa.
-TBLASTX: QUERY nt, sujet nt, colonnes aa.
-NE JAMAIS assimiler 1 position nt à 1 colonne aa.
+BLASTX: QUERY nt, reference aa, alignment columns aa.
+TBLASTN: QUERY aa, sujet nt, columns aa.
+TBLASTX: QUERY nt, sujet nt, columns aa.
+Never equate one nucleotide position with one amino-acid column.
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -19,12 +19,12 @@ class Units:
     @property
     def query_label(self):return f'QUERY ({self.query})'
     @property
-    def subject_label(self):return f'RÉFÉRENCE ({self.subject})'
+    def subject_label(self):return f'REFERENCE ({self.subject})'
     @property
-    def alignment_label(self):return f'Colonnes alignées ({self.aligned})'
+    def alignment_label(self):return f'Aligned columns ({self.aligned})'
 
 
-def units_for(mode:str,query_kind='ADN/ARN')->Units:
+def units_for(mode:str,query_kind='DNA/RNA')->Units:
     m=mode.lower()
     if m in ('blastx','diamond-blastx'):
         return Units('nt','aa','aa','aa',True,False)
@@ -34,15 +34,15 @@ def units_for(mode:str,query_kind='ADN/ARN')->Units:
         return Units('nt','nt','nt','nt',False,False)
     if m in ('blastp','diamond-blastp','mmseqs-blastp','global-aa'):
         return Units('aa','aa','aa','aa',False,False)
-    unit='nt' if query_kind=='ADN/ARN' else 'aa'
+    unit='nt' if query_kind=='DNA/RNA' else 'aa'
     return Units(unit,unit,unit,unit,False,False)
 
 
 def coord_audit(hsps,mode):
-    """Audit de cohérence des coordonnées sans modification des positions BLAST.
+    """Check coordinate consistency without changing BLAST positions.
 
-    Calcul borné aux HSP possédant qseq et sseq ; les écarts sont diagnostiques
-    (des gaps peuvent affecter le nombre de colonnes d'alignement).
+    Limited to HSPs with qseq and sseq; differences are diagnostic
+    (gaps can affect the number of alignment columns).
     """
     units=units_for(mode)
     rows=[]

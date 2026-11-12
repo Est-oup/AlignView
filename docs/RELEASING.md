@@ -1,48 +1,20 @@
-# Première publication 0.1.0
+# Prepare a release
 
-Le dossier racine à placer dans GitHub est celui contenant ce README et `pyproject.toml`, sans les données voisines ni les archives des prototypes.
-
-## État préparé
-
-Le nom public et la commande sont `AlignView` / `alignview`. La version publique démarre à 0.1.0. Les sources, le wheel, le zipapp, les environnements Conda, la recette Bioconda et la CI sont préparés. Aucune publication GitHub, PyPI ou Bioconda n’est effectuée ici.
-
-## Avant le tag
-
-1. Exécuter la CI du dépôt créé et les validations des moteurs réels.
-2. Tester l’installation dans un environnement neuf, l’ouverture de projets transférés et les raccourcis dans les terminaux SSH utilisés.
-3. Valider le profil minimal sur Linux et le cluster cible ; conserver versions et résultats. Vérifier aussi BLASTX et TBLASTN avec des séquences de référence connues.
-4. Compléter URL du dépôt, auteur/mainteneur et contact. Ne pas inventer de DOI. Vérifier la disponibilité du nom sur les registres au moment de publier.
-5. Actualiser `av_version.py`, le changelog et la recette ; construire et vérifier les artefacts.
+The prepared local version is 0.1.0. Packaging does not publish to GitHub, PyPI or Bioconda. Validate the actual engines, target terminals, cluster and biological data separately.
 
 ```bash
-python -m unittest discover -s tests -v
-python scripts/generate_cli_docs.py --check
-python scripts/check_docs.py
-python scripts/validate_vsearch.py
-python scripts/validate_real_tools.py --require mafft blastn diamond
-python -m build
-python scripts/build_pyz.py
-python -m twine check dist/*.whl dist/*.tar.gz
-python scripts/build_portable.py
-python scripts/checksums.py
+python3 -m unittest discover -s tests -v
+python3 scripts/generate_cli_docs.py --check
+python3 scripts/check_docs.py
+python3 -m build
+python3 -m twine check dist/*.whl dist/*.tar.gz
+python3 scripts/build_pyz.py
+python3 scripts/build_portable.py
+python3 scripts/checksums.py
 ```
 
-Le workflow `artifacts.yml`, déclenché par tag ou manuellement, construit les fichiers et les conserve comme artefacts Actions. Il ne crée pas de release publique et ne téléverse rien sur PyPI. Les fichiers sont `dist/alignview-0.1.0.tar.gz`, `dist/alignview-0.1.0-py3-none-any.whl`, `alignview.pyz`, `dist/AlignView-0.1.0-portable.zip` et `dist/SHA256SUMS`.
+Outputs are the wheel, source archive, portable ZIP, zipapp and SHA256SUMS. Run the wheel and zipapp from a different directory; verify offline English guides, real input paths, independent output locations and the tree/VSEARCH report features. Extract the portable ZIP into a fresh directory and launch its AlignView/alignview.sh. Check checksums after every rebuild.
 
-## PyPI
+Before publication, finalize repository URL, authorship/contact, version and registry availability. The Bioconda recipe remains a template until release URL, checksum and maintainer information are real. The application package does not contain scientific engine binaries.
 
-Une fois le compte, le nom et l’URL du dépôt finalisés, publier le wheel et le sdist validés. Un déploiement avec Trusted Publishing peut être configuré dans le vrai dépôt. Les exécutables scientifiques restent hors du wheel Python.
-
-## Bioconda
-
-La [recette modèle](../packaging/bioconda/meta.yaml.template) est un paquet `noarch: python`. Remplacer propriétaire, dépôt, URL de release stable, SHA256 réel et mainteneur GitHub. Tester puis soumettre la recette à `bioconda/bioconda-recipes` selon les [directives officielles](https://bioconda.github.io/contributor/guidelines.html).
-
-Les moteurs restent facultatifs pour permettre une installation légère et les modules HPC. Les fichiers d’environnement et `--setup` fournissent les profils intégrés. Documenter cette distinction dans la soumission.
-
-## Vers 1.0
-
-La désignation 1.0 viendra après validation des parcours sur plusieurs postes et clusters, des moteurs annoncés, de l’interopérabilité des exports dans des outils tiers et de jeux biologiques de référence. Les limites connues sont maintenues dans l’audit. Une numérotation « 1.0 » seule ne remplace pas ces validations.
-
-## Vérifier le dossier portable et les langues
-
-L’archive portable doit extraire un unique dossier `AlignView/`. Le copier seul puis lancer son `alignview.sh` depuis un dossier de données distinct : entrées relatives, projet, HTML seul et exports doivent respecter ce dossier de lancement. Vérifier `--lang en --docs quickstart` et `--docs demarrage` depuis le wheel et le zipapp hors de l’arbre source. Les moteurs installés localement dans `tools/` et les anciens prototypes dans `archives/` ne sont pas redistribués dans ces artefacts.
+A stable 1.0 designation needs validation across the intended machines, SSH terminals, engines, cluster workflows, exported formats and representative biological datasets. Existing mocks and a version number do not establish these properties.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Créer un executable portable en un fichier à partir des modules Python."""
+"""Build a single-file portable executable from the Python modules."""
 from pathlib import Path
 import tempfile,zipapp,shutil
 root=Path(__file__).resolve().parents[1]

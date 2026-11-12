@@ -1,1 +1,5 @@
-Recette *préparatoire* non publiable telle quelle : renseigner URL publique, SHA256 de l’archive taggée, mainteneur GitHub et valider tous les tests sur le tarball exact. La commande `mamba install bioconda::alignview` ne fonctionne pas tant que Bioconda n’a pas accepté/pubié le paquet. Les dépendances externes restent facultatives et les profils full/minimal sont fournis séparément.
+# Bioconda recipe template
+
+This is a preparatory recipe, not a published package. Set the public source URL, the SHA256 of the tagged release archive and the GitHub maintainer, then validate every test against that exact tarball.
+
+`mamba install bioconda::alignview` is available only after Bioconda accepts and publishes the package. Scientific engines remain optional; separate full and minimal environment profiles are provided.

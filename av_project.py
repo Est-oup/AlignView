@@ -18,7 +18,7 @@ IGNORE = shutil.ignore_patterns('database*', 'mmseqs_tmp', 'raw_hsps.tsv', 'hist
 def local_path(root, value):
     path = (root/value).resolve()
     if not path.is_relative_to(root.resolve()) or not path.is_file():
-        raise ValueError(f'Fichier de projet absent ou hors du projet : {value}')
+        raise ValueError(f'Project file missing or outside the project: {value}')
     return path
 
 
@@ -28,30 +28,30 @@ def read_project(folder):
     try:
         data=json.loads((root/'session.json').read_text(encoding='utf-8'))
         if not isinstance(data,dict) or data.get('schema')!=SCHEMA:
-            raise ValueError('Version du format de projet non prise en charge.')
+            raise ValueError('Unsupported project format version.')
         if not isinstance(data.get('inputs'),dict) or not data['inputs'].get('query') or not isinstance(data.get('args'),dict):
-            raise ValueError('Projet AlignView invalide : entrées ou paramètres manquants.')
+            raise ValueError('Invalid AlignView project: missing inputs or parameters.')
         if not isinstance(data.get('active_query_id'),str) or not isinstance(data.get('mode'),str):
-            raise ValueError('Projet AlignView invalide : requête ou mode manquant.')
-        if not isinstance(data.get('hsps',[]),list):raise ValueError('Liste de HSP invalide.')
+            raise ValueError('Invalid AlignView project: missing query or mode.')
+        if not isinstance(data.get('hsps',[]),list):raise ValueError('Invalid HSP list.')
         try:
             for row in data.get('hsps',[]):HSP(**row)
-        except (TypeError,ValueError) as exc:raise ValueError('HSP invalides dans le projet.') from exc
+        except (TypeError,ValueError) as exc:raise ValueError('Invalid HSPs in the project.') from exc
         for name in ('query','references'):
             if data['inputs'].get(name):
                 item=data['inputs'][name]
                 path=local_path(root,item['path'])
                 if sha256(path)!=item['sha256']:
-                    raise ValueError(f'Le fichier d’entrée a changé : {path.name}')
+                    raise ValueError(f'The input file has changed: {path.name}')
         if data.get('msa'):local_path(root,data['msa'])
         return root,data
     except (KeyError,TypeError,json.JSONDecodeError) as exc:
-        raise ValueError('Projet AlignView invalide : session.json est incomplet.') from exc
+        raise ValueError('Invalid AlignView project: incomplete session.json.') from exc
 
 
 def save_project(session, destination, include_history=True):
     target=Path(destination).expanduser().resolve()
-    if target.exists():raise ValueError(f'Le dossier existe déjà : {target}')
+    if target.exists():raise ValueError(f'The directory already exists: {target}')
     target.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.alignview-save-',dir=target.parent) as temporary:
         staged=Path(temporary)/'project'
@@ -100,6 +100,7 @@ def resume_project(folder, cli_args, ui):
     args.query=str(local_path(root,data['inputs']['query']['path']))
     args.references=str(local_path(root,data['inputs']['references']['path'])) if data['inputs'].get('references') else None
     args.query_id=data['active_query_id'];args.mode=data['mode']
+    if args.preset=='sensible':args.preset='sensitive'  # Migrate older saved presets.
     original_filters=tuple(getattr(args,n) for n in ('hits','identity','coverage','bitscore'))
     if cli_args.load_profile:
         from av_parameters import load_profile
@@ -129,11 +130,11 @@ def resume_project(folder, cli_args, ui):
         session.tools.history=data.get('commands',[]);session.start=data.get('started_utc',session.start)
         if data.get('msa'):
             session.msa_file=local_path(session.work,data['msa']);session.msa_records=read_fasta(session.msa_file)
-            if len({len(r.seq) for r in session.msa_records})!=1:raise ValueError('MSA du projet non aligné : longueurs différentes.')
+            if len({len(r.seq) for r in session.msa_records})!=1:raise ValueError('Project MSA is not aligned: sequences have different lengths.')
         session.history=sorted((root/'history').glob('*')) if (root/'history').is_dir() else []
         session.apply_filters(preserve_msa=original_filters==tuple(getattr(args,n) for n in ('hits','identity','coverage','bitscore')))
         session.last_saved=root;session.dirty=bool(cli_args.load_profile or (set(overrides)-runtime))
-        ui.success(f'Projet repris : {session.query.id} · {len(session.hsps)} HSP · aucun calcul relancé')
+        ui.success(f'Project resumed: {session.query.id} · {len(session.hsps)} HSP · no calculations rerun')
         return session
     except BaseException:
         session.close()
