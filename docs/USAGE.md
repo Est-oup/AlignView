@@ -1,191 +1,115 @@
-# Utiliser AlignView
+# Use every feature
 
-Pour une première découverte, commencer par [les premiers pas](QUICKSTART.md). Pour la conservation et les chemins, lire [Dossiers et sauvegardes](FILES.md). Dans les commandes ci-dessous, `alignview` peut être remplacé par `/chemin/vers/AlignView/alignview.sh`.
+## Open a dataset or a task
 
-## Trouver le bon parcours
-
-Au démarrage, choisir le résultat attendu :
-
-- **Ouvrir un alignement** : FASTA déjà aligné. Aucun moteur n’est lancé.
-- **Aligner des séquences** : FASTA brut. Le calcul se lance ensuite depuis Analyser.
-- **Comparer à des références** : fichier de requêtes, puis fichier de références.
-- **Reprendre un projet** : réouvrir des données et calculs enregistrés.
-- **Essayer un exemple** : découvrir la visionneuse sans installer de moteur.
-
-Une longueur égale entre séquences ne prouve pas qu’un fichier est aligné. « Ouvrir un alignement » exprime cette connaissance de l’utilisateur. Si les longueurs diffèrent, le fichier reste chargé et AlignView propose de créer un alignement.
-
-## Se repérer
-
-Le fil en haut indique sa place : `Accueil › Analyser › Alignement`. Le contexte indique la séquence active, les références, les résultats et la sauvegarde. Un choix grisé explique son prérequis ; le sélectionner ne lance pas de calcul inadapté.
-
-Échap et ← reviennent d’un niveau. F2 revient à l’accueil, même depuis la visionneuse et les résultats. F1 affiche les détails d’un choix. Ctrl+C annule une saisie ou une action ; le projet reste ouvert. `q` à l’accueil propose l’enregistrement si le travail a changé.
-
-## Lire les résultats
-
-**Explorer → Lire l’alignement** ouvre le MSA. Flèches pour se déplacer, `[` / `]` pour un écran horizontal, PgUp/PgDn pour les séquences, `g` pour une colonne ou un pourcentage, `s` pour un identifiant et `/` pour un motif. `v` masque les colonnes non variables, `d` souligne les différences. `?` donne toutes les commandes. Les coordonnées restent celles du MSA avec ses gaps.
-
-**Explorer → Correspondances et couvertures** regroupe les références, les régions détectées et les diagnostics. Choisir une référence ouvre ses segments alignés. `/` filtre les identifiants.
-
-**Explorer → Statistiques de l’alignement** donne conservation, consensus, distances et arbre exploratoire. Dans la matrice, les indices renvoient aux identifiants affichés. Les pages larges se déplacent avec ←/→ ; les pages longues avec PgUp/PgDn.
-
-Après **Arbre exploratoire → Calculer l’arbre**, AlignView crée le Newick et une figure vectorielle `figures/45_arbre_fasttree.svg`. Créer ensuite le rapport HTML depuis **Enregistrer et partager** : **Voir l’arbre** ouvre directement la figure, également accessible dans **Figures → Phylogénie**. **Télécharger SVG** conserve la figure seule ; le HTML contient l’arbre et reste autonome.
-
-Les longueurs horizontales et la barre d’échelle représentent des substitutions par site. Les identifiants et les supports internes du Newick sont conservés ; les supports locaux FastTree (SH-like) ne sont pas des bootstraps. La racine du dessin est arbitraire, sans enracinement biologique. En l’absence de longueurs utilisables, la figure indique un cladogramme sans échelle de distance. Un projet repris contenant déjà `tree_fasttree.nwk` obtient sa figure en reconstruisant le HTML, sans relancer FastTree.
+AlignView opens a file-summary menu before any table or reader. Five explained choices cover sequence inspection, alignment, reference search, other analyses, and files/previous results. A calculation returns to a result-ready summary; Open this result opens its reader. Esc returns to file actions. No fixed scientific route is imposed. Explicit `view` declares that a FASTA is already aligned.
 
 ```bash
-alignview sequences_alignees.fasta --msa view --tree --report --save --out projet_arbre --no-menu
+alignview view aligned.fasta
+alignview align raw.fasta
+alignview compare queries.fna references.fna
+alignview resume project_01
 ```
 
-## Choisir une séquence ou des données
+FASTA and gzip FASTA are supported imports. NEXUS, PHYLIP, Stockholm and Clustal are export formats. Existing flag-based commands remain supported. `--help` covers ordinary tasks; `--help-all` and [CLI](CLI.md) cover every engine setting.
 
-**Données → Choisir la séquence active** sélectionne la cible des motifs, ORF, traductions, extractions et profils. Dans un FASTA unique, cette sélection conserve le fichier complet pour l’alignement multiple.
+## Workspace controls
 
-Avec deux FASTA, **Changer la requête active** ouvre un autre contexte de comparaison. Les analyses précédentes restent dans **Données → Revenir à une analyse précédente**. Cet historique est temporaire jusqu’à l’enregistrement.
-
-**Ouvrir d’autres fichiers** propose les mêmes parcours qu’au démarrage. **Ouvrir un projet enregistré** reprend les calculs sans les chemins d’origine. Les entrées sont vérifiées par SHA256.
-
-## Régler la recherche
-
-La limite initiale est **100 références retenues**. Les profils ne changent pas ce nombre :
-
-| Profil | E-value maximale | Sensibilité DIAMOND |
-| --- | --- | --- |
-| Standard | 1e-5 | sensitive |
-| Plus sensible | 1e-2 | very-sensitive |
-| Plus strict | 1e-10 | sensitive |
-
-Identité, couverture et bitscore filtrent les résultats déjà calculés. Si la sélection change, l’alignement dérivé est invalidé. E-value et paramètres du moteur s’appliquent à la prochaine recherche ; le contexte indique qu’une relance est nécessaire. Les paramètres du calcul effectué restent distincts dans la provenance.
-
-Dans chaque écran de préparation, **Paramètres de calcul / Paramètres du moteur** permet de modifier les contrôles scientifiques applicables. **Voir les commandes** inspecte le calcul sans lancer de moteur. **Profils de calcul** charge ou enregistre un JSON réutilisable. Les réglages avancés et leurs effets sont décrits dans le [guide des paramètres](PARAMETERS.md).
-
-Les profils sont statistiques, pas des seuils taxonomiques universels. Les projets existants conservent leur propre limite.
-
-## Préparer un moteur manquant
-
-Avant un calcul, AlignView vérifie le moteur nécessaire. S’il manque, l’écran propose son installation ou les possibilités module HPC / chemin local. **Réglages → Logiciels et installation** donne le diagnostic complet. Le moteur reste visible dans l’aperçu du calcul et modifiable dans les réglages.
-
-## Conserver le travail
-
-Dans **Enregistrer et partager** :
-
-- **Projet** : garder entrées, paramètres, calculs, alignements et historique pour reprendre.
-- **Rapport HTML** : partager une exploration autonome sans serveur ni réseau.
-- **Exports** : réutiliser les données dans R, Python ou d’autres logiciels.
-- **Script HPC** : préparer un Slurm ; aucune soumission automatique.
-
-Un enregistrement réussi affiche « projet enregistré ». Les modifications suivantes réactivent « modifications à enregistrer ». Fermer un projet enregistré ne redemande pas une seconde copie. Les copies déjà enregistrées sont conservées si les nouvelles modifications sont abandonnées.
-
-Le HTML propose des points d’entrée « Par où commencer ? ». Les vues vides sont masquées ; Paramètres et Comprendre sont regroupés. Les figures se déplient à la demande. Résumé et l’historique du navigateur permettent de retrouver une vue.
-
-## Automatiser
-
-```bash
-alignview sequences.fasta --msa align --report --no-menu --save --out msa_projet
-alignview query.fna refs.faa --mode blastx --msa hits --report --no-menu --save --out recherche_projet
-alignview query.fna refs.faa --mode blastx --query-id ma_requete --hits 200 --no-menu --save --out projet
-```
-
-Les options explicites et le batch restent utilisables. Les valeurs par défaut sont communes à la CLI, aux menus et à la sélection de références.
-
-## Limites scientifiques
-
-La référence fonctionnelle ci-dessous complète les parcours d’introduction. Les limites restent applicables à chaque analyse.
-
-La couverture est l’union des segments ; l’identité est locale à un segment. BLASTX conserve nt/aa/aa, TBLASTN aa/nt/aa, TBLASTX nt/nt/aa. Les dotplots traduits ont des axes en aa.
-
-Les ORF ATG→STOP et FastTree restent exploratoires. TBLASTN/TBLASTX nécessite une sélection biologique des régions et cadres avant un alignement intégral. La recherche cible une requête active, pas un calcul all-vs-all.
-
-## Choisir le mode de recherche
-
-Le premier FASTA fournit la requête active et le second les références. Si le premier contient plusieurs séquences, une seule est recherchée à la fois ; en batch, fournir `--query-id` avec le premier mot de son en-tête. Changer de requête dans Données ouvre un autre contexte de comparaison.
-
-| Requête | Références | Mode | Coordonnées Q / référence / HSP |
-| --- | --- | --- | --- |
-| ADN/ARN | ADN/ARN | `blastn` | nt / nt / nt |
-| Protéine | Protéines | `blastp`, `diamond-blastp`, `mmseqs-blastp` | aa / aa / aa |
-| ADN/ARN | Protéines | `blastx`, `diamond-blastx` | nt / aa / aa |
-| Protéine | ADN/ARN | `tblastn` | aa / nt / aa |
-| ADN/ARN | ADN/ARN, comparaison traduite | `tblastx` | nt / nt / aa |
-
-Les modes `global-dna` et `global-aa` chargent deux FASTA homogènes sans recherche locale initiale ; les comparaisons globales se lancent dans Analyser. Un FASTA unique sert à l’exploration et au MSA et ne nécessite pas de second fichier artificiel.
-
-L’écran de recherche propose **Choisir la méthode**, **Régler la recherche**, **Paramètres du moteur**, **Voir les commandes** et **Profils de calcul** avant lancement. BLAST peut nécessiter `makeblastdb` en plus de l’exécutable de recherche ; l’index est préparé dans la session temporaire.
-
-## Choisir les séquences du MSA
-
-Un fichier unique utilise toutes ses séquences pour le MSA, même lorsqu’une autre séquence active est choisie. Avec deux fichiers :
-
-| Portée | Contenu | Usage |
-| --- | --- | --- |
-| Références retenues / `--msa hits` | Requête et références retenues après recherche | Comparer les homologues détectés |
-| Toutes les références / `--msa all` | Requête et toutes les références | Comparer un ensemble déjà choisi biologiquement |
-| Ajouter une séquence partielle / `--msa fragments` | Références alignées puis ajout de la requête | Requête courte ou fragment ; deux étapes MAFFT explicites |
-| Segments détectés / `--msa hsp` | Segments recouvrant suffisamment la région ancre | Explorer des domaines/régions locales sans les extrémités |
-| Ouvrir / `--msa view` | Un FASTA unique déjà aligné | Lire sans recalcul |
-
-`--msa align` est la forme pratique pour un FASTA unique brut. Avec deux FASTA en recherche, `align`, `full` et `global` sont des alias historiques du MSA des références retenues ; `all` demande explicitement toutes les références. Dans les modes globaux, toutes les références sont utilisées.
-
-Les HSP peuvent ne pas représenter exactement le même domaine ; régler leur seuil d’ancre avec `--hsp-overlap` et conserver une interprétation exploratoire. Les fragments imposent MAFFT en deux étapes, ce qui est annoncé même lorsqu’un autre moteur MSA était précédemment sélectionné.
-
-En BLASTX, une requête entière peut être traduite dans un cadre choisi pour un MSA protéique : vérifier la préparation et `--frame`. Pour TBLASTN/TBLASTX, utiliser les segments détectés ou préparer biologiquement les protéines/régions appropriées. Un nouveau MSA invalide l’arbre et ses vues dérivées ; les réglages futurs seuls ne remplacent pas les paramètres historiques d’un résultat conservé.
-
-## Toutes les touches de la visionneuse
-
-| Action | Commande |
+| Action | Control |
 | --- | --- |
-| Colonne / séquence | ← → / ↑ ↓ ou h l / k j |
-| Dix colonnes | Maj+← / Maj+→ |
-| Un écran de colonnes | Ctrl+← / Ctrl+→ ou `[` / `]` |
-| Une page de séquences | PgUp / PgDn |
-| Première / dernière colonne | Home / End |
-| Première / dernière séquence | Ctrl+Home / Ctrl+End |
-| Colonne ou pourcentage | `g`, puis `500` ou `75%` |
-| Séquence par identifiant | `s` |
-| Motif exact / motif du consensus | `/`, puis motif ou `c:motif` |
-| Occurrence suivante / précédente | `n` / `N` |
-| Sites variables / différences au consensus | `v` / `d` |
-| Rapport HTML / export du HTML | `w` / `e` |
-| Aide / retour / accueil | `?` / q ou Échap / F2 |
+| Main file actions | Choose a labeled menu entry with arrows and Enter |
+| Other analyses | File menu → Other analyses |
+| Loaded files / previous results | File menu → Files and previous results |
+| Add another dataset | o |
+| Preview HTML without a save destination | w |
+| Inspect or run the displayed contextual action | Enter |
+| Prepare alignment / comparison | a / c |
+| Optional save, preview or export | s |
+| Search available commands | : or Ctrl+P |
+| Filter a list | / |
+| Select a reference in Matches | Space |
+| Navigate rows and pages | Up/Down, PgUp/PgDn |
+| Return from a result page | Esc / q |
 
-La molette déplace les séquences, Maj+molette les colonnes ; cliquer dans la vue globale atteint une région. Les coordonnées restent celles du MSA. Masquer les sites invariants ne retire pas de colonnes du fichier original.
+The command palette exposes analysis, data/result navigation, input links, output reuse, preview, optional saving/export, advanced settings, tools and help. Unavailable commands explain their prerequisites. Esc returns to the preceding screen; cursor, list filter and reader position are retained. Menus accept mouse clicks. In the file menu, q closes; in a reader, q returns. Specialized table/reader controls are shown only after you open that view.
 
-## Needle et Water : comparer deux séquences
+Switching views, filtering and opening an existing result never launch a scientific engine. Contextual preparation screens show inputs, query, sequence scope and engine before execution. Detailed native controls, command previews and reusable profiles stay in the calculation's advanced options.
 
-**Analyser → Comparer deux séquences** propose **De bout en bout** (Needle) ou **Le meilleur segment local** (Water). Choisir une référence, vérifier les paramètres et la commande, puis lancer.
+## Query and reference evidence
 
-En batch : `--pairwise global` ou `--pairwise local`, avec `--ref N` pour l’indice de référence. Ces calculs utilisent EMBOSS. Ils ne remplacent ni une recherche BLAST, ni un MSA. Needle pénalise les extrémités par défaut dans AlignView ; `--free-ends` les relâche. Les coûts terminaux et internes se règlent séparément.
+The first comparison FASTA contains candidate queries; the second contains references. Find matching sequences offers a checkbox selection for one or several query records (Space to check, a for all, c to clear, / to find, Enter to confirm). Each selected query runs independently against the same references, with results organized in a query group. Open a query to inspect its own evidence; identity and coverage are never pooled. Noninteractive comparison still requires `--query-id ID` rather than silently taking the first record. The sequence list and Choose active query command expose this choice; Other analyses asks for the target sequence, or uses the highlighted browser record.
 
-`--gapopen`, `--gapextend` et `--matrix` sont des paramètres EMBOSS. Ils ne règlent ni MAFFT, ni BLAST, ni DIAMOND. Dans un mode traduit, vérifier les cadres et la traduction complète annoncés par l’aperçu.
+BLAST and DIAMOND find local HSPs; MMseqs2 is a protein-search alternative. The proposed method depends on the detected types. VSEARCH global nucleotide search is a separate method with its own identity/coverage definitions and no BLAST E-values or bitscores.
 
-## Motifs, traductions, ORF, profils et dotplots
+Matches shows reference evidence in a filterable list. Choose a reference to inspect its segments. Displayed best identity belongs to the strongest-scoring HSP; it is not the maximum identity of an arbitrarily short segment or whole-sequence identity. Query/reference coverage is an interval union. A reference can contain several HSPs. No detected match is not proof of non-homology.
 
-Les analyses interactives ciblées de **Analyser → Autres analyses** utilisent la **séquence active**, choisie dans Données.
+Use **Space** to select references for an MSA, then **Align selected references**. This selection changes the next alignment's scope, not the original search or its statistical meaning. The preparation screen identifies the selected inputs. A full-reference alignment remains a distinct choice.
 
-| Action | Saisie | Résultat de session |
+Comparison preparation removes pre-existing gap characters (`-` and `.`), converts nucleotide U to T, and maps unknown `?` positions to N or X for the detected alphabet. Comparison coordinates and coverage denominators use those prepared ungapped records; original source copies remain available for provenance. MSA columns are a separate coordinate system.
+
+The initial retained-reference limit is 100. Standard, sensitive and strict presets adjust search thresholds without changing that result limit. Native engine candidate limits are separate controls and can affect what the search finds. Filters reuse calculated HSPs. Previously completed alignments and trees remain in Results with their original scope. New search settings apply to the next calculation while historical provenance remains associated with existing results.
+
+## Build an alignment
+
+In a single FASTA, Space checks records for alignment. Two or more checks align that exact selection; no checks align the complete dataset. The active sequence for targeted tools does not otherwise reduce MSA scope. With references, choose the scope: all sequences, retained references, selected references, fragments or detected segments. MAFFT, MUSCLE 5 and Clustal Omega have separate settings. Fragment addition explicitly uses MAFFT in two steps.
+
+Whole-sequence BLASTX alignment translates the query using its selected frame and NCBI code; announced stop-to-X handling prepares protein alignment input. TBLASTN/TBLASTX require biological frame/region selection; use appropriate HSPs or prepared proteins rather than arbitrary whole-sequence translation. HSP alignment remains exploratory because local fragments can represent different domains.
+
+## Read and extract alignment evidence
+
+The full-screen viewer supports horizontal and vertical movement, identifier/motif search, variable-site filtering, a chosen trace/reference sequence and explicit aligned-region export. Coordinates remain MSA columns, including gaps. Hiding invariant sites changes the view, not the alignment file.
+
+| Action | Viewer keys |
+| --- | --- |
+| Column / sequence | Left/Right / Up/Down, or h/l / k/j |
+| Ten columns | Shift+Left/Right |
+| Horizontal screen | Ctrl+Left/Right or [ / ] |
+| Sequence page | PgUp / PgDn |
+| First/last column | Home / End |
+| First/last sequence | Ctrl+Home / Ctrl+End |
+| Absolute column or percentage | g, then 500 or 75% |
+| Sequence identifier | s |
+| Exact motif / consensus motif | /, then motif or c:motif |
+| Next/previous occurrence | n / N |
+| Variable sites / differences | v / d |
+| Use current row as trace / return to consensus | r |
+| Filter rows by identifier | f |
+| Check/uncheck a row for export | Space |
+| Mark region start/end | m at each boundary |
+| Clear region and row checks | x |
+| Export the selected rows/region | e |
+| Save a project snapshot | Ctrl+S |
+| Help / back | ? / q or Esc |
+
+The wheel scrolls rows; Shift+wheel scrolls columns. Clicking the overview jumps to a region. The workspace retains view state when you return. Press m at the first and last MSA columns, check rows with Space if needed, and press e to export. The new folder contains `alignment.fasta`, `columns.tsv` and `selection.json`, including selected identifiers, original MSA columns and the source alignment hash. Explicit exports describe rows and columns; they do not silently create an ungapped native-coordinate interval.
+
+## Tree and detailed statistics
+
+Create an exploratory tree uses FastTree on an existing alignment with at least three rows. The Tree view reuses its Newick result; opening it does not rerun FastTree. The SVG preserves branch lengths and complete identifiers. Its drawing root is arbitrary, supports are local SH-like values rather than bootstraps, and missing/all-zero lengths produce an explicitly labeled cladogram.
+
+Additional analyses and settings contains conservation, consensus, sequence quality, detailed segment diagnostics and pairwise p-distances. Distances exclude gaps per pair and support at most 250 sequences; different pairs can use different comparable positions.
+
+## Supplementary analyses
+
+Search **Commands** directly for VSEARCH nucleotide analyses, Compare two sequences, Find a nucleotide motif, Translate all six frames, Find simple ORFs, Extract a query region, Create a dotplot or Choose translation table. **Additional analyses and settings** also contains composition, profiles, detailed scientific settings and HPC preparation.
+
+| Action | Scope/settings | Result |
 | --- | --- | --- |
-| Rechercher un motif | Motif IUPAC, ex. `ATG` ou `NNNGTT` | Positions sur les deux brins, `motifs.tsv` |
-| Traduire les six cadres | Code génétique standard | Six protéines, `six_frames.faa` |
-| Rechercher des ORF simples | Longueur minimale en aa | ORF complètes ATG → STOP, `orfs.tsv`, `orfs.faa` |
-| Extraire une région | Début et fin inclusifs, complément inverse éventuel | `query_DEBUT_FIN.fasta` |
-| Qualité et composition globale | Sans moteur externe | Longueurs, GC pour ADN/ARN, ambiguïtés, entropie |
-| Profil le long de la séquence | `gc`, `entropy` ou `gap`, fenêtre et pas | `profile_METRIQUE.tsv` et `.svg` |
-| Fréquences de mots | k de 1 à 8 | Comptages et fréquences, `kmers_K.tsv` |
-| Dotplot | Seconde séquence et longueur de mot k | `dotplot.json` et `dotplot.svg` |
+| VSEARCH | Nucleotide global search, dereplication, clustering or chimera screening | Native files under `vsearch/` |
+| Needle / Water | Chosen query/reference, separate EMBOSS matrix and gap costs | Global/local pairwise alignment |
+| Motif search | IUPAC nucleotide motif, both strands | `motifs.tsv` |
+| Six-frame translation | NCBI table and orientation | `six_frames.faa` |
+| Simple ORFs | Minimum aa length, table and start policy | `orfs.tsv`, `orfs.faa` |
+| Region extraction | 1-based inclusive coordinates and optional reverse complement | Region FASTA |
+| Composition and profiles | GC, entropy, gaps, k-mer size, window and step | Tables and SVG profiles |
+| Dotplot | Compatible sequence alphabets and exact-word length | `dotplot.json`, SVG |
 
-Les extractions sont 1-based inclusives. Le complément inverse concerne les acides nucléiques. Les ORF restent des détecteurs ATG→STOP simples. Le dotplot affiche des mots exactement identiques ; un petit k augmente généralement les points et les répétitions, et le logiciel peut limiter le nombre de points pour préserver l’affichage.
+Targeted interactive analyses use the active sequence. Batch `--motif` uses every record of a single FASTA, or the active query in a comparison. Some previews are bounded; projects retain complete generated files. See [VSEARCH](VSEARCH.md), [Genetic codes](GENETIC_CODES.md), [Parameters](PARAMETERS.md) and [Exports](EXPORTS.md).
 
-Les aperçus de motifs, ORF, profils et k-mers peuvent être plus courts que les fichiers. Pour conserver toutes les analyses internes et auxiliaires, enregistrer le **projet complet** : un profil d’export ne copie pas nécessairement chaque fichier de la session. En batch, `--motif` analyse les séquences d’un FASTA unique, ou la requête active en mode comparaison.
+## Save, share and reproduce
 
-## Statistiques et provenance
+Completed interactive attempts accumulate in Results without requiring a project directory. Save / Export separately offers a resumable project, temporary HTML preview, durable HTML export and individual exports. Ctrl+S asks for a project directory on the first save. Later modified saves create a new sibling such as `<name>_snapshot_001`; earlier copies are unchanged. Saving an unchanged project creates no duplicate snapshot. FASTA alignment, reference evidence TSV, tree SVG and a full result folder serve different downstream uses. Paths are relative to the caller's working directory. Batch outputs and alignment-region exports refuse an existing destination. Interactive HTML sharing asks explicitly before replacing a report.
 
-**Conservation et consensus** calcule les statistiques par colonne et le consensus. **Distances entre séquences** calcule les distances p pour au plus 250 séquences ; les gaps sont exclus par paire, donc toutes les paires ne sont pas forcément comparées sur les mêmes positions.
+Every completed interactive analysis has an independent temporary snapshot. Adding datasets or opening older results retains the catalog; Back restores the previous screen. Save a project to retain the complete catalog after closing. New snapshots include a `project_manifest.json` inventory of file sizes and SHA256 hashes covering inputs, state, results, logs and nested history. It detects accidental changes; it is not authenticated proof against deliberate rewriting of both data and checksums. Older valid projects without the manifest remain readable. Resume alone reruns no engines; explicit CLI actions can request new calculations. A new alignment gets a separate entry. Earlier alignments and their trees remain readable with their original input links. A failed rerun preserves previous completed entries.
 
-FastTree requiert au moins trois séquences alignées. Choisir un modèle adapté à l’alphabet, puis lire le Newick et la figure. [Le guide du HTML](HTML.md) explique son échelle, sa racine arbitraire et ses supports locaux.
-
-**Calculs effectués et provenance** relie les résultats réussis aux paramètres, commandes et versions qui les ont produits. Les journaux stderr distincts permettent de relire plusieurs tentatives. Les paramètres actuels peuvent différer ; une relance reste nécessaire pour produire un résultat avec ces nouveaux paramètres.
-
-## Documentation et calcul sur HPC
-
-La documentation est accessible au démarrage et dans **Réglages et aide → Documentation complète**. `alignview --docs` affiche l’index hors ligne ; `--docs cli` donne les options complètes.
-
-**Enregistrer et partager → Préparer un calcul sur HPC** crée `alignview_job.sbatch`. Enregistrer le projet pour conserver les entrées auxquelles il se réfère. Vérifier ressources Slurm, chemins et moteurs sur le cluster. Aucune soumission n’est automatique ; la relance produit ses résultats dans un dossier distinct du projet sauvegardé.
+Tools and execution history exposes actual executables, versions, commands and logs. Profiles contain validated future settings; each completed calculation preserves its historical settings separately. Slurm preparation creates a script but never submits it. See [Files](FILES.md), [HTML](HTML.md) and [Validation scope](AUDIT.md).

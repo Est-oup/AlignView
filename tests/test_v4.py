@@ -1,4 +1,4 @@
-"""Intégration moteurs mockés et tests réels d'export v4 (sans dépendre des binaires HPC)."""
+"""Mock-engine integration and real v4 export tests, without HPC binaries."""
 import os
 import subprocess
 import sys
@@ -26,7 +26,7 @@ class V4Tests(unittest.TestCase):
         with temp:
             html=(out/'report.html').read_text()
             self.assertIn('data-tab="figures"',html)
-            self.assertIn('Atlas des figures',html)
+            self.assertIn('Figure atlas',html)
             self.assertIn('downloadSvg',html)
             self.assertNotIn('http://127.0.0.1',html)
             self.assertGreaterEqual(len(list((out/'figures').glob('*.svg'))),10)
@@ -37,7 +37,7 @@ class V4Tests(unittest.TestCase):
         with temp:
             self.assertEqual(len((out/'hsps_selected.tsv').read_text().splitlines()),2)
             self.assertIn('MMseqs2', (out/'logs/mmseqs_search.log').read_text() if False else 'MMseqs2')
-            self.assertTrue((out/'figures/05_hist_identite.svg').exists())
+            self.assertTrue((out/'figures/05_identity_histogram.svg').exists())
 
     def test_muscle_and_fasttree(self):
         temp,out=self.run_cli(str(ROOT/'examples/example_msa.fasta'),'--msa','align','--aligner','muscle','--tree','--report')

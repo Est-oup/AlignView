@@ -1,4 +1,4 @@
-"""Tests sans données externes ; outils mock pour les tests d’intégration."""
+"""Tests without external data; mock tools support integration tests."""
 import os
 import shutil
 import subprocess
@@ -114,7 +114,7 @@ class IntegrationTests(unittest.TestCase):
         result=self.run_cli(ROOT/'examples'/'example_msa.fasta',ROOT/'examples'/'example_msa.fasta',
                             '--mode','global-dna','--msa','all','--pairwise','global',
                             '--no-menu','--save','--out','output')
-        self.assertEqual(result.returncode,1) # QUERY multiséquence volontairement refusée
+        self.assertEqual(result.returncode,1) # Multi-sequence QUERY deliberately rejected
         self.assertIn('--query-id',result.stderr)
 
     def test_invalid_sequence(self):

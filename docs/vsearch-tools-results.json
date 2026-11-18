@@ -1,0 +1,255 @@
+[
+  {
+    "action": "search",
+    "status": "passed",
+    "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+    "engine": "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+    "summary": {
+      "input_sequences": 1,
+      "eligible_sequences": 1,
+      "excluded_by_length": 0,
+      "matches": 1,
+      "matched_references": 1
+    },
+    "commands": [
+      {
+        "command": "'/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch' --usearch_global /tmp/alignview_p1h7q7rd/results/pending_vsearch_search/input.fasta --db /tmp/alignview_p1h7q7rd/results/pending_vsearch_search/references.fasta --id 0.97 --iddef 2 --query_cov 0.0 --target_cov 0.0 --maxaccepts 0 --maxrejects 32 --maxhits 100 --minwordmatches 0 --qmask none --dbmask none --userout /tmp/alignview_p1h7q7rd/results/pending_vsearch_search/matches_raw.tsv --userfields query+target+id+alnlen+qilo+qihi+tilo+tihi+qcov+tcov+qstrand+qrow+trow --threads 4 --strand both --minseqlength 1 --maxseqlength 50000",
+        "argv": [
+          "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+          "--usearch_global",
+          "/tmp/alignview_p1h7q7rd/results/pending_vsearch_search/input.fasta",
+          "--db",
+          "/tmp/alignview_p1h7q7rd/results/pending_vsearch_search/references.fasta",
+          "--id",
+          "0.97",
+          "--iddef",
+          "2",
+          "--query_cov",
+          "0.0",
+          "--target_cov",
+          "0.0",
+          "--maxaccepts",
+          "0",
+          "--maxrejects",
+          "32",
+          "--maxhits",
+          "100",
+          "--minwordmatches",
+          "0",
+          "--qmask",
+          "none",
+          "--dbmask",
+          "none",
+          "--userout",
+          "/tmp/alignview_p1h7q7rd/results/pending_vsearch_search/matches_raw.tsv",
+          "--userfields",
+          "query+target+id+alnlen+qilo+qihi+tilo+tihi+qcov+tcov+qstrand+qrow+trow",
+          "--threads",
+          "4",
+          "--strand",
+          "both",
+          "--minseqlength",
+          "1",
+          "--maxseqlength",
+          "50000"
+        ],
+        "cwd": "/tmp/alignview_p1h7q7rd/results",
+        "stdout": null,
+        "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+        "duration_s": 0.15,
+        "exit_code": 0,
+        "stderr_log": "logs/vsearch_search.log"
+      }
+    ],
+    "checks": [
+      "native outputs",
+      "publication exports",
+      "English standalone HTML",
+      "resume without rerunning engines"
+    ]
+  },
+  {
+    "action": "dereplicate",
+    "status": "passed",
+    "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+    "engine": "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+    "summary": {
+      "input_sequences": 6,
+      "eligible_sequences": 6,
+      "excluded_by_length": 0,
+      "representatives": 3,
+      "total_abundance": 6
+    },
+    "commands": [
+      {
+        "command": "'/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch' --derep_fulllength /tmp/alignview_w2ercaws/results/pending_vsearch_dereplicate/input.fasta --output /tmp/alignview_w2ercaws/results/pending_vsearch_dereplicate/unique.fasta --uc /tmp/alignview_w2ercaws/results/pending_vsearch_dereplicate/dereplication.uc --sizeout --threads 4 --strand both --minseqlength 1 --maxseqlength 50000",
+        "argv": [
+          "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+          "--derep_fulllength",
+          "/tmp/alignview_w2ercaws/results/pending_vsearch_dereplicate/input.fasta",
+          "--output",
+          "/tmp/alignview_w2ercaws/results/pending_vsearch_dereplicate/unique.fasta",
+          "--uc",
+          "/tmp/alignview_w2ercaws/results/pending_vsearch_dereplicate/dereplication.uc",
+          "--sizeout",
+          "--threads",
+          "4",
+          "--strand",
+          "both",
+          "--minseqlength",
+          "1",
+          "--maxseqlength",
+          "50000"
+        ],
+        "cwd": "/tmp/alignview_w2ercaws/results",
+        "stdout": null,
+        "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+        "duration_s": 0.15,
+        "exit_code": 0,
+        "stderr_log": "logs/vsearch_dereplicate.log"
+      }
+    ],
+    "checks": [
+      "native outputs",
+      "publication exports",
+      "English standalone HTML",
+      "resume without rerunning engines"
+    ]
+  },
+  {
+    "action": "cluster",
+    "status": "passed",
+    "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+    "engine": "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+    "summary": {
+      "input_sequences": 6,
+      "eligible_sequences": 6,
+      "excluded_by_length": 0,
+      "representatives": 3,
+      "total_abundance": 6
+    },
+    "commands": [
+      {
+        "command": "'/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch' --cluster_fast /tmp/alignview_2d3gscjo/results/pending_vsearch_cluster/input.fasta --id 0.97 --iddef 2 --centroids /tmp/alignview_2d3gscjo/results/pending_vsearch_cluster/centroids.fasta --uc /tmp/alignview_2d3gscjo/results/pending_vsearch_cluster/clusters.uc --sizeout --qmask none --threads 4 --strand both --minseqlength 1 --maxseqlength 50000",
+        "argv": [
+          "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+          "--cluster_fast",
+          "/tmp/alignview_2d3gscjo/results/pending_vsearch_cluster/input.fasta",
+          "--id",
+          "0.97",
+          "--iddef",
+          "2",
+          "--centroids",
+          "/tmp/alignview_2d3gscjo/results/pending_vsearch_cluster/centroids.fasta",
+          "--uc",
+          "/tmp/alignview_2d3gscjo/results/pending_vsearch_cluster/clusters.uc",
+          "--sizeout",
+          "--qmask",
+          "none",
+          "--threads",
+          "4",
+          "--strand",
+          "both",
+          "--minseqlength",
+          "1",
+          "--maxseqlength",
+          "50000"
+        ],
+        "cwd": "/tmp/alignview_2d3gscjo/results",
+        "stdout": null,
+        "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+        "duration_s": 0.15,
+        "exit_code": 0,
+        "stderr_log": "logs/vsearch_cluster.log"
+      }
+    ],
+    "checks": [
+      "native outputs",
+      "publication exports",
+      "English standalone HTML",
+      "resume without rerunning engines"
+    ]
+  },
+  {
+    "action": "chimeras",
+    "status": "passed",
+    "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+    "engine": "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+    "summary": {
+      "input_sequences": 6,
+      "eligible_sequences": 6,
+      "excluded_by_length": 0,
+      "unique": 3,
+      "chimeras": 1,
+      "nonchimeras": 2,
+      "borderline": 0
+    },
+    "commands": [
+      {
+        "command": "'/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch' --derep_fulllength /tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/input.fasta --output /tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/unique.fasta --uc /tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/dereplication.uc --sizeout --threads 4 --strand both --minseqlength 1 --maxseqlength 50000",
+        "argv": [
+          "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+          "--derep_fulllength",
+          "/tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/input.fasta",
+          "--output",
+          "/tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/unique.fasta",
+          "--uc",
+          "/tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/dereplication.uc",
+          "--sizeout",
+          "--threads",
+          "4",
+          "--strand",
+          "both",
+          "--minseqlength",
+          "1",
+          "--maxseqlength",
+          "50000"
+        ],
+        "cwd": "/tmp/alignview_b55m2tzh/results",
+        "stdout": null,
+        "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+        "duration_s": 0.15,
+        "exit_code": 0,
+        "stderr_log": "logs/vsearch_dereplicate.log"
+      },
+      {
+        "command": "'/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch' --uchime_denovo /tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/unique.fasta --chimeras /tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/chimeras.fasta --nonchimeras /tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/nonchimeras.fasta --borderline /tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/borderline.fasta --uchimeout /tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/uchime.tsv --abskew 2.0 --minh 0.28 --qmask none --minseqlength 1 --maxseqlength 50000",
+        "argv": [
+          "/home/pestoup/Téléchargements/AlignView/AlignView/tools/bin/vsearch",
+          "--uchime_denovo",
+          "/tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/unique.fasta",
+          "--chimeras",
+          "/tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/chimeras.fasta",
+          "--nonchimeras",
+          "/tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/nonchimeras.fasta",
+          "--borderline",
+          "/tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/borderline.fasta",
+          "--uchimeout",
+          "/tmp/alignview_b55m2tzh/results/pending_vsearch_chimeras/uchime.tsv",
+          "--abskew",
+          "2.0",
+          "--minh",
+          "0.28",
+          "--qmask",
+          "none",
+          "--minseqlength",
+          "1",
+          "--maxseqlength",
+          "50000"
+        ],
+        "cwd": "/tmp/alignview_b55m2tzh/results",
+        "stdout": null,
+        "version": "vsearch v2.32.0_linux_x86_64, 15.5GB RAM, 8 cores",
+        "duration_s": 0.15,
+        "exit_code": 0,
+        "stderr_log": "logs/vsearch_chimeras.log"
+      }
+    ],
+    "checks": [
+      "native outputs",
+      "publication exports",
+      "English standalone HTML",
+      "resume without rerunning engines"
+    ]
+  }
+]

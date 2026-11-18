@@ -76,7 +76,7 @@ class ParameterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tools=self.tools(tmp)
             a=self.args('--mafft-maxiterate','50')
-            with self.assertRaisesRegex(ValueError,'global, local ou fast'):
+            with self.assertRaisesRegex(ValueError,'global, local or fast'):
                 tools.msa_command(Path('q'),Path('o'),options=a)
             a.mafft='local';a.mafft_op=2.5;a.mafft_ep=.1
             argv=tools.msa_command(Path('q'),Path('o'),strategy=a.mafft,options=a).argv
@@ -121,7 +121,7 @@ class ParameterTests(unittest.TestCase):
             self.assertEqual(self.args('--load-profile',str(filename)).hits,73)
             data=json.loads(filename.read_text());data['parameters']['query']='/tmp/unrelated'
             filename.write_text(json.dumps(data));before=vars(loaded).copy()
-            with self.assertRaisesRegex(ValueError,'inconnus'):load_profile(loaded,filename)
+            with self.assertRaisesRegex(ValueError,'Unknown'):load_profile(loaded,filename)
             self.assertEqual(vars(loaded),before)
             data['parameters'].pop('query');data['parameters']['mmseqs_sensitivity']=float('nan')
             filename.write_text(json.dumps(data))
@@ -228,7 +228,7 @@ class SessionParametersTests(unittest.TestCase):
         session=self.session('--mmseqs-sensitivity','6.5','--mafft','local','--mafft-op','2.2',
             '--fasttree-model','LG','--fasttree-gamma','--needle-endopen','4')
         try:
-            with patch('alignview.show_file'),redirect_stdout(io.StringIO()):session.slurm_script()
+            with patch('av_session.show_file'),redirect_stdout(io.StringIO()):session.slurm_script()
             command=shlex.split((session.work/'alignview_job.sbatch').read_text().splitlines()[-1])
             for flag,value in (('--mmseqs-sensitivity','6.5'),('--mafft-op','2.2'),('--fasttree-model','LG'),('--needle-endopen','4.0')):
                 self.assertEqual(command[command.index(flag)+1],value)
@@ -275,15 +275,15 @@ class SessionParametersTests(unittest.TestCase):
         code="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main;raise SystemExit(main(['--demo','--no-color']))"
         terminal=Terminal(code)
         try:
-            terminal.expect('L’alignement est prêt');terminal.send('2\r')
-            terminal.expect('Que souhaitez-vous calculer ?');terminal.send('1\r')
-            terminal.expect('Créer un alignement');terminal.send('4\r')
-            terminal.expect('Paramètres de calcul · MAFFT');terminal.expect('Stratégie MAFFT')
+            terminal.expect('File loaded — choose an action');terminal.send('2\r')
+            terminal.expect('Create an alignment');terminal.send('2\r')
+            terminal.expect('Advanced alignment options');terminal.send('3\r')
+            terminal.expect('Calculation parameters · MAFFT');terminal.expect('MAFFT strategy')
             terminal.send('2\r');terminal.expect('L-INS-i');terminal.send('3\r')
-            terminal.expect('appliqué au prochain calcul')
-            terminal.send('\x1bOQ');terminal.expect('Retour à l’accueil')
-            terminal.send('q');terminal.expect('Quitter AlignView ?');terminal.send('2\r')
-            terminal.expect('sans sauvegarder');self.assertEqual(terminal.process.wait(timeout=5),0)
+            terminal.expect('applies to the next calculation')
+            terminal.send('\x1bOQ');terminal.expect('File loaded — choose an action')
+            terminal.send('q');terminal.expect('Close workspace?');terminal.send('2\r')
+            terminal.expect('without saving');self.assertEqual(terminal.process.wait(timeout=5),0)
         finally:terminal.close()
 
 

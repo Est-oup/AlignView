@@ -1,4 +1,4 @@
-"""V5 : exports interopérables, portabilité, rendu HTML et absence de sauvegarde implicite."""
+"""v5: interoperable exports, portability, HTML rendering and explicit saving."""
 from __future__ import annotations
 import csv
 import json
@@ -13,6 +13,7 @@ sys.path.insert(0,str(ROOT))
 from av_core import Seq,HSP
 from av_exports import _phylip, _nexus
 from av_report_v5 import mapping_svg
+from av_version import VERSION
 
 class V5Tests(unittest.TestCase):
     def run_app(self,*options,external=True,expect=0):
@@ -39,7 +40,7 @@ class V5Tests(unittest.TestCase):
             bed=(export/'hsp_query.bed').read_text().splitlines()[1].split('\t')
             self.assertEqual(int(bed[1]),min(int(records[0]['qstart']),int(records[0]['qend']))-1)
             self.assertEqual(bed[2],str(max(int(records[0]['qstart']),int(records[0]['qend']))))
-            self.assertEqual(json.loads((export/'provenance.json').read_text())['version'],'0.1.0')
+            self.assertEqual(json.loads((export/'provenance.json').read_text())['version'],VERSION)
             self.assertIn('data-tab="exports"',(output/'report.html').read_text())
             self.assertGreaterEqual(len(list((output/'figures').glob('*.svg'))),20)
 

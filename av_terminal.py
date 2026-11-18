@@ -40,6 +40,8 @@ def fit(text, width):
 
 
 def draw(lines):
+
+    lines=[str(line) for line in lines]
     size = shutil.get_terminal_size((104, 32))
     frame = '\x1b[K\r\n'.join(fit(line, size.columns - 1) for line in lines[:max(1, size.lines - 1)])
     sys.stdout.write('\x1b[H' + frame + '\x1b[K\x1b[J')
@@ -53,6 +55,9 @@ def screen(mouse=False):
     try:
         # TCSAFLUSH discards fast input typed during a menu transition.
         tty.setcbreak(fd,when=termios.TCSANOW)
+        current=termios.tcgetattr(fd)
+        current[0] &= ~(termios.IXON | termios.IXOFF)
+        termios.tcsetattr(fd,termios.TCSANOW,current)
         prefix='\x1b[?1049h\x1b[?25l' if not _screens else ''
         if mouse and not any(_screens):prefix+='\x1b[?1000h\x1b[?1006h'
         _screens.append(mouse)

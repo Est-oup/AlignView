@@ -1,5 +1,5 @@
-Problème résolu et comportement obtenu :
+Problem and resulting behavior:
 
-Validation effectuée :
+Validation performed:
 
-Impact éventuel sur les unités, formats ou projets sauvegardés :
+Potential impact on units, formats or saved projects:

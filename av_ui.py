@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import os
 import re
 import shutil
@@ -11,6 +11,7 @@ import textwrap
 
 from av_terminal import draw, fit, read_key, screen
 from av_version import VERSION
+
 
 RESET='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'
 BLUE='\033[38;5;75m'; CYAN='\033[38;5;44m'; GREEN='\033[38;5;78m'
@@ -32,6 +33,10 @@ class MenuItem:
     reason: str = ''
 
 
+def menu_item(key,label,description='',*,enabled=True,reason=''):
+    return MenuItem(str(key),label,description,enabled=enabled,reason=reason)
+
+
 @dataclass
 class MenuFrame:
     lines: list[str]
@@ -42,12 +47,12 @@ class MenuFrame:
 
 
 RESULT_TITLES = {
-    'show_hits': 'Correspondances trouvées', 'show_coverage': 'Régions couvertes par la recherche',
-    'show_dashboard': 'Données et calculs du projet', 'show_stats': 'Qualité des séquences',
-    'guide': 'Comprendre les méthodes', 'hsp_diagnostics': 'Qualité des segments alignés',
-    'identity_coverage': 'Identité et couverture', 'list_outputs': 'Fichiers du projet',
-    'diagnostics': 'Logiciels disponibles', 'msa_analysis': 'Conservation de l’alignement',
-    'msa_distances': 'Distances entre les séquences',
+    'show_hits': 'Matches found', 'show_coverage': 'Regions covered by the search',
+    'show_dashboard': 'Project data and calculations', 'show_stats': 'Sequence quality',
+    'guide': 'Understand the methods', 'hsp_diagnostics': 'Aligned segment quality',
+    'identity_coverage': 'Identity and coverage', 'list_outputs': 'Project files',
+    'diagnostics': 'Available software', 'msa_analysis': 'Alignment conservation',
+    'msa_distances': 'Sequence distances',
 }
 
 
@@ -57,8 +62,10 @@ class UI:
         self.color=color and self.tty and not os.environ.get('NO_COLOR') and os.environ.get('TERM')!='dumb'
         self.simple=simple or not self.tty
         self.positions={}
-        self.route=['Accueil']
+        self.route=['Home']
         self.context=()
+        self.compact_context_lines=1
+        self.workflow=()
         self.notice=''
         self.status=''; self.messages=[]
 
@@ -79,7 +86,7 @@ class UI:
 
     def banner(self, subtitle=''):
         print(self.c(CYAN+BOLD,'  AlignView')+'  '+self.c(GREY,VERSION))
-        if subtitle:print('  '+subtitle)
+        if subtitle:print('  '+str(subtitle))
 
     def heading(self, text):
         print('\n  '+self.c(BLUE+BOLD,text))
@@ -99,71 +106,80 @@ class UI:
     def ask(self, label, default='', hint=''):
         if hint:self.wrapped(hint)
         try:
-            value=input('  '+label+(f' [{default}]' if default!='' else '')+' : ').strip()
+            value=input('  '+str(label)+(f' [{str(default)}]' if default!='' else '')+': ').strip()
         except EOFError:
             raise KeyboardInterrupt from None
         return value if value else default
 
     def yesno(self, label, default=False):
-        return self.ask(label+' (o/n)','o' if default else 'n').casefold() in ('o','oui','y','yes')
+        return self.ask(label+' (y/n)','y' if default else 'n').casefold() in ('y','yes')
 
     def pause(self):
         if not self.tty:return
-        try:input('\n  Entrée pour continuer… ')
+        try:input('\n  '+str('Press Enter to continue…')+' ')
         except (EOFError,KeyboardInterrupt):pass
 
     def wrapped(self, text, prefix='  ', width=None):
         for line in textwrap.wrap(str(text),max(10,(width or self.size()[0]-2)-len(prefix))):print(prefix+line)
 
-    def menu(self, title, items, subtitle='', footer='', *, hint='', default=None, shortcuts=None):
+    def menu(self, title, items, subtitle='', footer='', *, hint='', default=None, shortcuts=None, searching=False):
         entries=[item if isinstance(item,MenuItem) else MenuItem(*map(str,item)) for item in items]
+        title,subtitle,footer,hint=map(str,(title,subtitle,footer,hint))
         if self.simple:return self._menu_simple(title,entries,subtitle,hint,shortcuts or {})
-        return self._menu_keys(title,entries,subtitle,footer,hint,default,shortcuts or {})
+        return self._menu_keys(title,entries,subtitle,footer,hint,default,shortcuts or {},searching=searching)
 
     def _menu_simple(self, title, items, subtitle, hint, shortcuts):
         self.banner();print('  '+' › '.join(self.route));self.heading(title)
+        for line in self.workflow:self.info(line)
         for line in self.context:self.info(line)
         if subtitle:self.wrapped(subtitle)
         if hint:self.wrapped(hint)
         for item in items:
             self.info(f'{item.key:>2}  {item.label}')
-            self.wrapped(item.description if item.enabled else 'Indisponible : '+item.reason,prefix='      ')
+            self.wrapped(item.description if item.enabled else 'Unavailable: '+item.reason,prefix='      ')
         while True:
-            value=self.ask('Choix (q : retour)', 'q').casefold()
-            if value in ('q','0'):return None
-            if value=='accueil':raise HomeRequested
+            value=self.ask('Choice (q: back)', 'q').casefold()
             if value in shortcuts:return shortcuts[value]
+            if value in ('q','0'):return None
+            if value=='home':raise HomeRequested
             exact=next((item for item in items if item.key.casefold()==value),None)
             matches=[item for item in items if value in item.label.casefold()]
             selected=exact or (matches[0] if len(matches)==1 else None)
             if selected:
                 if selected.enabled:return selected.key
                 self.warn(selected.reason)
-            else:self.warn('Choix inconnu ; saisir le numéro affiché.')
+            else:self.warn('Unknown choice; enter the displayed number.')
 
-    def _menu_frame(self,title,items,subtitle='',hint='',active=0,phrase='',typing=False,digits='',notice=''):
-        width,height=self.size()
+    def _menu_frame(self,title,items,subtitle='',hint='',active=0,phrase='',typing=False,digits='',notice='',dimensions=None):
+        width,height=dimensions or self.size()
         entries=[item for item in items if phrase.casefold() in ' '.join((item.label,item.description,item.reason,item.key)).casefold()]
         active=max(0,min(active,len(entries)-1))
         compact=height<19
-        rich=len(items)<=7 and height>=22
+        rich=len(items)<=5 and height>=22
         header=[self.c(CYAN+BOLD,'  AlignView')+'  '+self.c(GREY,VERSION),
                 '  '+self.c(GREY,' › '.join(self.route)), '  '+self.c(BOLD,title)]
+        if compact and self.context:
+            header.extend('  '+fit(line,max(10,width-4)) for line in self.context[:self.compact_context_lines])
+        workflow_lines=self.workflow if height>=30 else self.workflow[-1:]
+        header.extend('  '+self.c(CYAN,line) for line in workflow_lines)
         if not compact:
-            header.extend('  '+self.c(GREY,line) for line in self.context[:2])
-            explanation=hint or subtitle
-            header.extend('  '+line for line in textwrap.wrap(explanation,max(10,width-4))[:2])
+            header.extend('  '+self.c(GREY,line) for line in self.context[:1 if self.workflow else 2])
+            if subtitle and hint:
+                header.extend('  '+fit(value,max(10,width-4)) for value in (subtitle,hint))
+            else:
+                header.extend('  '+line for line in textwrap.wrap(hint or subtitle,max(10,width-4))[:2])
             header.append('')
         selected=entries[active] if entries else None
-        detail=notice or (('' if rich else selected.description) if selected and selected.enabled else selected.reason if selected else 'Aucun résultat. Échap pour effacer la recherche.')
+        detail=notice or (('' if rich else selected.description) if selected and selected.enabled else selected.reason if selected else 'No results. Esc clears the search.')
         details=textwrap.wrap(detail,max(10,width-4))[:2]
         details+=['']*(2-len(details))
-        if typing:control='Recherche : '+phrase+'▏ · Entrée ouvre le résultat'
-        elif digits:control='Choix : '+digits+' · Entrée pour ouvrir'
-        else:control=('↑↓ choisir · Entrée ouvrir · q quitter' if self.route==['Accueil'] and title=='Projet'
-                      else '↑↓ choisir · Entrée ouvrir · ←/Échap retour · F2 accueil')
+        if typing:control='Search: '+phrase+'▏ · Enter opens the result'
+        elif digits:control='Choice: '+digits+' · Enter to open'
+        else:control=('↑↓ select · Enter open · q quit' if self.route==['Home'] and title==str('Project')
+                      else '↑↓ select · Enter open · ←/Esc back · F2 home')
         footer=['  '+self.c(YELLOW if notice or (selected and not selected.enabled) else GREY,line) for line in details]
         footer.extend(['', '  '+control, ''])
+        if rich and not notice and (not selected or selected.enabled):footer=['', '  '+control, '']
         if compact:footer=footer[:1]+['  '+control,'']
         unit=2 if rich else 1
         count=max(1,(height-1-len(header)-len(footer))//unit)
@@ -171,22 +187,22 @@ class UI:
         frame=list(header);hit_rows={}
         for index in range(start,min(len(entries),start+count)):
             item=entries[index]
-            label=f' {"›" if index==active else " "} {item.key:>2}  {item.label}'+('  [indisponible]' if not item.enabled else '')
+            label=f' {"›" if index==active else " "} {item.key:>2}  {item.label}'+('  [unavailable]' if not item.enabled else '')
             hit_rows[len(frame)+1]=index
             frame.append(self.c(HIGHLIGHT+FG+BOLD,label) if index==active else self.c(GREY,label) if not item.enabled else label)
             if rich:
                 hit_rows[len(frame)+1]=index
                 frame.append('       '+self.c(GREY,item.description if item.enabled else item.reason))
-        if not entries:frame.append('  Aucun résultat pour cette recherche.')
-        footer[-1]='  '+self.c(GREY,f'{active+1 if entries else 0}/{len(entries)} · / rechercher · PgUp/PgDn pages · F1 détails')
+        if not entries:frame.append('  No results for this search.')
+        footer[-1]='  '+self.c(GREY,f'{active+1 if entries else 0}/{len(entries)} · / search · PgUp/PgDn pages · F1 details')
         frame.extend(footer)
         return MenuFrame(frame,entries,active,hit_rows,count)
 
-    def _menu_keys(self,title,items,subtitle,footer,hint,default,shortcuts):
+    def _menu_keys(self,title,items,subtitle,footer,hint,default,shortcuts,searching=False):
         position_key=(*self.route,title)
         saved=self.positions.get(position_key,default)
         active=next((i for i,item in enumerate(items) if item.key==saved),0)
-        phrase='';digits='';typing=False;notice=self.notice;self.notice=''
+        phrase='';digits='';typing=searching;notice=self.notice;self.notice=''
         previous=None
         with screen(mouse=True):
             while True:
@@ -205,22 +221,24 @@ class UI:
                     selected=frame.entries[active] if frame.entries else None
                     # Nested alternate-screen contexts would erase the current frame on exit.
                     # The outer loop redraws the full menu after this details page.
-                    self.page((selected.label+'\n\n'+selected.description+('\n\n'+selected.reason if selected.reason else '') if selected else 'Aucun résultat.')+'\n\n'+(hint or subtitle)+'\n\n'+footer,'Détails')
+                    self.page((selected.label+'\n\n'+selected.description+('\n\n'+selected.reason if selected.reason else '') if selected else 'No results.')+'\n\n'+(hint or subtitle)+'\n\n'+footer,'Details')
                     previous=None
                     continue
                 if key=='esc':
                     if phrase or typing:phrase='';typing=False;active=0
                     elif digits:digits=''
-                    elif self.route==['Accueil'] and title=='Projet':continue
+                    elif self.route==['Home'] and title=='Project':continue
                     else:return None
                     notice='';continue
+                if typing and key in ('up','down','pageup','pagedown'):typing=False
                 if typing:
                     if key in ('\r','\n'):typing=False
                     elif key in ('\x7f','\b'):phrase=phrase[:-1];active=0;continue
                     elif len(key)==1 and key.isprintable():phrase+=key;active=0;continue
                     else:continue
                 else:
-                    if key=='left' and self.route==['Accueil'] and title=='Projet':continue
+                    if key=='left' and self.route==['Home'] and title=='Project':continue
+                    if key in ('q','Q') and key in shortcuts:return shortcuts[key]
                     if key in ('q','Q','left'):return None
                     if key=='/':typing=True;phrase='';active=0;notice='';continue
                     if key in ('up','k'):active=max(0,active-1);digits=''
@@ -254,7 +272,7 @@ class UI:
                     if selected:
                         if selected.enabled:self.positions[position_key]=selected.key;return selected.key
                         notice=selected.reason
-                    else:notice='Aucun choix correspondant.'
+                    else:notice='No matching choice.'
                 else:notice=''
 
     def present(self,action):
@@ -264,12 +282,15 @@ class UI:
         import contextlib,io
         output=io.StringIO()
         with contextlib.redirect_stdout(output):result=action()
-        self.page(output.getvalue(),RESULT_TITLES[name])
+        session=getattr(action,'__self__',None)
+        deferred=getattr(session,'library_root',None) is not None and name in ('show_stats','msa_analysis','msa_distances')
+        if not deferred:self.page(output.getvalue(),RESULT_TITLES[name])
         return result
 
-    def page(self,text,title='Résultats'):
+    def page(self,text,title='Results'):
+        text,title=str(text),str(title)
         if self.simple:print(text);return
-        content=[re.sub(r'\x1b\[[0-9;]*m','',line) for line in str(text).expandtabs(4).splitlines()] or ['Aucun résultat.']
+        content=[re.sub(r'\x1b\[[0-9;]*m','',line) for line in str(text).expandtabs(4).splitlines()] or ['No results.']
         row=col=0;phrase='';typing=False
         maximum=max(map(len,content));previous=None
         with screen(mouse=True):
@@ -280,10 +301,10 @@ class UI:
                 signature=(width,height,row,col,phrase,typing)
                 if signature!=previous:
                     draw([' '+' › '.join(self.route), ' '+self.c(BOLD,title),
-                      f' Lignes {row+1}–{min(len(content),row+count)}/{len(content)} · décalage horizontal {col}',
+                      f' Rows {row+1}–{min(len(content),row+count)}/{len(content)} · horizontal offset {col}',
                       *[line[col:] for line in content[row:row+count]],
-                      (' Recherche : '+phrase+'▏') if typing else ' ↑↓ / PgUp/PgDn défiler · ←→ latéral · / chercher · n suivant',
-                          ' Échap / q retour · F2 accueil'])
+                      (' Search: '+phrase+'▏') if typing else ' ↑↓ / PgUp/PgDn scroll · ←→ horizontal · / search · n next',
+                          ' Esc / q back · F2 home'])
                     previous=signature
                 key=read_key()
                 if key=='tick':continue

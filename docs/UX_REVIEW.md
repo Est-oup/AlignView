@@ -1,46 +1,29 @@
-# Revue critique de l’interface
+# Interface review
 
-Révision du 10 novembre 2026, après retour d’utilisation sur la première préparation 0.1.0.
+The current interaction starts with an explanatory file menu and independent completed results. It replaces both the goal-first route and the automatic sequence-table arrival. This describes implemented behavior, not measured user satisfaction.
 
-## Diagnostic
+## Core behavior
 
-La première refonte avait ajouté des fonctions et raccourcis sans réduire suffisamment les décisions. Les tests validaient calculs et touches ; ils ne démontraient pas la clarté du parcours complet.
+Opening a bare FASTA shows its filename, count, type and ungapped lengths, with five explained actions. It opens no table or reader automatically. Other analyses uses small groups, and sequence operations explicitly select their target. Calculation preparation remains separate from Run.
 
-| Problème observé | Conséquence | Modification |
-| --- | --- | --- |
-| Jusqu’à 13 entrées à l’accueil, destinations dupliquées | Difficile de savoir par où commencer | Cinq rubriques stables, un contexte et une étape conseillée |
-| Nombreuses méthodes de menus aux vocabulaires variables | Profondeur et repères incohérents | Contrôleur unique `av_navigation.py` |
-| Moteurs et profils proposés trop tôt | Il faut connaître les logiciels avant de poser une question | Démarrage par intention, proposition compatible et aperçu avant calcul |
-| Actions proposées sans données nécessaires | Commandes sans effet, erreurs tardives | Choix indisponibles avec leur prérequis expliqué |
-| Libellé et description dans une ligne étroite | Texte tronqué difficile à comparer | Une colonne, description sous le libellé |
-| Retours locaux uniquement | Perte de repères dans les sous-menus | Fil de navigation, Échap/← et F2 accueil |
-| Touches vidées pendant les transitions | Une touche rapide semble sans effet | Mode terminal changé sans vider les touches en attente |
-| Aide dans un écran alternatif imbriqué | Écran ou souris mal restaurés | Gestion des écrans imbriqués vérifiée dans un PTY |
-| Rafraîchissement permanent au repos | Sortie SSH inutile, scintillement possible | Rendu après modification ou redimensionnement |
-| Profils changeant aussi le maximum de hits | Nombre de résultats modifié de façon peu visible | Limite 100 indépendante du profil ; `--hits` prioritaire |
-| Séquence active implicite dans un FASTA unique | Analyses ciblant la première séquence sans choix clair | Sélection explicite, FASTA complet conservé pour le MSA |
-| Historique temporaire assimilé à une sauvegarde | Risque de quitter en pensant le travail conservé | Reprise d’historique toujours marquée à enregistrer |
-| Réglages futurs confondus avec le calcul existant | Interprétation ambiguë après modification | Paramètres calculés conservés séparément, état de relance visible |
-| Rapport avec cartes vides et toutes les figures ouvertes | Même surcharge dans le navigateur | Guide de lecture, vues selon les données, figures dépliables |
+Completed calculations return to a result-ready summary. Open this result is an explicit reader action; Back to file actions restores the recognizable menu. Files and previous results provides file switching, completed attempts, optional exports and settings. The visible menus work with arrows/Enter, numbers or clicks; shortcuts are optional.
 
-## Parcours retenus
+Reference comparison adds a checkbox query selector with all/clear/filter controls. A single Run can compare several selected records with the same references, grouped by query. A failure or interruption preserves completed members. The group and per-query evidence survive project saving; the group HTML explicitly describes a summary rather than pooled evidence.
 
-L’accueil suit les tâches : **Explorer, Analyser, Données, Enregistrer et partager, Réglages et aide**. Le moteur reste accessible sans imposer sa connaissance au premier écran.
+Find matching sequences names the two input roles explicitly: queries are searched against a local target FASTA. Separate query/target lines remain visible in compact preparation menus, result summaries and Matches. Preparation offers a target change without losing query selection and a full-path/identifier review. Offline reports retain the same input direction above their result views.
 
-Un alignement existant est chargé sans moteur. Un FASTA brut reste chargé avant calcul ; l’aperçu précise les séquences et le moteur. Une comparaison commence par une recherche, dont les correspondances et couvertures sont regroupées. Créer ensuite un MSA reste une action explicite.
+Every completed interactive operation retains a separate temporary snapshot. Opening an older attempt does not remove newer ones. Tree input links point to the alignment used. Translations, ORFs, extracted regions and alignments can be reused as sequence data without export/reimport.
 
-Projet, rapport et exports sont décrits par leur usage : reprendre, présenter, réutiliser. Un enregistrement est visible et ne provoque pas de deuxième copie à la fermeture.
+Result-ready screens offer Rename this result. Display names persist with the project while stable result identifiers and scientific snapshots retain their original content. Reopened projects detach both current inputs and earlier results from the saved source folder.
 
-## Vérification
+Esc returns to the previous screen, with per-object list and alignment-reader state retained. The catalog header and rows also accept mouse clicks. Nested calculation settings retain F2 access to the workspace. The result summary offers Try different settings for supported result kinds, preserving the earlier attempt.
 
-Les tests parcourent de vrais pseudo-terminaux : démo → visionneuse → F2 ; réglages imbriqués → F2 ; prérequis manquant ; alignement guidé ; sélecteur ; changement de requête et historique ; sauvegarde et fermeture.
+## Saving and browser reading
 
-Avec 120 références, les tests vérifient que 100 sont retenues et exportées. Profils, limites explicites et reprise de paramètres existants sont testés séparément. Les cinq rubriques et leurs libellés tiennent dans un terminal 80×24.
+Project saving is optional until the user wants to keep work after closing. A temporary HTML preview opens without asking for a destination. Durable HTML export is separate. The report uses direct view navigation and Back/Forward controls; it does not prescribe a next step or pretend to run scientific engines.
 
-Le rapport est contrôlé dans Chrome, en complément des tests de formats. Ces vérifications portent sur des comportements observables ; elles ne remplacent pas les retours d’usage sur les données et terminaux de travail.
+## Verification and limits
 
-La [revue des calculs](CALCULATION_REVIEW.md) complète cette révision : les contrôles scientifiques sont accessibles avant lancement, propres au moteur sélectionné, accompagnés de leur effet et réutilisables dans des profils. L’aperçu des commandes et la provenance distinguent configuration future et calcul effectué.
+File-menu acceptance checks exercise loading without automatic output, explained choices on small screens, canceled preparation, explicit target selection and explicit reader opening. Exploration tests also exercise independent alignments, tree lineage, selected-record scope, failed/canceled preparation, filter changes, save/reopen, navigation/reader state, highlighted-sequence actions and preview without destination prompts. PTY checks exercise the actual terminal entry point; browser checks exercise history and linked scientific views.
 
-## Limites
-
-Les grands FASTA restent en mémoire, les rapports gardent des modules historiques et toutes les versions de moteurs/plateformes ne sont pas validées. Les huit moteurs ont désormais un essai réel local, avec des paramètres de départ et modifiés. L’audit scientifique conserve les limites de portée. Aucune satisfaction utilisateur ou supériorité générale n’est déduite du nombre de tests.
+Catalog snapshots currently copy complete working states, which uses additional scratch storage. Completed operations are retained; failed attempts are reported by the existing error UI. Native calculations remain foreground operations. Archive/Undo, a live browser computation service and concurrent job scheduling are not implemented. Observe representative users and large datasets before claiming usability or performance improvements.

@@ -1,109 +1,102 @@
-# AlignView
+# AlignView 1.0
 
-**Explorer des séquences, construire des alignements et partager des résultats compréhensibles.**
+**Load sequences, choose any analysis, and return to every earlier result.**
 
-Application terminal pour Linux et SSH/HPC, Python 3.10+, sans dépendance Python obligatoire. Version locale : **0.1.0**. Le rapport HTML est autonome ; les figures sont exportables en SVG.
+AlignView is a terminal workspace for Linux and SSH, with an offline HTML companion. Data and Results stay accessible throughout the session, with dedicated readers for alignments, matches, trees and sequence analyses. You can select references from the evidence table, trace an alignment against a chosen sequence, export a region, and keep the exact calculation settings that produced the result.
 
-## Lancer l’application
+Python 3.10+ is required. The application uses only the standard library; scientific executables are optional and needed only for the calculation you choose. The application, source and single bundled manual use English.
 
-Tout le nécessaire à l’application est dans ce dossier **`AlignView/`**. On peut le copier entier. Pour garder les résultats à côté de ses données, lancer depuis son dossier de travail :
-
-```bash
-cd /chemin/vers/mes_donnees
-/chemin/vers/AlignView/alignview.sh --demo
-/chemin/vers/AlignView/alignview.sh
-```
-
-Depuis l’intérieur d’`AlignView/`, utiliser `./alignview.sh`. La démonstration ne nécessite aucun moteur externe. Le lanceur conserve le dossier courant : les chemins relatifs des entrées et des sorties partent de ce dossier.
-
-**Premier usage : [suivre les premiers pas](docs/QUICKSTART.md).** Tous les guides sont dans [l’index de documentation](docs/README.md).
+## Start with a task
 
 ```bash
-./alignview.sh --docs                 # choisir un guide depuis l’index
-./alignview.sh --docs demarrage       # les premiers pas
-./alignview.sh --docs fichiers        # où vont les résultats ?
-./alignview.sh --docs depannage       # résoudre un problème
+/path/to/AlignView/alignview.sh --demo
+/path/to/AlignView/alignview.sh view aligned.fasta
+/path/to/AlignView/alignview.sh align sequences.fasta
+/path/to/AlignView/alignview.sh compare queries.fna references.faa
+/path/to/AlignView/alignview.sh report my_project --html-out study.html
 ```
 
-L’aide est disponible au démarrage avec **Lire la documentation**, ou dans **Réglages et aide → Documentation complète**. Elle est aussi embarquée dans le wheel et le `.pyz`.
+Without arguments, choose **Load sequences**, **Open a saved project**, or the demo. Opening a bare FASTA displays its name, sequence count/type and a short action menu. It does not open a sequence table or alignment reader automatically. No goal selection, fixed route or project save is required. Equal-length sequences are not silently declared aligned. The demo needs no external engine.
 
-![Accueil AlignView](docs/navigation-preview.svg)
+Keep the complete application in one `AlignView/` folder and launch from your data directory. The launcher preserves the caller's directory; relative inputs and outputs belong there.
 
-## Trouver une fonction
+## Explore freely
 
-| Rubrique | Fonctions principales |
+After loading, choose one of five explained actions: **Look at the sequences**, **Align sequences**, **Find matching sequences**, **Other analyses**, or **Files and previous results**. The file menu is your starting point whenever you want to do something else. No goal selection or keyboard-command knowledge is required.
+
+An analysis first shows its preparation screen. Run starts it; Esc cancels and returns to the same file menu. A completed calculation opens a **result-ready summary**, where you can open the result, try different settings, return to file actions or revisit an earlier result. Tables and readers open only after you choose them. Explicit CLI tasks such as `view` still perform the task you requested.
+
+Every completed interactive analysis receives its own temporary snapshot. Run another alignment or change search filters: the previous alignment and its tree remain in Results. Opening a result does not rerun its engine. Its recorded input links identify the dataset or alignment used. Translation, extracted-region, ORF and alignment outputs can be reused through **Use result as sequence data**.
+
+**Esc** returns to the preceding view with its filter, cursor and reading position retained. **Enter** opens the highlighted item. **:** or **Ctrl+P** finds every command; **w** previews HTML without asking for an export destination. Menus accept arrow keys, Enter or mouse clicks. In the file menu, q closes; Esc goes back when a preceding context exists. Saving is optional and is only needed to retain the workspace after closing.
+
+![Persistent terminal workspace](docs/navigation-preview.svg)
+
+**Find matching sequences** first lets you check one or several query sequences from the FASTA. Space checks a row, a selects all, c clears and / finds an identifier; Enter confirms. Choose the reference data, review the scope and Run. Multiple queries produce a grouped result with one independent comparison per query, retaining its own coverage, identity and references. Previous results shows the group; Open this result lets you choose its query results.
+
+A comparison shows its selected queries, inputs and engine before execution. Multi-query FASTA input requires an explicit choice. Search evidence keeps local HSP identity and union coverage distinct; VSEARCH retains its own global metrics. Selecting references changes alignment scope without pretending to change the original search.
+
+## Save, share or reuse
+
+| Need | Action or option |
 | --- | --- |
-| **1 · Explorer** | Visionneuse MSA, séquences, qualité, HSP, couvertures, conservation, distances, arbre |
-| **2 · Analyser** | Recherches BLAST/DIAMOND/MMseqs2, MSA, Needle/Water, motifs, traduction, ORF, profils, dotplot |
-| **3 · Données** | Séquence active, changement de fichiers, historique et reprise de projet |
-| **4 · Enregistrer et partager** | Projet portable, HTML, tables, alignements, SVG et script Slurm |
-| **5 · Réglages et aide** | Moteurs, paramètres, profils JSON, provenance et documentation complète |
-
-Les prérequis des choix indisponibles sont expliqués. **Échap / ←** revient d’un niveau ; **F2** revient à l’accueil ; **F1** explique le choix sélectionné ; `/` recherche dans les listes. Les numéros se valident avec Entrée. La visionneuse conserve sa position et dispose de sa propre aide `?`.
-
-Une recherche de similarités détecte des segments locaux ; un MSA compare des colonnes de séquences supposées homologues. Ces deux étapes répondent à des questions différentes. Le [guide de toutes les fonctions](docs/USAGE.md) décrit les entrées, les actions et l’interprétation de chaque parcours.
-
-## Conserver les résultats au bon endroit
-
-Les calculs restent temporaires tant qu’une sauvegarde ou un export n’est pas demandé.
-
-| Besoin | Option ou action | Résultat |
-| --- | --- | --- |
-| Reprendre plus tard | `--save --out resultats/projet_01` | Projet complet, relatif au dossier de lancement |
-| Garder seulement la présentation | `--html-out rapport.html` | HTML autonome, sans projet de reprise |
-| Réutiliser des données | `--export-profile publication --export-dir exports_01` | Tables, alignements, HTML et SVG selon les données |
-| Préparer le HTML dans un projet | `--report --save --out projet_01` | `projet_01/report.html` et résultats associés |
-
-`--out` seul ne sauvegarde pas ; `--report` seul prépare un HTML temporaire. Une destination existante est refusée en batch. Sans `--out`, `--save` crée un dossier daté dans le dossier de lancement. Les [règles de fichiers](docs/FILES.md) détaillent le comportement, les temporaires et la récupération.
-
-Les commandes suivantes supposent la commande `alignview` installée ; sans installation, la remplacer par `/chemin/vers/AlignView/alignview.sh` :
+| Continue calculations later | Save project / `--save --out project_01` |
+| Share a browser exploration | Share HTML / `--html-out study.html` |
+| Reuse specific results | Export FASTA, evidence TSV, tree SVG or a result folder |
 
 ```bash
-# Lire sans lancer de moteur et conserver un HTML.
-alignview aligne.fasta --msa view --html-out rapport.html --no-menu
+# View an existing alignment; retain one standalone report.
+./alignview.sh report aligned.fasta --html-out study.html
 
-# Aligner, puis garder toutes les données dans un projet.
-alignview sequences.fasta --msa align --report --save --out resultats/msa_01 --no-menu
+# Build and save an alignment in batch.
+./alignview.sh align sequences.fasta --no-menu --save --out project_01
 
-# Chercher une requête ADN contre des références protéiques.
-alignview requete.fna references.faa --mode blastx --msa hits --report --save --out resultats/recherche_01 --no-menu
+# Compare a chosen nucleotide query with protein references.
+./alignview.sh compare queries.fna references.faa --query-id query_2 \
+  --mode blastx --no-menu --save --out comparison_01
 
-# Arbre et figure à partir d’un alignement existant.
-alignview aligne.fasta --msa view --tree --report --save --out resultats/arbre_01 --no-menu
+# Resume without rerunning old calculations.
+./alignview.sh resume project_01
 
-# Reprendre sans recalcul, ou reconstruire seulement le HTML.
-alignview --resume resultats/arbre_01
-alignview --resume resultats/arbre_01 --html-out actualise.html --no-menu
+# Rebuild a project's HTML snapshot without scientific engines.
+./alignview.sh report project_01 --html-out updated.html
 ```
 
-## HTML, figures et arbre
+Batch output destinations are refused when they already exist. Interactive HTML sharing asks before replacing a report. `--out` alone does not save; `--report` alone prepares temporary HTML. A project includes input copies, available results, history and provenance. HTML is a standalone snapshot containing its data, scripts, styles and SVG figures; no server, CDN or Internet connection is required to read it.
 
-Le HTML s’ouvre dans un navigateur après la fermeture d’AlignView et peut être partagé seul. Il propose un résumé guidé, les correspondances, les séquences, le MSA, le dotplot, l’atlas de figures, les exports et la provenance selon les données disponibles.
+In Matches, **View aligned regions** shows the query/target IDs, native positions and aligned letters for each local segment. The browser report highlights the selected segment, labels the coordinates of each displayed page and can download both complete aligned rows. Empty engine results are explained separately from matches excluded by filters.
 
-Après un calcul FastTree, **Voir l’arbre** ouvre sa figure avec identifiants, branches, supports et échelle. **Télécharger SVG** conserve une figure vectorielle. Les fichiers sont aussi dans `figures/45_arbre_fasttree.svg` et `tree_fasttree.nwk`. La racine de dessin est arbitraire ; les supports locaux SH-like ne sont pas des bootstraps.
+`--no-menu` also disables readers and save prompts when run in an interactive terminal. The `report` task writes its HTML and exits. Projects are retained only when explicitly saved or exported.
 
-Le [guide du HTML](docs/HTML.md) explique les vues et les limites de données intégrées. Les exports applicatifs complets sont décrits dans [Formats et coordonnées](docs/EXPORTS.md).
+## Scientific tools and limits
 
-## Moteurs et paramètres
-
-La lecture, la visualisation et les analyses internes fonctionnent sans moteur externe. MAFFT/MUSCLE/Clustal Omega créent les MSA ; BLAST/DIAMOND/MMseqs2 effectuent les recherches ; EMBOSS compare deux séquences ; FastTree calcule un arbre.
+Supported engines include BLAST, DIAMOND, MMseqs2, MAFFT, MUSCLE 5, Clustal Omega, EMBOSS Needle/Water, FastTree and VSEARCH. Inspect their paths and versions with `alignview tools`. Missing engines have an explicit setup plan:
 
 ```bash
-./alignview.sh --diagnose
-./alignview.sh --setup minimal                    # afficher le plan
-./alignview.sh --setup minimal --install-tools    # exécuter avec Conda/Mamba/Micromamba
+./alignview.sh tools
+./alignview.sh tools --setup mafft
+./alignview.sh tools --setup mafft --install-tools
 ```
 
-L’installation des moteurs est facultative et peut utiliser un environnement dédié, les programmes existants ou les modules HPC. Pour les regrouper dans `AlignView/tools/`, suivre [l’installation locale](docs/INSTALLATION.md). Le téléchargement des moteurs n’est pas nécessaire pour lire les exemples.
+A local `tools/` environment, loaded HPC modules, executable directories and explicit executable paths are supported. The application does not bundle scientific binaries or submit Slurm jobs automatically.
 
-Avant chaque calcul : **Paramètres de calcul / Paramètres du moteur**, **F1** pour comprendre l’effet, **Voir les commandes** pour inspecter les arguments. Les profils JSON réutilisent les réglages. Les paramètres d’un résultat déjà calculé restent conservés dans la provenance, même si les réglages futurs changent.
+The bundled `examples/demo_query.fna` / `examples/demo_references.faa` provide a synthetic query-to-reference example in [Getting started](docs/QUICKSTART.md).
 
-Une nouvelle recherche conserve jusqu’à **100 références** par défaut. Les profils de seuil Standard/Plus permissif/Plus strict ne changent pas ce maximum. `--hits 200` l’augmente explicitement ; une reprise conserve les réglages enregistrés sauf option explicite.
+The 27 bundled NCBI translation tables require a biological choice; the simple ORF detector is not a gene predictor. FastTree needs at least three aligned sequences. Its drawing root is arbitrary and local SH-like support is not bootstrap support. Local search identity is not whole-sequence identity, and uncovered regions do not prove non-homology. See the [release contract](docs/RELEASE_CONTRACT.md) and [validation scope](docs/AUDIT.md).
 
-## Documentation complète
+## Documentation and development
 
-[Premiers pas](docs/QUICKSTART.md) · [Tous les parcours](docs/USAGE.md) · [Dossiers et sauvegardes](docs/FILES.md) · [Installation](docs/INSTALLATION.md) · [Paramètres](docs/PARAMETERS.md) · [HTML et figures](docs/HTML.md) · [Exports](docs/EXPORTS.md) · [CLI complète](docs/CLI.md) · [Dépannage](docs/TROUBLESHOOTING.md) · [Glossaire](docs/GLOSSARY.md).
+Bioconda packaging is prepared locally in [packaging/bioconda](packaging/bioconda/README.md), with a verified-source recipe generator and [submission handoff](packaging/bioconda/SUBMISSION.md). This does not mean the package is already available on Bioconda.
 
-[Développement](docs/DEVELOPMENT.md) · [Publication](docs/RELEASING.md) · [Audit et limites](docs/AUDIT.md) · [Contribuer](CONTRIBUTING.md) · [Licence MIT](LICENSE).
+`alignview --help` explains the common tasks; `--help-all` lists all engine options. `alignview --docs` opens the offline manual before any dataset is loaded.
 
-Les FASTA et MSA sont chargés en mémoire. L’import interactif est FASTA/FASTA gzip ; les autres formats annoncés sont des exports. Les arbres et ORF sont exploratoires ; les traductions utilisent le code standard. Les distributions sont préparées localement, sans publication PyPI/Bioconda revendiquée. La validation locale ne remplace pas les essais sur le cluster et les données réellement utilisés.
+[Getting started](docs/QUICKSTART.md) · [Usage](docs/USAGE.md) · [Files](docs/FILES.md) · [Installation](docs/INSTALLATION.md) · [Parameters](docs/PARAMETERS.md) · [HTML](docs/HTML.md) · [VSEARCH](docs/VSEARCH.md) · [Genetic codes](docs/GENETIC_CODES.md) · [CLI](docs/CLI.md).
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 scripts/generate_cli_docs.py --check
+python3 scripts/check_docs.py
+python3 scripts/build_release.py
+```
+
+See [Design review and comparison](docs/DESIGN_REVIEW.md), [Development](docs/DEVELOPMENT.md), [Contributing](CONTRIBUTING.md) and [Releasing](docs/RELEASING.md). Local checks establish the tested behavior, not a biological accuracy ranking or universal cluster compatibility.

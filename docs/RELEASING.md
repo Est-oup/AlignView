@@ -1,40 +1,63 @@
-# Première publication 0.1.0
+# Prepare and verify a release
 
-Le dossier racine à placer dans GitHub est celui contenant ce README et `pyproject.toml`, sans les données voisines ni les archives des prototypes.
+`av_version.VERSION` is the application version. The wheel, source archive, zipapp, portable ZIP and checksum manifest must all agree with it. A version number identifies the supported contract; it does not establish biological accuracy or universal platform compatibility. See the [1.0 release contract](RELEASE_CONTRACT.md).
 
-## État préparé
+## Build environment
 
-Le nom public et la commande sont `AlignView` / `alignview`. La version publique démarre à 0.1.0. Les sources, le wheel, le zipapp, les environnements Conda, la recette Bioconda et la CI sont préparés. Aucune publication GitHub, PyPI ou Bioconda n’est effectuée ici.
-
-## Avant le tag
-
-1. Exécuter la CI du dépôt créé et les validations des moteurs réels.
-2. Tester l’installation dans un environnement neuf, l’ouverture de projets transférés et les raccourcis dans les terminaux SSH utilisés.
-3. Valider le profil minimal sur Linux et le cluster cible ; conserver versions et résultats. Vérifier aussi BLASTX et TBLASTN avec des séquences de référence connues.
-4. Compléter URL du dépôt, auteur/mainteneur et contact. Ne pas inventer de DOI. Vérifier la disponibilité du nom sur les registres au moment de publier.
-5. Actualiser `av_version.py`, le changelog et la recette ; construire et vérifier les artefacts.
+Use a Python environment containing the build tools. The application itself does not depend on them.
 
 ```bash
-python -m unittest discover -s tests -v
-python scripts/validate_real_tools.py --require mafft blastn diamond
-python -m build
-python scripts/build_pyz.py
-python -m twine check dist/*
-python scripts/checksums.py
+python3 -m pip install 'setuptools>=77' wheel build twine
+python3 scripts/build_release.py
 ```
 
-Le workflow `artifacts.yml`, déclenché par tag ou manuellement, construit les fichiers et les conserve comme artefacts Actions. Il ne crée pas de release publique et ne téléverse rien sur PyPI. Les fichiers sont `dist/alignview-0.1.0.tar.gz`, `dist/alignview-0.1.0-py3-none-any.whl`, `alignview.pyz` et `dist/SHA256SUMS`.
+The command runs the full test suite, checks generated CLI documentation and manual links, builds the wheel/source archive from a fresh temporary source copy, normalizes archive metadata, builds both portable forms, checks distribution metadata and checksums, and exercises the installed artifacts. It publishes nothing and does not install scientific engines.
 
-## PyPI
+When the full suite has already passed on the exact current sources, `--skip-tests` avoids repeating it. `--contents-only` explicitly omits execution of the installed artifacts; it is not sufficient for a final release.
 
-Une fois le compte, le nom et l’URL du dépôt finalisés, publier le wheel et le sdist validés. Un déploiement avec Trusted Publishing peut être configuré dans le vrai dépôt. Les exécutables scientifiques restent hors du wheel Python.
+## Result files
 
-## Bioconda
+For a version such as `1.0.0`, the complete release set is:
 
-La [recette modèle](../packaging/bioconda/meta.yaml.template) est un paquet `noarch: python`. Remplacer propriétaire, dépôt, URL de release stable, SHA256 réel et mainteneur GitHub. Tester puis soumettre la recette à `bioconda/bioconda-recipes` selon les [directives officielles](https://bioconda.github.io/contributor/guidelines.html).
+```text
+dist/
+  alignview-1.0.0-py3-none-any.whl
+  alignview-1.0.0.tar.gz
+  alignview-1.0.0.pyz
+  AlignView-1.0.0-portable.zip
+  SHA256SUMS
+```
 
-Les moteurs restent facultatifs pour permettre une installation légère et les modules HPC. Les fichiers d’environnement et `--setup` fournissent les profils intégrés. Documenter cette distinction dans la soumission.
+A matching `alignview.pyz` is also written at the application root for local use. Every checksum path stays within `dist/`; older versions in that directory are not added to the current manifest.
 
-## Vers 1.0
+```bash
+cd dist
+sha256sum --check SHA256SUMS
+```
 
-La désignation 1.0 viendra après validation des parcours sur plusieurs postes et clusters, des moteurs annoncés, de l’interopérabilité des exports dans des outils tiers et de jeux biologiques de référence. Les limites connues sont maintenues dans l’audit. Une numérotation « 1.0 » seule ne remplace pas ces validations.
+## Independent verification
+
+```bash
+python3 scripts/verify_release.py
+python3 scripts/check_report_browser.py
+python3 scripts/validate_real_tools.py --require mafft blastn diamond needle clustalo FastTree
+python3 scripts/validate_vsearch.py
+```
+
+The artifact verifier checks the declared module inventory, rejects caches/engines/prototypes, compares packaged runtime files and manuals with current sources, checks embedded versions and validates checksums. It uses pip with `--no-index --no-deps` to install the actual wheel in a temporary target. Application smoke checks run outside the checkout; zipapp imports use Python's isolated mode. Every installation must preserve the caller directory, generate standalone HTML, save a project in a path containing spaces, resume it and rebuild its report without a scientific engine. Both task verbs and compatible legacy flag commands are exercised.
+
+Browser and real-engine checks require their external tools. Record versions, commands, settings and results, and distinguish these checks from mock integration tests. Validate the intended SSH terminals, scheduler environment, export consumers and representative biological datasets separately.
+
+## Reproducibility
+
+The builders sort archive members and normalize timestamps, modes and owners. `SOURCE_DATE_EPOCH` controls archive time; its stable default is 2000-01-01. Compare artifacts only with unchanged source and identical Python/build-tool versions. Source archives and wheels are built from a clean temporary copy so stale `build/lib` files cannot leak into a release.
+
+```bash
+SOURCE_DATE_EPOCH=946684800 python3 scripts/build_release.py --skip-tests
+```
+
+## Publication
+
+The GitHub artifact workflow builds and uploads files for review; it does not publish to PyPI, create a GitHub release or submit a Bioconda recipe. A tag must match `v` followed by the application version. Finalize repository metadata, authorship/contact and registry availability before publication. Scientific engine binaries are never bundled with the application.
+
+For Bioconda, use the [preparation guide](../packaging/bioconda/README.md) and [submission handoff](../packaging/bioconda/SUBMISSION.md). `scripts/prepare_bioconda.py --local` creates a concrete recipe with the real local archive SHA256 for build testing. Submission mode downloads a stable versioned HTTPS source and checks its independently supplied checksum and runtime/manual contents against these sources. A local-file recipe is not ready to submit, even after a successful conda-build. Publish the reviewed source first, regenerate against that public archive, and validate the final recipe using Bioconda's lint/build pipeline.

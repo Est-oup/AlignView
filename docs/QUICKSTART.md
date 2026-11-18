@@ -1,86 +1,80 @@
-# Premiers pas
+# Getting started
 
-## 1. Lancer depuis le dossier où travailler
+## Launch from your data directory
 
-L’application est dans **un seul dossier `AlignView/`**. Pour commencer, Python 3.10+ suffit. Choisir son dossier de travail, puis lancer l’application par son chemin :
-
-```bash
-cd /chemin/vers/mes_donnees
-/chemin/vers/AlignView/alignview.sh --demo
-```
-
-Les chemins ci-dessus sont à remplacer par les tiens. Le lanceur conserve le dossier de travail ; il ne se déplace pas dans celui de l’application. Depuis l’intérieur d’`AlignView/`, `./alignview.sh --demo` fonctionne aussi.
-
-La démonstration contient quatre séquences déjà alignées. Elle n’installe rien et ne lance aucun moteur scientifique. Dans **Explorer → Lire l’alignement**, déplacer le curseur avec les flèches. `?` affiche l’aide ; Échap revient au menu et F2 à l’accueil.
-
-## 2. Choisir son intention
-
-Lancer sans `--demo` pour sélectionner ses fichiers :
+Keep the complete application in one `AlignView/` folder. Python 3.10+ is enough to use an existing alignment and the demo; no Python package installation or scientific engine is required.
 
 ```bash
-/chemin/vers/AlignView/alignview.sh
+cd /path/to/my_data
+/path/to/AlignView/alignview.sh --demo
 ```
 
-| Choix de départ | Fichier à fournir | Étape suivante |
+The launcher preserves your directory. Relative inputs and outputs start there. From inside the application folder, `./alignview.sh` also works.
+
+## Load first, choose analyses later
+
+Run `alignview sequences.fasta` to see a summary of what was loaded and a small menu of actions. Without arguments, choose **Load sequences** or **Open a saved project**. **d** opens the demo, **?** the manual and **t** the tools. Loading data does not start a calculation or ask for a project directory.
+
+| Task | Direct command | What happens |
 | --- | --- | --- |
-| Ouvrir un alignement | FASTA déjà aligné | Explorer → Lire l’alignement |
-| Aligner des séquences | FASTA brut contenant au moins deux séquences | Analyser → Créer un alignement → Lancer |
-| Comparer à des références | Un FASTA de requêtes puis un FASTA de références | Analyser → Rechercher des similarités |
-| Reprendre un projet | Dossier contenant `session.json` | Retrouver les résultats dans Explorer |
+| Inspect existing aligned sequences | `alignview view aligned.fasta` | Opens the alignment without an engine |
+| Align raw sequences | `alignview align sequences.fasta` | Shows the calculation plan before running |
+| Find matching sequences | `alignview compare queries.fna references.faa` | Chooses the active query, then prepares a search |
+| Make one shareable report | `alignview report aligned.fasta` | Writes a standalone HTML file and exits |
+| Continue a saved analysis | `alignview resume my_project` | Opens its workspace without replaying engines |
+| Inspect installed engines | `alignview tools` | Prints availability, paths and versions |
 
-Le sélecteur montre les fichiers FASTA et FASTA gzip. `/` filtre les noms ; **Saisir un chemin** permet de coller un chemin complet. Dans une longue liste, PgUp/PgDn accélère le déplacement. Une séquence se reconnaît à son identifiant placé juste après `>` dans le FASTA.
+Use `--html-out study.html` to choose a report name. `report` also accepts a saved project, rebuilding its HTML without a scientific calculation. Existing flag-style commands remain supported.
 
-Deux séquences de même longueur ne sont pas forcément alignées. Choisir **Ouvrir un alignement** seulement si le fichier constitue déjà un alignement ; sinon demander sa création.
+Equal-length records are not automatically treated as an alignment. Choose Look at the sequences → Read an existing alignment only when the FASTA is already aligned.
 
-## 3. Savoir ce qui est prêt
+## Start from the file menu
 
-L’accueil garde cinq entrées : **Explorer**, **Analyser**, **Données**, **Enregistrer et partager**, **Réglages et aide**. Le contexte indique les données actives, les résultats disponibles et l’état de sauvegarde.
+The first screen names the file and shows the sequence count, detected alphabet and ungapped length range. No analysis has run. Five choices explain what you can do:
 
-Un choix indisponible indique son prérequis. Par exemple, un arbre nécessite au moins trois séquences alignées et le logiciel FastTree. Avant un calcul, le moteur et les réglages sont visibles ; **Voir les commandes** permet de vérifier ce qui serait exécuté.
+1. **Look at the sequences:** choose a sequence browser or explicitly read an existing alignment.
+2. **Align sequences:** prepare an alignment of the loaded or checked records.
+3. **Find matching sequences:** check one or several query records and select the target FASTA to search against. The Query/Queries and Target lines show the filenames and scope before Run. Target dataset changes the target; Review search inputs shows full paths and IDs. Space checks rows, a selects all, / finds a record and Enter confirms. Each query keeps independent evidence; multi-query results open as a query group.
+4. **Other analyses:** a few groups for sequence checks, motifs/regions, translation/ORFs, alignment statistics/trees, pairwise comparison and nucleotide collections.
+5. **Files and previous results:** choose/add files, reopen analyses, save/export or open settings/help.
 
-Si un moteur manque, AlignView propose son installation ou un chemin d’exécutable. La lecture d’un alignement existant reste possible sans ce moteur. Voir [installer les outils](INSTALLATION.md).
+Use Up/Down and Enter, a displayed number followed by Enter, or click an item. Esc cancels a preparation screen and returns to the file menu. F2 also returns from nested screens to the file menu. q closes from the file menu; it returns from a reader.
 
-## 4. Conserver ce qui compte
+After Run, the result-ready screen identifies what was produced and offers **Open this result**, **Try different settings**, **Back to file actions**, **Previous results** and **Save or export**. An alignment reader does not open before you choose Open this result. Reading position is retained when you reopen it.
 
-Les calculs se font dans une session temporaire. Dans **Enregistrer et partager**, choisir :
+In the sequence browser, Space checks records and a prepares their alignment. No checks means all records. Targeted tools explicitly ask which sequence to use when several are loaded, or use the highlighted browser record. The command palette remains available with : or Ctrl+P. See [Exploration examples](WORKFLOWS.md).
 
-| Besoin | Action | Résultat conservé |
-| --- | --- | --- |
-| Reprendre plus tard | Enregistrer le projet | Dossier portable avec entrées et résultats |
-| Partager une exploration | Créer un rapport HTML | Un fichier `.html` autonome |
-| Réutiliser les données ailleurs | Exporter les résultats | Dossier de tables, alignements et figures selon le profil |
+## Keep what matters
 
-Un chemin comme `resultats/essai_01` est relatif au **dossier de lancement**, pas au dossier de l’application. Choisir une destination libre : un ancien projet n’est pas écrasé. Le HTML à lui seul ne permet pas de reprendre les calculs dans AlignView.
-
-Fermer sans enregistrer supprime les temporaires. L’interface demande quoi faire si le travail a changé. Une copie de projet déjà enregistrée reste conservée.
-
-## 5. Obtenir un arbre et sa figure
-
-Ouvrir ou créer un alignement, puis **Explorer → Statistiques de l’alignement → Arbre exploratoire → Calculer l’arbre**. Ensuite créer le HTML. Son bouton **Voir l’arbre** ouvre la figure ; **Télécharger SVG** enregistre une image vectorielle.
-
-La figure donne les identifiants, les branches, les supports internes et une échelle lorsque les longueurs sont présentes. La racine du dessin est arbitraire. Les supports locaux FastTree sont des SH-like, pas des bootstraps. Voir [interpréter le rapport](HTML.md).
-
-## Des commandes à adapter
-
-Les exemples suivants utilisent la commande `alignview` installée. Sans installation, remplacer `alignview` par `/chemin/vers/AlignView/alignview.sh`. Les entrées sont dans le dossier de travail et les destinations doivent être libres.
+Every completed interactive analysis stays in Previous results until closing, without an explicit save. Use Save / Export only to retain a resumable workspace or reusable files after closing. Ctrl+S saves a project snapshot: the first save asks for a directory, later changed saves use a new numbered sibling, and unchanged saves create no duplicate. Closing after unsaved analyses offers Continue working, Close without saving, or Save a copy and close. Calculations remain temporary until explicitly retained.
 
 ```bash
-# Lire un alignement existant, puis garder seulement le HTML.
-alignview aligne.fasta --msa view --html-out rapport.html --no-menu
+# Build an MSA without interactive menus and keep the project.
+alignview align sequences.fasta --no-menu --save --out results/msa_01
 
-# Aligner des séquences et garder un projet complet avec HTML.
-alignview sequences.fasta --msa align --report --save --out resultats/msa_01 --no-menu
+# Search with one explicit query.
+alignview compare queries.fna references.faa --query-id query_2 \
+  --mode blastx --no-menu --save --out results/search_01
 
-# Comparer une requête ADN à des références protéiques.
-alignview requete.fna references.faa --mode blastx --msa hits --report --save --out resultats/recherche_01 --no-menu
+# Infer a tree from an existing alignment.
+alignview view aligned.fasta --tree --no-menu --save --out results/tree_01
 
-# Calculer l’arbre d’un alignement existant et conserver le projet.
-alignview aligne.fasta --msa view --tree --report --save --out resultats/arbre_01 --no-menu
-
-# Reconstruire uniquement le HTML d’un projet ; aucun moteur relancé.
-alignview --resume resultats/arbre_01 --html-out rapport_actualise.html --no-menu
+# Share an existing project without rerunning its engines.
+alignview report results/tree_01 --html-out study.html
 ```
 
-`--no-menu` exécute puis termine. `--save` conserve le projet ; `--out` seul ne le fait pas. `--html-out` conserve le HTML sans sauvegarder un projet. Ces différences sont détaillées dans [Dossiers et sauvegardes](FILES.md).
+`--save` retains a complete project. `--out` alone does not save. `--html-out` retains one independent report. `--report` alone prepares temporary HTML. Existing destinations are refused; choose another name.
 
-Pour continuer : [toutes les fonctions](USAGE.md), [les paramètres](PARAMETERS.md), [le dépannage](TROUBLESHOOTING.md).
+For installed engines, run `alignview tools`; `--setup PROFILE` shows an installation plan and `--install-tools` explicitly executes it. VSEARCH, alternative translation tables, diagnostics and HPC actions are available through commands. See [Usage](USAGE.md), [Files](FILES.md), [Installation](INSTALLATION.md) and [Troubleshooting](TROUBLESHOOTING.md).
+
+## Try a small comparison
+
+The bundled `examples/demo_query.fna` and `examples/demo_references.faa` form one coherent synthetic comparison: a coding nucleotide query, an exact protein, a related variant and an unrelated protein. They demonstrate the workflow and are not biological reference data. BLAST+ is required for this calculation.
+
+```bash
+# Run from the application folder, or use absolute example paths.
+alignview compare examples/demo_query.fna examples/demo_references.faa \
+  --mode blastx --query-id synthetic_query
+```
+
+Review the query and engine plan, run the search, inspect the strongest segment and coverage in Matches, select references with Space, then create the selected-reference alignment. With at least three aligned rows, create a tree. Save the project or share its HTML when ready. Each completed calculation remains independently accessible in Results; other sequence analyses can be run whenever useful.
