@@ -4,6 +4,8 @@ AlignView is tested for local-search coordinates, translated units, MSA handling
 
 ## Evidence
 
+The [user journey and distribution review](USER_REVIEW.md) records the latest end-to-end findings, implemented corrections and reproducible acceptance scenarios, including the Bioconda handoff.
+
 | Record | Scope |
 | --- | --- |
 | [Benchmark results](benchmark-results.json) | Recorded local performance checks |
@@ -17,7 +19,7 @@ Historical logs describe their original runs. They are not evidence that every l
 
 ## Scientific checks
 
-Local HSP identity remains distinct from whole-sequence identity. Coverage is an interval union. Translated searches retain native nucleotide/amino-acid coordinate units. MSA p-distances exclude gaps per pair and can use different comparable positions for different pairs.
+Local HSP identity remains distinct from whole-sequence identity. The displayed best identity belongs to the strongest-scoring HSP; maximum segment identity is recorded separately. Coverage is an interval union. Translated searches retain native nucleotide/amino-acid coordinate units. MSA p-distances exclude gaps per pair and can use different comparable positions for different pairs.
 
 The tree SVG preserves Newick branches and labels, explicitly uses an arbitrary drawing root, and identifies a cladogram when distances cannot be drawn. FastTree local SH-like supports are not bootstrap values.
 
@@ -25,7 +27,7 @@ VSEARCH preserves native global metrics rather than assigning BLAST E-values or 
 
 ## Application checks
 
-Guided comparisons require an active-query choice for multi-record FASTA input. Preparation screens show inputs and engines before launch. Reopening results does not rerun their engines. Saved projects include immutable input copies and preserve historical calculation settings. Resuming executes only explicit actions. English is used directly in source, menus, HTML and the bundled manual; input identifiers and raw tool logs remain unchanged.
+Guided comparisons require an active-query choice for multi-record FASTA input. Preparation screens show inputs and engines before launch. Reopening results does not rerun their engines. Saved projects include immutable input copies and preserve historical calculation settings. New file manifests cover state, results, logs and nested history; these plain hashes detect accidental changes rather than authenticated tampering. Resuming executes only explicit actions. English is used directly in source, menus, HTML and the bundled manual; input identifiers and raw tool logs remain unchanged.
 
 ## Limits
 

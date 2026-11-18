@@ -100,13 +100,13 @@ class TreeIntegrationTests(unittest.TestCase):
             self.assertEqual(page.count('class="panel figcard"'), len(list((out / 'figures').glob('*.svg'))))
             tree.write_text('(alpha,,gamma);')
             page = report()
-            self.assertIn('Figure d’arbre unavailable', page)
+            self.assertIn('Tree figure unavailable', page)
             self.assertFalse(figure.exists())
             tree.unlink()
             page = report()
             self.assertNotIn('data-figure="' + TREE_FIGURE + '"', page)
             self.assertNotIn(TREE_FIGURE, (out / 'figures_catalog.tsv').read_text())
-            self.assertNotIn('Figure d’arbre unavailable', page)
+            self.assertNotIn('Tree figure unavailable', page)
 
     def test_failed_newick_preserves_previous_tree_and_svg(self):
         session = Session(parse_args([str(ROOT / 'examples/example_msa.fasta'), '--msa', 'view', '--no-menu']), UI(color=False))

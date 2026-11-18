@@ -228,7 +228,7 @@ class SessionParametersTests(unittest.TestCase):
         session=self.session('--mmseqs-sensitivity','6.5','--mafft','local','--mafft-op','2.2',
             '--fasttree-model','LG','--fasttree-gamma','--needle-endopen','4')
         try:
-            with patch('alignview.show_file'),redirect_stdout(io.StringIO()):session.slurm_script()
+            with patch('av_session.show_file'),redirect_stdout(io.StringIO()):session.slurm_script()
             command=shlex.split((session.work/'alignview_job.sbatch').read_text().splitlines()[-1])
             for flag,value in (('--mmseqs-sensitivity','6.5'),('--mafft-op','2.2'),('--fasttree-model','LG'),('--needle-endopen','4.0')):
                 self.assertEqual(command[command.index(flag)+1],value)
@@ -275,15 +275,14 @@ class SessionParametersTests(unittest.TestCase):
         code="import sys;sys.path.insert(0,sys.argv[1]);from alignview import main;raise SystemExit(main(['--demo','--no-color']))"
         terminal=Terminal(code)
         try:
-            terminal.expect('AlignView / Alignment');terminal.send('q')
-            terminal.expect('Results ready');terminal.send('3\r')
+            terminal.expect('File loaded — choose an action');terminal.send('2\r')
             terminal.expect('Create an alignment');terminal.send('2\r')
             terminal.expect('Advanced alignment options');terminal.send('3\r')
             terminal.expect('Calculation parameters · MAFFT');terminal.expect('MAFFT strategy')
             terminal.send('2\r');terminal.expect('L-INS-i');terminal.send('3\r')
             terminal.expect('applies to the next calculation')
-            terminal.send('\x1bOQ');terminal.expect('Back to Home')
-            terminal.send('q');terminal.expect('Quitter AlignView ?');terminal.send('2\r')
+            terminal.send('\x1bOQ');terminal.expect('File loaded — choose an action')
+            terminal.send('q');terminal.expect('Close workspace?');terminal.send('2\r')
             terminal.expect('without saving');self.assertEqual(terminal.process.wait(timeout=5),0)
         finally:terminal.close()
 

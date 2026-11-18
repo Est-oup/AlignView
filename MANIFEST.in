@@ -1,9 +1,10 @@
-include README.md LICENSE CHANGELOG.md pyproject.toml
+include README.md LICENSE CHANGELOG.md pyproject.toml requirements.txt
 recursive-include examples *.fasta *.faa *.fna
 recursive-include docs *.md
 recursive-include docs *.svg *.json
 recursive-include scripts *.py *.sh
 recursive-include packaging *.md *.template
+recursive-include .github *.yml *.md
 include environment-minimal.yml environment-full.yml
 include CONTRIBUTING.md
 include alignview.sh

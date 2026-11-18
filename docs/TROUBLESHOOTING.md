@@ -1,12 +1,13 @@
 # Troubleshooting
 
-Start with `pwd`, `alignview --version`, `alignview --diagnose`, and `alignview --docs files`. Replace `alignview` with the portable launcher's absolute path if needed.
+Start with `pwd`, `alignview --version`, `alignview tools`, and `alignview --docs files`. Replace `alignview` with the portable launcher's absolute path if needed.
 
 | Problem | Check and action |
 | --- | --- |
 | Launcher path missing | Use the launcher inside `AlignView/`, respecting filename case; update old aliases after a move |
 | Permission denied | Run through bash or restore the executable bit |
 | Missing av_* module | Copy the whole application folder or use the complete zipapp |
+| Unsure what to do after loading | Use the five explained file-menu choices with arrows and Enter. F2 returns to file actions; Esc/q returns from an opened result |
 | No interactive terminal | Supply inputs and --no-menu, or open a real terminal |
 | Several queries | Select one in the guided list, or supply --query-id in batch |
 | No query selector | Ensure a reference file is loaded; a single FASTA has a different exploration workflow |
@@ -34,6 +35,6 @@ MAFFT explicit refinement needs global/local/fast rather than auto. MUSCLE must 
 
 On SSH/HPC, choose a suitable TMPDIR and final output location. Download standalone HTML using scp or a remote file explorer and open it locally. No server is required.
 
-Resume a whole project, not an isolated HTML. Changed input hashes mean saved input copies were modified: use an intact copy or open the new data as a new analysis. A printed recovery path can be resumed before temporary-file cleanup, but forced termination may prevent recovery.
+Resume a whole project, not an isolated HTML. A project integrity failure means a recorded input, state, result, log or history file no longer matches its size/hash. Use an intact copy; treat intentionally edited sequences as a new analysis. Older valid projects without the full-file manifest still verify their recorded inputs. A printed recovery path can be resumed before temporary-file cleanup, but forced termination may prevent recovery.
 
 For a useful bug report, include AlignView/Python versions, the exact command or menu path, the error, the relevant engine log and a small shareable FASTA that reproduces it. Raw commands and logs may contain local paths; share them with the intended recipients.

@@ -9,6 +9,8 @@ import time
 import signal
 from pathlib import Path
 from dataclasses import dataclass
+from contextlib import contextmanager, ExitStack
+import tempfile
 from av_parameters import validate
 from av_core import Seq, HSP, fasta_iter, write_fasta, parse_blast_tab, translate_nt
 
@@ -79,7 +81,7 @@ class Toolchain:
         if path:
             from av_setup import managed_prefix
             if Path(path).parent==managed_prefix()/'bin':return 'AlignView environment'
-            return 'module HPC / PATH' if self.loaded else 'PATH / Conda'
+            return 'HPC module / PATH' if self.loaded else 'PATH / Conda'
         return 'not found'
 
 
@@ -157,15 +159,19 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
                             time.sleep(.15)
                         if self.ui and self.ui.tty:
                             sys.stdout.write('\033[2K\r');sys.stdout.flush()
-                    except KeyboardInterrupt:
-                        if p is not None and p.poll() is None:
-                            os.killpg(p.pid,signal.SIGTERM)
-                            try:p.wait(timeout=3)
-                            except subprocess.TimeoutExpired:
-                                os.killpg(p.pid,signal.SIGKILL);p.wait()
-                        self.history.append(dict(command=shlex.join(args),duration_s=round(time.time()-start,2),exit_code=p.returncode if p is not None else -2,interrupted=True))
+                    except BaseException as exc:
+                        # A broken terminal or another Python-side failure must
+                        # stop the engine before an output guard rolls back files.
+                        # Checking only KeyboardInterrupt leaves orphan writers.
+                        self._stop_process(p)
+                        self.history.append(dict(command=shlex.join(args),argv=args,cwd=str(self.workspace),
+                            stdout=str(stdout_path) if stdout_path else None,version=self.version_cache[args[0]],
+                            duration_s=round(time.time()-start,2),exit_code=p.returncode if p is not None else -2,
+                            stderr_log=str(logfile.relative_to(self.workspace)),
+                            interrupted=isinstance(exc,KeyboardInterrupt),failed=True,error=str(exc)))
+                        if isinstance(exc,OSError):raise CommandError(f'Cannot run {args[0]}: {exc}') from exc
+                        if isinstance(exc,subprocess.TimeoutExpired):raise CommandError(f'The engine timed out: {args[0]}') from exc
                         raise
-                    except OSError as exc: raise CommandError(f'Cannot launch {args[0]}: {exc}') from exc
         elapsed=time.time()-start
         self.history.append(dict(command=shlex.join(args),argv=args,cwd=str(self.workspace),
                                  stdout=str(stdout_path) if stdout_path else None,
@@ -175,13 +181,49 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
             tail='\n'.join(logfile.read_text(errors='replace').splitlines()[-12:])
             raise CommandError(f'Failed {args[0]} (code {p.returncode})\n{tail}\nLog: {logfile}')
         if stdout_path and not allow_empty and (not stdout_path.exists() or stdout_path.stat().st_size==0):
-            raise CommandError(f'{label}: sortie vide ({stdout_path.name})')
+            raise CommandError(f'{label}: empty output ({stdout_path.name})')
         if self.ui: self.ui.success(f'{label} · {elapsed:.1f} s')
         return logfile
+
+    @staticmethod
+    def _stop_process(process):
+        """Reap the owned process; tolerate an exit racing with cancellation."""
+        if process is None:return
+        if process.poll() is None:
+            try:os.killpg(process.pid,signal.SIGTERM)
+            except ProcessLookupError:pass
+            try:process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                try:os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+                process.wait()
+        else:process.wait()
 
     def execute(self,commands):
         for command in commands:
             self.run(command.argv,command.label,command.log,stdout_path=command.stdout,allow_empty=command.allow_empty)
+
+    @contextmanager
+    def fresh_output(self,path):
+        """Never attribute an earlier output file to a newly executed command.
+
+        Callers keep the same argv as their preview. If execution or validation
+        fails, the previous file is restored and the incomplete file discarded.
+        """
+        path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+        if path.exists() and not path.is_file():raise CommandError('Output path is not a file: '+str(path))
+        with tempfile.TemporaryDirectory(prefix='.alignview-output-',dir=path.parent) as temporary:
+            backup=Path(temporary)/'previous'
+            existed=path.exists()
+            if existed:path.rename(backup)
+            try:
+                yield path
+                if not path.is_file():raise CommandError('The engine did not create its expected output: '+path.name)
+            except BaseException:
+                if path.is_dir():shutil.rmtree(path)
+                elif path.exists() or path.is_symlink():path.unlink()
+                if existed:backup.rename(path)
+                raise
 
     def next_log(self,name):
         path=self.workspace/'logs'/name
@@ -238,10 +280,10 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
             for name,flag in (('matrix','--matrix'),('gapopen','--gapopen'),('gapextend','--gapextend'),
                               ('masking','--masking'),('comp_stats','--comp-based-stats'),('max_hsps','--max-hsps')):
                 self._option(args,options,'diamond_'+name,flag)
-            return [index,Command(args,f'Recherche DIAMOND {m.upper()}','diamond_search.log',allow_empty=True)]
+            return [index,Command(args,f'DIAMOND search {m.upper()}','diamond_search.log',allow_empty=True)]
         dbtype='nucl' if mode in ('blastn','tblastn','tblastx') else 'prot'
         index=Command(['makeblastdb','-in',str(refs),'-dbtype',dbtype,'-parse_seqids','-out',str(db)],
-                 'Index BLAST local','blast_db.log')
+                 'Index local BLAST database','blast_db.log')
         args=[mode,'-query',str(query),'-db',str(db),'-num_threads',str(threads),'-evalue',str(evalue),
               '-max_target_seqs',str(max_target),'-outfmt',
               '6 qseqid sseqid pident length qstart qend sstart send evalue bitscore qcovhsp qframe sframe qseq sseq',
@@ -259,16 +301,18 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
         if mode!='tblastx':
             self._option(args,options,'blast_gapopen','-gapopen');self._option(args,options,'blast_gapextend','-gapextend')
         if mode in ('blastp','blastx','tblastn'):self._option(args,options,'blast_comp_stats','-comp_based_stats')
-        return [index,Command(args,f'Recherche {mode.upper()}','blast_search.log',allow_empty=True)]
+        return [index,Command(args,f'Search {mode.upper()}','blast_search.log',allow_empty=True)]
 
     def search(self,mode,query:Path,refs:Path,threads=4,evalue=1e-5,max_target=100,sensitivity='sensitive',task='',options=None):
-        self.execute(self.search_commands(mode,query,refs,threads,evalue,max_target,sensitivity,task,options))
         raw=self.workspace/'raw_hsps.tsv'
-        if mode=='mmseqs-blastp':
-            from av_core import parse_mmseqs_tab
-            return parse_mmseqs_tab(raw)
-        if mode.startswith('diamond-'):return parse_blast_tab(raw,'diamond')
-        return parse_blast_tab(raw,'blast')
+        with self.fresh_output(raw):
+            self.execute(self.search_commands(mode,query,refs,threads,evalue,max_target,sensitivity,task,options))
+            if not raw.is_file():raise CommandError('The search engine did not create its result table.')
+            if mode=='mmseqs-blastp':
+                from av_core import parse_mmseqs_tab
+                result=parse_mmseqs_tab(raw)
+            else:result=parse_blast_tab(raw,'diamond' if mode.startswith('diamond-') else 'blast')
+        return result
 
     def mafft_command(self,input:Path,output:Path,strategy='auto',threads=4,fragments:Path|None=None,options=None):
         iterations=getattr(options,'mafft_maxiterate',None)
@@ -286,7 +330,9 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
         return Command(args,f'MAFFT {strategy if not fragments else "addfragments (auto)"}',f'mafft_{output.stem}.log',output)
 
     def mafft(self,input:Path,output:Path,strategy='auto',threads=4,fragments:Path|None=None,options=None):
-        self.execute([self.mafft_command(input,output,strategy,threads,fragments,options)])
+        if input.resolve()==output.resolve():raise ValueError('Alignment input and output must be different files.')
+        with self.fresh_output(output):
+            self.execute([self.mafft_command(input,output,strategy,threads,fragments,options)])
         return output
 
     def msa_command(self,input:Path,output:Path,engine='mafft',strategy='auto',threads=4,options=None):
@@ -309,8 +355,10 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
 
     def msa(self,input:Path,output:Path,engine='mafft',strategy='auto',threads=4,options=None):
         if engine=='muscle' and not self.available('muscle'):self.require('muscle5')
-        self.execute([self.msa_command(input,output,engine,strategy,threads,options)])
-        if not output.is_file() or output.stat().st_size==0:raise CommandError(f'{engine}: missing MSA file')
+        if input.resolve()==output.resolve():raise ValueError('Alignment input and output must be different files.')
+        with self.fresh_output(output):
+            self.execute([self.msa_command(input,output,engine,strategy,threads,options)])
+            if not output.is_file() or output.stat().st_size==0:raise CommandError(f'{engine}: missing MSA file')
         return output
 
     def fasttree_command(self,alignment:Path,output:Path,nucleotide=False,options=None):
@@ -330,9 +378,11 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
 
     def fasttree(self,alignment:Path,output:Path,nucleotide=False,options=None):
         if not self.available('FastTree'):self.require('fasttree')
-        self.execute([self.fasttree_command(alignment,output,nucleotide,options)])
-        if not output.read_text().strip().endswith(';'):
-            raise CommandError('FastTree: incomplete Newick file')
+        if alignment.resolve()==output.resolve():raise ValueError('Tree input and output must be different files.')
+        with self.fresh_output(output):
+            self.execute([self.fasttree_command(alignment,output,nucleotide,options)])
+            if not output.is_file() or not output.read_text().strip().endswith(';'):
+                raise CommandError('FastTree: incomplete Newick file')
         return output
 
     def emboss(self,algorithm,query:Seq,reference:Seq,outprefix:Path,mode='blastp',
@@ -362,9 +412,13 @@ if type module >/dev/null 2>&1 && module load "$1" >/dev/null 2>&1; then env -0;
         if matrix: base+=['-datafile',matrix]
         text=outprefix.with_suffix('.txt');fasta=outprefix.with_suffix('.fasta')
         commands=[Command([*base,'-outfile',str(text)],f'{algorithm.upper()} pairwise','emboss_pairwise.log'),
-                  Command([*base,'-aformat3','fasta','-outfile',str(fasta)],f'{algorithm.upper()} export FASTA','emboss_pairwise_fasta.log')]
+                  Command([*base,'-aformat3','fasta','-outfile',str(fasta)],f'{algorithm.upper()} FASTA export','emboss_pairwise_fasta.log')]
         if preview:return self.describe(commands)
-        self.execute(commands)
+        with ExitStack() as stack:
+            for path in (text,fasta):stack.enter_context(self.fresh_output(path))
+            self.execute(commands)
+            if any(not path.is_file() or not path.stat().st_size for path in (text,fasta)):
+                raise CommandError('The pairwise engine did not produce both expected outputs.')
         return text,fasta
 
     def alv(self,aligned:Path,variable=False):

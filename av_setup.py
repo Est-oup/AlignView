@@ -125,7 +125,7 @@ def software_hub(ui, tools):
             continue
         profile = 'minimal' if choice=='2' else 'full'
         if choice=='3':
-            options=[(key,key,', '.join(values),'OUTILS') for key,values in PACKAGES.items() if key not in ('minimal','full')]
+            options=[(key,key,', '.join(values),'TOOLS') for key,values in PACKAGES.items() if key not in ('minimal','full')]
             profile=ui.menu('CHOOSE A TOOL',options)
             if profile is None:
                 continue

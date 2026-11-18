@@ -10,16 +10,31 @@ from alignview import build_parser
 
 
 def reference():
-    parser=build_parser()
+    try:
+        parser=build_parser(full=True)
+    except TypeError as exc:
+        if "unexpected keyword argument 'full'" not in str(exc):raise
+        parser=build_parser()
     lines=['# Command-line reference','',
         'Generated from the actual parser by `python3 scripts/generate_cli_docs.py`. Do not edit the tables manually.','',
         'Use the installed `alignview` command, or replace it with `/path/to/AlignView/alignview.sh`.','',
-        '## Common workflows','',
+        '## Task commands','',
+        'Common tasks use explicit verbs. Existing positional/flag commands remain supported. `--help` is concise; `--help-all` exposes every engine option.','',
+        '| Command | Input | Behavior |','| --- | --- | --- |',
+        '| `view FILE` | Already aligned FASTA | Read the alignment; add `--no-menu` for batch actions |',
+        '| `align FILE [REFERENCES]` | Unaligned sequences, optionally references | Prepare an MSA; compatible two-file inputs align without a similarity search |',
+        '| `compare QUERY REFERENCES` | Query candidates and reference FASTA | Choose one query and search; mode follows types unless explicitly selected |',
+        '| `report FILE_OR_PROJECT` | Aligned FASTA or saved project | Write standalone HTML and exit; projects rebuild without engines |',
+        '| `resume PROJECT` | Saved project directory | Open the workspace; no scientific rerun unless explicitly requested |',
+        '| `tools` | No dataset | Diagnose tools; `--setup PROFILE` shows an installation plan |','',
         '```bash','alignview --demo','alignview --docs quickstart',
-        'alignview aligned.fasta --msa view --html-out report.html --no-menu',
-        'alignview sequences.fasta --msa align --report --save --out project_01 --no-menu',
-        'alignview queries.fna refs.fna --vsearch search --query-id chosen_id --report --save --out search_01 --no-menu',
-        'alignview --resume project_01 --html-out updated.html --no-menu','```','',
+        'alignview view aligned.fasta',
+        'alignview align sequences.fasta --no-menu --save --out project_01',
+        'alignview compare queries.fna references.faa --query-id chosen_id --mode blastx --no-menu --save --out search_01',
+        'alignview report project_01 --html-out updated.html',
+        'alignview resume project_01',
+        'alignview tools',
+        'alignview --help-all','```','',
         '## Storage and resuming','',
         '- Relative paths start from the launch directory; the launcher does not change it.',
         '- `--save --out DIRECTORY` retains a project. `--out` alone does not save.',

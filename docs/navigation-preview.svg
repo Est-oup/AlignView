@@ -1,22 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="888.0" height="432" viewBox="0 0 888.0 432" role="img" aria-label="Preview generated from the AlignView screen">
-<rect width="888.0" height="432" rx="12" fill="#0d1729"/>
-<text x="14" y="28" fill="#70dfc0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  AlignView  0.1.0</text>
-<text x="14" y="50" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  Home</text>
-<text x="14" y="72" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  Project</text>
-<text x="14" y="94" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  example_msa.fasta · 4 sequences · active: seq_1</text>
-<text x="14" y="116" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  alignment ready (11 columns) · no changes</text>
-<text x="14" y="138" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  Results ready: press Enter to open them.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="888.0" height="476" viewBox="0 0 888.0 476" role="img" aria-label="Preview generated from the AlignView screen">
+<rect width="888.0" height="476" rx="12" fill="#0d1729"/>
+<text x="14" y="28" fill="#70dfc0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  AlignView  1.0.0</text>
+<text x="14" y="50" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  Workspace › example_msa.fasta</text>
+<text x="14" y="72" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  File loaded — choose an action</text>
+<text x="14" y="94" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  4 DNA/RNA sequences · 10–11 nt</text>
+<text x="14" y="116" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  File loaded. No analysis has been run.</text>
+<text x="14" y="138" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  ↑↓ choose · Enter open · Esc back · q close</text>
 <text x="14" y="160" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
 <rect x="8" y="165" width="872.0" height="22" rx="4" fill="#19354a"/>
-<text x="14" y="182" fill="#70dfc0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ›  1  Results</text>
-<text x="14" y="204" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    2  Compare with references</text>
-<text x="14" y="226" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    3  Align sequences</text>
-<text x="14" y="248" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    4  Save and share</text>
-<text x="14" y="270" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    5  Files and query</text>
-<text x="14" y="292" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    6  Advanced</text>
-<text x="14" y="314" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  Read the alignment, matches and tree</text>
-<text x="14" y="336" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  </text>
-<text x="14" y="358" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
-<text x="14" y="380" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  ↑↓ select · Enter open · q quit</text>
-<text x="14" y="402" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  1/6 · / search · PgUp/PgDn pages · F1 details</text>
+<text x="14" y="182" fill="#70dfc0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ›  1  Look at the sequences</text>
+<text x="14" y="204" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">       Browse sequence content, or explicitly read an existing alignment.</text>
+<text x="14" y="226" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    2  Align sequences</text>
+<text x="14" y="248" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">       Compare positions across the 4 loaded sequences.</text>
+<text x="14" y="270" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    3  Find matching references</text>
+<text x="14" y="292" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">       Choose one or more query sequences, then a reference FASTA.</text>
+<text x="14" y="314" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    4  Other analyses</text>
+<text x="14" y="336" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">       Motifs, translation, regions, alignment statistics and trees.</text>
+<text x="14" y="358" fill="#d5e0f4" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">    5  Files and previous results</text>
+<text x="14" y="380" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">       Change the loaded file, reopen results, or save/export.</text>
+<text x="14" y="402" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
+<text x="14" y="424" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  ↑↓ select · Enter open · ←/Esc back · F2 home</text>
+<text x="14" y="446" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve">  1/5 · / search · PgUp/PgDn pages · F1 details</text>
 </svg>

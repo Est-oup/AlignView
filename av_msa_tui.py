@@ -63,29 +63,60 @@ class MSAViewer:
         self.only_variable=False;self.difference=False;self.color=color and not os.getenv('NO_COLOR')
         self.col=0;self.row=0;self.xoff=0;self.yoff=0
         self.message='';self.search='';self.search_hits=[];self.result=None
+        self.workflow_lines=()
+        self.trace_id=None;self.row_filter='';self.checked=set();self.region=None;self._region_anchor=None
 
     @property
     def cols(self):return self.visible_vars if self.only_variable and self.visible_vars else self.visible_all
 
     def _c(self,style,s):return style+s+RESET if self.color else s
 
+    @property
+    def visible_rows(self):
+        if not self.row_filter:return range(len(self.seqs))
+        text=self.row_filter.casefold()
+        return [i for i,r in enumerate(self.seqs) if text in (r.id+' '+r.description).casefold()]
+
+    def _move_row(self,step):
+        rows=self.visible_rows
+        if not rows:return
+        position=rows.index(self.row) if self.row in rows else 0
+        self.row=rows[max(0,min(len(rows)-1,position+step))]
+
+    def export_selection(self):
+        """Export exactly the shown coordinate/row scope with an original-column map."""
+        from av_core import Seq
+        rows=[i for i in self.visible_rows if not self.checked or self.seqs[i].id in self.checked]
+        columns=[j for j in self.cols if not self.region or self.region[0]<=j<=self.region[1]]
+        records=[Seq(self.seqs[i].id,self.seqs[i].description,''.join(self.seqs[i].seq[j] for j in columns)) for i in rows]
+        return records,[j+1 for j in columns]
+
+    def trace_sequence(self):
+        if getattr(self,'_trace_cache_id',object())!=self.trace_id:
+            self._trace_cache_id=self.trace_id
+            self._trace_cache=next((r for r in self.seqs if r.id==self.trace_id),None)
+        return self._trace_cache
+
     def _geom(self):
         w,h=shutil.get_terminal_size((105,35))
         name_width=max(8,min(28,w//4))
         inner=max(1,w-name_width-5)
-        height=max(1,h-16)
+        height=max(1,h-17-len(self.workflow_lines))
         return w,h,name_width,inner,height
 
     def _clamp(self):
         cols=self.cols
+        rows=self.visible_rows
+        if rows and self.row not in rows:self.row=rows[0]
         self.col=max(0,min(len(cols)-1,self.col));self.row=max(0,min(len(self.seqs)-1,self.row))
         _,_,_,width,height=self._geom()
         if self.col<self.xoff:self.xoff=self.col
         if self.col>=self.xoff+width:self.xoff=self.col-width+1
-        if self.row<self.yoff:self.yoff=self.row
-        if self.row>=self.yoff+height:self.yoff=self.row-height+1
+        position=rows.index(self.row) if self.row in rows else 0
+        if position<self.yoff:self.yoff=position
+        if position>=self.yoff+height:self.yoff=position-height+1
         self.xoff=max(0,min(self.xoff,max(0,len(cols)-width)))
-        self.yoff=max(0,min(self.yoff,max(0,len(self.seqs)-height)))
+        self.yoff=max(0,min(self.yoff,max(0,len(rows)-height)))
 
     def _paint(self,char,j,selected=False,cons=False):
         if not self.color:return char
@@ -94,7 +125,9 @@ class MSAViewer:
         elif u in ('*','X','?'):base=RED
         elif self.is_nucleic:base={'A':GREEN,'T':YELLOW,'U':YELLOW,'G':BLUE,'C':CYAN}.get(u,WHITE)
         else:base=GREEN if u in 'AILMFVWY' else BLUE if u in 'KRH' else RED if u in 'DE' else CYAN if u in 'NQST' else WHITE
-        if self.difference and not cons and u not in ('-','.') and u!=self.consensus[j]:base=RED+BOLD
+        trace=self.trace_sequence()
+        baseline=trace.seq[j] if trace else self.consensus[j]
+        if self.difference and not cons and u not in ('-','.') and u!=baseline.upper():base=RED+BOLD
         return (ACTIVE+BOLD if selected else '')+base+char+RESET
 
     def _overview(self,width):
@@ -105,30 +138,37 @@ class MSAViewer:
 
     def _frame(self):
         self._clamp();w,h,nw,width,height=self._geom();cols=self.cols
-        if w<42 or h<18:
-            return [' AlignView · MSA',f' Terminal {w}×{h}: resize to at least 42×18.', ' q back · navigation retained on resize']
+        if w<42 or h<18+len(self.workflow_lines):
+            return [' AlignView · MSA',f' Terminal {w}×{h}: resize to at least 42×{18+len(self.workflow_lines)}.', ' q back · navigation retained on resize']
         indices=cols[self.xoff:self.xoff+width];col=cols[self.col]
         left=lambda s:' '+s.ljust(nw)[:nw]+' │ '
         lines=[self._c(CYAN+BOLD,' AlignView / Alignment'),
+               *[' '+line for line in self.workflow_lines],
                f' {len(self.seqs)} sequences × {self.length:,} columns · view {indices[0]+1:,}–{indices[-1]+1:,} · cursor {col+1:,}',
                self._c(CYAN,self._overview(w-2)),
                self._c(GREY,left('Coord. ×10')+''.join(str((j+1)//10%10) if (j+1)%10==0 else ' ' for j in indices)),
                self._c(GREY,left('Coord. units')+''.join(str((j+1)%10) for j in indices)),
                self._c(YELLOW,left('CURSOR')+''.join('▲' if i==self.col else ' ' for i in range(self.xoff,self.xoff+len(indices))))]
-        for row in range(self.yoff,min(len(self.seqs),self.yoff+height)):
+        visible=self.visible_rows
+        for row in visible[self.yoff:self.yoff+height]:
             record=self.seqs[row];selected=row==self.row
-            name=('›' if selected else ' ')+record.id[:nw-2]
+            mark='✓' if record.id in self.checked else '›' if selected else ' '
+            name=mark+record.id[:nw-2]
             lines.append(self._c(CYAN if selected else GREY,left(name))+''.join(self._paint(record.seq[j],j,j==col) for j in indices))
-        lines.extend(['']*max(0,height-(len(self.seqs)-self.yoff)))
+        lines.extend(['']*max(0,height-len(visible[self.yoff:self.yoff+height])))
         lines.extend([self._c(GREY,' '+'─'*(w-2)),
                       self._c(GREEN,left('CONSENSUS'))+''.join(self._paint(self.consensus[j],j,j==col,True) for j in indices),
                       self._c(YELLOW,left('VARIABLE SITES')+''.join('▲' if self.variable[j] else '·' for j in indices)),
                       self._c(BLUE,left('CONSERVATION')+''.join('█' if self.conservation[j]>=.95 else '▓' if self.conservation[j]>=.75 else '▒' if self.conservation[j]>=.5 else '░' for j in indices)),
                       f' Row {self.row+1}/{len(self.seqs)} · {self.seqs[self.row].id} · {"variable sites only" if self.only_variable else "all columns"} · gaps {self.gaps[col]*100:.1f}%',
                       ' ←→ columns · ↑↓ sequences · [ ] screen · PgUp/PgDn rows',
-                      ' g position · s sequence · / motif · v variable sites · d differences',
-                      ' ? all commands · Esc/q back · F2 Home',
+                      ' g Position · s Sequence · / Motif · f Filter · r Trace · d Differences',
+                      ' Space Check row · m Mark region · x Reset region · e Export selection · w HTML · q Back',
                       self._c(YELLOW,' '+self.message)])
+        trace=self.trace_sequence()
+        residue='consensus' if trace is None else ('gap' if trace.seq[col] in '-.' else str(col+1-trace.seq.count('-',0,col+1)-trace.seq.count('.',0,col+1)))
+        scope='all columns' if self.region is None else f'MSA columns {self.region[0]+1}–{self.region[1]+1}'
+        lines.insert(len(lines)-4,f' Trace: {trace.id if trace else "consensus"} · residue {residue} · {scope} · {len(self.checked)} checked')
         return lines
 
     def _render(self):
@@ -144,6 +184,8 @@ class MSAViewer:
         except (EOFError,KeyboardInterrupt):return ''
         finally:
             tty.setcbreak(fd,when=termios.TCSANOW)
+            attrs=termios.tcgetattr(fd);attrs[0]&=~(termios.IXON|termios.IXOFF)
+            termios.tcsetattr(fd,termios.TCSANOW,attrs)
             sys.stdout.write('\x1b[?1000h\x1b[?1006h\x1b[?25l');sys.stdout.flush()
 
     def _search(self,phrase):
@@ -184,8 +226,12 @@ class MSAViewer:
               ' g: absolute column (1-based) or percentage, e.g. 75%',
               ' s: go to a sequence by identifier',
               ' /: exact motif, c:motif for consensus · n / N: next/previous',
-              ' v: variable sites · d: differences from consensus',
-              ' w: HTML report · e: export HTML',
+              ' v: variable sites · d: differences from trace/consensus',
+              ' r: use current sequence as trace (again restores consensus)',
+              ' f: filter sequence IDs · Space: check/uncheck export row',
+              ' m: mark region start/end · x: clear region and checked rows',
+              ' e: export selected/filtered rows and visible columns with a column map',
+              ' w: HTML report · E: export HTML · Ctrl+S: save project',
               ' q/Esc: back · F2: home','',
               ' Coordinates are MSA columns, including gaps.',
               ' The variable-site view hides columns without modifying the MSA.',
@@ -207,23 +253,41 @@ class MSAViewer:
         elif key in ('left','h'):self.col-=1
         elif key in ('shift-right','L'):self.col+=10
         elif key in ('shift-left','H'):self.col-=10
-        elif key in ('ctrl-right',']',' '):
+        elif key in ('ctrl-right',']'):
             self.col+=max(1,width-5);self.xoff+=max(1,width-5)
         elif key in ('ctrl-left','['):
             self.col-=max(1,width-5);self.xoff-=max(1,width-5)
-        elif key in ('down','j'):self.row+=1
-        elif key in ('up','k'):self.row-=1
-        elif key in ('pagedown','ctrl-down','J'):self.row+=height;self.yoff+=height
-        elif key in ('pageup','ctrl-up','K'):self.row-=height;self.yoff-=height
+        elif key in ('down','j'):self._move_row(1)
+        elif key in ('up','k'):self._move_row(-1)
+        elif key in ('pagedown','ctrl-down','J'):self._move_row(height);self.yoff+=height
+        elif key in ('pageup','ctrl-up','K'):self._move_row(-height);self.yoff-=height
         elif key=='home':self.col=0
         elif key=='end':self.col=len(self.cols)-1
-        elif key=='ctrl-home':self.row=0
-        elif key=='ctrl-end':self.row=len(self.seqs)-1
+        elif key=='ctrl-home':self.row=self.visible_rows[0] if self.visible_rows else 0
+        elif key=='ctrl-end':self.row=self.visible_rows[-1] if self.visible_rows else 0
         elif key=='v':
             if not self.visible_vars:self.message='No variable sites in the MSA.'
             else:
                 old=self.cols[self.col];self.only_variable=not self.only_variable;self._goto_genomic(old)
         elif key=='d':self.difference=not self.difference
+        elif key=='r' and self.visible_rows:
+            current=self.seqs[self.row].id
+            self.trace_id=None if self.trace_id==current else current
+            self.difference=True
+        elif key==' ' and self.visible_rows:
+            identifier=self.seqs[self.row].id
+            if identifier in self.checked:self.checked.remove(identifier)
+            else:self.checked.add(identifier)
+        elif key=='m':
+            current=self.cols[self.col]
+            if self._region_anchor is None:
+                self._region_anchor=current;self.region=(current,current)
+                self.message='Region start marked. Move to the end and press m again.'
+            else:
+                self.region=tuple(sorted((self._region_anchor,current)));self._region_anchor=None
+                self.message=f'Region selected: MSA columns {self.region[0]+1}–{self.region[1]+1}.'
+        elif key=='x':self.region=None;self._region_anchor=None;self.checked.clear()
+
         elif key in ('n','N'):
             if not self.search_hits:self.message='Search for a motif with / first.'
             else:
@@ -235,16 +299,18 @@ class MSAViewer:
             match=re.fullmatch(r'mouse:(\d+);(\d+);(\d+)([Mm])',key)
             if match:
                 button,x,y,event=match.groups();button=int(button);x=int(x);y=int(y)
-                if button in (64,65):self.row+=-3 if button==64 else 3
+                if button in (64,65):self._move_row(-3 if button==64 else 3)
                 elif button in (68,69,66,67):
                     step=max(5,width//5)*(-1 if button in (68,66) else 1)
                     self.col+=step;self.xoff+=step
                 elif button==0 and event=='M':
-                    if y==3:
+                    if y==3+len(self.workflow_lines):
                         ratio=max(0,min(1,(x-15)/max(1,self._geom()[0]-17)))
                         self.col=round(ratio*(len(self.cols)-1));self.xoff=max(0,self.col-width//2)
-                    elif 7<=y<7+height:
-                        self.row=self.yoff+y-7
+                    elif 7+len(self.workflow_lines)<=y<7+len(self.workflow_lines)+height:
+                        visible=self.visible_rows
+                        position=self.yoff+y-7-len(self.workflow_lines)
+                        if position<len(visible):self.row=visible[position]
                         self.col=self.xoff+max(0,min(width-1,x-self._geom()[2]-5))
         self._clamp()
 
@@ -257,16 +323,18 @@ class MSAViewer:
             self._original=original
             previous=None
             while True:
-                signature=(self._geom(),self.col,self.row,self.xoff,self.yoff,self.only_variable,self.difference,self.message)
+                signature=(self._geom(),self.col,self.row,self.xoff,self.yoff,self.only_variable,self.difference,self.message,self.trace_id,self.row_filter,tuple(sorted(self.checked)),self.region)
                 if signature!=previous:
                     self._render()
-                    previous=(self._geom(),self.col,self.row,self.xoff,self.yoff,self.only_variable,self.difference,self.message)
+                    previous=(self._geom(),self.col,self.row,self.xoff,self.yoff,self.only_variable,self.difference,self.message,self.trace_id,self.row_filter,tuple(sorted(self.checked)),self.region)
                 key=self._read_key()
                 if key=='tick':continue
                 if key=='F2':self.result='home';break
                 if key in ('q','Q','esc','eof'):break
                 if key in ('w','W'):self.result='web';break
-                if key in ('e','E'):self.result='export';break
+                if key=='e':self.result='alignment_export';break
+                if key=='E':self.result='export';break
+                if key=='\x13':self.result='save';break
                 if key in ('?','F1'):
                     if self._help()=='F2':self.result='home';break
                     previous=None;continue
@@ -276,7 +344,7 @@ class MSAViewer:
                     try:
                         j=round(float(value[:-1])/100*(self.length-1)) if value.endswith('%') else int(value)-1
                         if not 0<=j<self.length:raise ValueError
-                        self._goto_genomic(j);self.message='Colonne MSA '+str(self.cols[self.col]+1)
+                        self._goto_genomic(j);self.message='MSA column '+str(self.cols[self.col]+1)
                     except ValueError:self.message='Invalid column number.'
                 elif key=='s':
                     previous=None
@@ -284,9 +352,14 @@ class MSAViewer:
                     if value:
                         matches=[i for i,r in enumerate(self.seqs) if value.casefold() in r.id.casefold()]
                         if matches:
+                            self.row_filter=''
                             self.row=next((i for i in matches if i>self.row),matches[0]);self.message=self.seqs[self.row].id
                             self.search_hits=[]
                         else:self.message='Sequence not found.'
+                elif key=='f':
+                    previous=None;value=self._prompt('Filter sequence IDs (empty shows all)')
+                    self.row_filter=value;self.yoff=0
+                    if not self.visible_rows:self.message='No matching sequences. Press f to change the filter.'
                 elif key=='/':
                     previous=None
                     self._search(self._prompt('Motif (c: for consensus)'))

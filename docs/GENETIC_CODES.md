@@ -4,7 +4,7 @@ AlignView vendors the 27 active tables in the NCBI gc.prt source retrieved on 10
 
 ## Where to choose
 
-Use **Advanced → Additional analyses → Sequences, motifs and translation → Translation and coding regions → Choose the translation table**, or the parameters screen before a translated calculation. The list shows each NCBI number and name.
+Use **Commands → Choose translation table**, or the parameters screen before a translated calculation. The list shows each NCBI number and name.
 
 - `--genetic-code ID` selects the query/internal translation code.
 - `--reference-genetic-code ID` selects the reference code; unset means inherit the query code.

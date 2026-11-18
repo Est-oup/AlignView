@@ -41,7 +41,7 @@ class Parameter:
             if self.maximum is not None and value>self.maximum:raise ValueError(f'maximum: {self.maximum:g}')
             value=self.kind(value)
         elif not isinstance(value,str):raise ValueError('expected text')
-        if self.choices and value not in self.choices:raise ValueError('choix: '+', '.join(map(str,self.choices)))
+        if self.choices and value not in self.choices:raise ValueError('choices: '+', '.join(map(str,self.choices)))
         if self.kind is str and not self.choices and value and not re.fullmatch(r'[A-Za-z0-9_.+-]+',value):
             raise ValueError('use a matrix or task name without spaces')
         return value
@@ -50,10 +50,10 @@ class Parameter:
         value=getattr(args,self.name,self.default)
         if value is None:
             if self.name=='search_candidates':return f'Auto: {max(100,args.hits*10)} engine candidates'
-            if self.name in ('frame','sframe'):return 'Meilleur HSP, sinon +1 (AlignView)'
-            if self.name=='needle_endopen':return f'Comme gapopen: {args.gapopen:g} (AlignView)'
-            if self.name=='needle_endextend':return f'Comme gapextend: {args.gapextend:g} (AlignView)'
-            if self.name=='mafft_maxiterate':return 'Auto: choix MAFFT ; global/local: 1000 ; fast: 0'
+            if self.name in ('frame','sframe'):return 'Strongest HSP frame, otherwise +1 (AlignView)'
+            if self.name=='needle_endopen':return f'Same as gapopen: {args.gapopen:g} (AlignView)'
+            if self.name=='needle_endextend':return f'Same as gapextend: {args.gapextend:g} (AlignView)'
+            if self.name=='mafft_maxiterate':return 'Auto: MAFFT choice; global/local: 1000; fast: 0'
         if value is None or value in ('native',''):return 'Installed engine default'
         if self.kind is bool:return 'Yes' if value else 'No'
         return str(value)
@@ -85,7 +85,7 @@ PARAMETERS = [
     P('threads','CPU','Resources for engines that support threads; standard FastTree remains single-threaded.',4,int,1),
     P('evalue','Maximum E-value','Threshold sent to the engine. Changing it requires a new search.',1e-5,float,1e-300),
     P('search_candidates','Engine candidate limit','Auto = max(100, 10 × retained references). This candidate limit can affect results and differs from the 100 displayed hits.',None,int,1),
-    P('task','Task BLAST','Changes seeds and scores. Unset: BLASTN uses megablast; other programs use their native task.','',str),
+    P('task','BLAST task','Changes seeds and scores. Unset: BLASTN uses megablast; other programs use their native task.','',str),
     P('sensitivity','DIAMOND sensitivity','More sensitive search requires more work; this setting is specific to DIAMOND.','sensitive',str,choices=('fast','sensitive','more-sensitive','very-sensitive','ultra-sensitive')),
     P('blast_word_size','BLAST seed size','Smaller seeds increase sensitivity and cost; allowed values depend on the task.',None,int,2),
     P('blast_reward','DNA match score','Reward for an identical nucleotide; depends on mismatch and gap costs.',None,int,1),
@@ -93,8 +93,8 @@ PARAMETERS = [
     P('blast_matrix','BLAST protein matrix','Examples: BLOSUM62, BLOSUM45, PAM30. Gap costs must be compatible.',None,str),
     P('blast_gapopen','BLAST gap opening','BLAST-specific cost, independent of Needle/Water. TBLASTX is ungapped.',None,int,0),
     P('blast_gapextend','BLAST gap extension','BLAST-specific cost. Only supported matrix/cost combinations are accepted.',None,int,0),
-    P('blast_masking','Masquage DUST / SEG','Mask low complexity. Disabling masking may reveal nonspecific matches.','native',str,choices=('native','yes','no')),
-    P('blast_soft_masking','Masquage souple BLAST','true: mask seeds; false: also mask extension. The default depends on the program.','native',str,choices=('native','true','false')),
+    P('blast_masking','DUST / SEG masking','Mask low complexity. Disabling masking may reveal nonspecific matches.','native',str,choices=('native','yes','no')),
+    P('blast_soft_masking','BLAST soft masking','true: mask seeds; false: also mask extension. The default depends on the program.','native',str,choices=('native','true','false')),
     P('blast_strand','DNA query strand','both: both strands; plus/minus: restrict the search to one strand.','both',str,choices=('both','plus','minus')),
     P('blast_max_hsps','Maximum HSPs per reference','Limit reported segments and potentially the coverage calculated from them.',None,int,1),
     P('blast_comp_stats','BLAST composition statistics','0: disabled; 1/2/3: NCBI corrections depending on the engine. Affects scores and E-values.','native',str,choices=('native','0','1','2','3')),

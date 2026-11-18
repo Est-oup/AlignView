@@ -1,58 +1,80 @@
 # Getting started
 
-## Launch from your working directory
+## Launch from your data directory
 
-The complete application lives inside **one `AlignView/` folder**. Python 3.10+ is enough to explore the demo; no scientific engine or Python package installation is required.
+Keep the complete application in one `AlignView/` folder. Python 3.10+ is enough to use an existing alignment and the demo; no Python package installation or scientific engine is required.
 
 ```bash
 cd /path/to/my_data
 /path/to/AlignView/alignview.sh --demo
-/path/to/AlignView/alignview.sh
 ```
 
-Replace the example paths. The launcher keeps your current directory. Relative inputs and outputs belong to that directory, rather than the application directory. From inside the application folder, `./alignview.sh` also works.
+The launcher preserves your directory. Relative inputs and outputs start there. From inside the application folder, `./alignview.sh` also works.
 
-## Choose your starting point
+## Load first, choose analyses later
 
-| Start option | Input | Next action |
+Run `alignview sequences.fasta` to see a summary of what was loaded and a small menu of actions. Without arguments, choose **Load sequences** or **Open a saved project**. **d** opens the demo, **?** the manual and **t** the tools. Loading data does not start a calculation or ask for a project directory.
+
+| Task | Direct command | What happens |
 | --- | --- | --- |
-| Open an alignment | An aligned FASTA | Results → Read the alignment |
-| Align sequences | A FASTA containing at least two sequences | Check the preparation screen, then Run |
-| Compare against references | Query FASTA followed by reference FASTA | Select the active query, check the preparation screen, then Run |
-| Resume a project | A directory containing `session.json` | Results |
-| Try an example | No file needed | Discover the viewer without engines |
+| Inspect existing aligned sequences | `alignview view aligned.fasta` | Opens the alignment without an engine |
+| Align raw sequences | `alignview align sequences.fasta` | Shows the calculation plan before running |
+| Find matching sequences | `alignview compare queries.fna references.faa` | Chooses the active query, then prepares a search |
+| Make one shareable report | `alignview report aligned.fasta` | Writes a standalone HTML file and exits |
+| Continue a saved analysis | `alignview resume my_project` | Opens its workspace without replaying engines |
+| Inspect installed engines | `alignview tools` | Prints availability, paths and versions |
 
-A multi-sequence query file opens a searchable query selector before comparison. In batch, select its identifier explicitly with `--query-id`. The identifier is the first word after `>` in the FASTA header.
+Use `--html-out study.html` to choose a report name. `report` also accepts a saved project, rebuilding its HTML without a scientific calculation. Existing flag-style commands remain supported.
 
-The six Home actions are **Results**, **Compare with references**, **Align sequences**, **Save and share**, **Files and query**, and **Advanced**. Unavailable actions explain their prerequisites. Esc/Left goes back, F2 returns Home, F1 describes a selected option, and `/` searches long lists.
+Equal-length records are not automatically treated as an alignment. Choose Look at the sequences → Read an existing alignment only when the FASTA is already aligned.
 
-## Keep the results
+## Start from the file menu
 
-Calculations use a temporary session. Use **Save the project** to resume later, **Create an HTML report** to share a standalone presentation, or **Export results** to work in other software. Relative destinations start from your launch directory. Existing destinations are refused in batch.
+The first screen names the file and shows the sequence count, detected alphabet and ungapped length range. No analysis has run. Five choices explain what you can do:
+
+1. **Look at the sequences:** choose a sequence browser or explicitly read an existing alignment.
+2. **Align sequences:** prepare an alignment of the loaded or checked records.
+3. **Find matching sequences:** check one or several query records and select the target FASTA to search against. The Query/Queries and Target lines show the filenames and scope before Run. Target dataset changes the target; Review search inputs shows full paths and IDs. Space checks rows, a selects all, / finds a record and Enter confirms. Each query keeps independent evidence; multi-query results open as a query group.
+4. **Other analyses:** a few groups for sequence checks, motifs/regions, translation/ORFs, alignment statistics/trees, pairwise comparison and nucleotide collections.
+5. **Files and previous results:** choose/add files, reopen analyses, save/export or open settings/help.
+
+Use Up/Down and Enter, a displayed number followed by Enter, or click an item. Esc cancels a preparation screen and returns to the file menu. F2 also returns from nested screens to the file menu. q closes from the file menu; it returns from a reader.
+
+After Run, the result-ready screen identifies what was produced and offers **Open this result**, **Try different settings**, **Back to file actions**, **Previous results** and **Save or export**. An alignment reader does not open before you choose Open this result. Reading position is retained when you reopen it.
+
+In the sequence browser, Space checks records and a prepares their alignment. No checks means all records. Targeted tools explicitly ask which sequence to use when several are loaded, or use the highlighted browser record. The command palette remains available with : or Ctrl+P. See [Exploration examples](WORKFLOWS.md).
+
+## Keep what matters
+
+Every completed interactive analysis stays in Previous results until closing, without an explicit save. Use Save / Export only to retain a resumable workspace or reusable files after closing. Ctrl+S saves a project snapshot: the first save asks for a directory, later changed saves use a new numbered sibling, and unchanged saves create no duplicate. Closing after unsaved analyses offers Continue working, Close without saving, or Save a copy and close. Calculations remain temporary until explicitly retained.
 
 ```bash
-# View an existing alignment and retain only HTML.
-alignview aligned.fasta --msa view --html-out report.html --no-menu
+# Build an MSA without interactive menus and keep the project.
+alignview align sequences.fasta --no-menu --save --out results/msa_01
 
-# Align sequences and save a portable project with HTML.
-alignview sequences.fasta --msa align --report --save --out results/msa_01 --no-menu
-
-# Compare a nucleotide query against proteins.
-alignview query.fna references.faa --mode blastx --msa hits --report --save --out results/search_01 --no-menu
+# Search with one explicit query.
+alignview compare queries.fna references.faa --query-id query_2 \
+  --mode blastx --no-menu --save --out results/search_01
 
 # Infer a tree from an existing alignment.
-alignview aligned.fasta --msa view --tree --report --save --out results/tree_01 --no-menu
+alignview view aligned.fasta --tree --no-menu --save --out results/tree_01
 
-# Rebuild HTML without rerunning scientific calculations.
-alignview --resume results/tree_01 --html-out updated.html --no-menu
+# Share an existing project without rerunning its engines.
+alignview report results/tree_01 --html-out study.html
 ```
 
-These commands use the installed `alignview` name; replace it with the folder launcher's absolute path if needed. `--save` retains a project. `--out` alone does not save. `--html-out` retains one HTML independently of project saving. `--report` alone prepares temporary HTML.
+`--save` retains a complete project. `--out` alone does not save. `--html-out` retains one independent report. `--report` alone prepares temporary HTML. Existing destinations are refused; choose another name.
 
-For VSEARCH, choose **Advanced → Additional analyses → VSEARCH analyses**. For alternative genetic codes, choose **Advanced → Additional analyses → Sequences, motifs and translation → Translation and coding regions → Choose the translation table**. Read [Usage](USAGE.md), [Files](FILES.md) and [Troubleshooting](TROUBLESHOOTING.md) before larger runs.
+For installed engines, run `alignview tools`; `--setup PROFILE` shows an installation plan and `--install-tools` explicitly executes it. VSEARCH, alternative translation tables, diagnostics and HPC actions are available through commands. See [Usage](USAGE.md), [Files](FILES.md), [Installation](INSTALLATION.md) and [Troubleshooting](TROUBLESHOOTING.md).
 
-## Bundled VSEARCH examples
+## Try a small comparison
 
-From inside the application folder: `./alignview.sh examples/example_vsearch.fna --vsearch cluster --html-out vsearch_demo.html --no-menu`. To choose a query before comparison: `./alignview.sh examples/example_vsearch.fna examples/example_vsearch_refs.fna --vsearch search`. These synthetic records demonstrate the workflow and are not biological references.
+The bundled `examples/demo_query.fna` and `examples/demo_references.faa` form one coherent synthetic comparison: a coding nucleotide query, an exact protein, a related variant and an unrelated protein. They demonstrate the workflow and are not biological reference data. BLAST+ is required for this calculation.
 
-Detailed statistics and segment quality are under **Advanced → Checks and statistics**. Extra analyses, scientific settings, tools, HPC, help also live under **Advanced**. The demo opens directly in its viewer; press q to reach Home. Reading an existing alignment does not ask you to save on exit.
+```bash
+# Run from the application folder, or use absolute example paths.
+alignview compare examples/demo_query.fna examples/demo_references.faa \
+  --mode blastx --query-id synthetic_query
+```
+
+Review the query and engine plan, run the search, inspect the strongest segment and coverage in Matches, select references with Space, then create the selected-reference alignment. With at least three aligned rows, create a tree. Save the project or share its HTML when ready. Each completed calculation remains independently accessible in Results; other sequence analyses can be run whenever useful.

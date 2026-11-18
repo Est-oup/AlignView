@@ -38,7 +38,7 @@ class V6Tests(unittest.TestCase):
         self.assertIn('150 nt',svg)
         self.assertIn('30 aa',svg)
         self.assertNotIn('<line x1=',svg)
-        self.assertIn('Cadre -2',frame_tracks_svg([h],150))
+        self.assertIn('Frame -2',frame_tracks_svg([h],150))
 
     def test_preset_cli_explicit_precedence(self):
         a=parse_args(['examples/example_query.fna','examples/example_refs.faa','--mode','blastx','--preset','strict','--no-menu'])
@@ -77,12 +77,12 @@ class V6Tests(unittest.TestCase):
             figures=list((destination/'figures').glob('*.svg'))
             self.assertGreaterEqual(len(figures),30)
             self.assertEqual(page.count('class="panel figcard"'),len(figures))
-            self.assertEqual(len(re.findall(r'data-figure="',page)),len(figures))
+            self.assertEqual(len(re.findall(r'<article class="panel figcard"[^>]+data-figure="',page)),len(figures))
             self.assertTrue((destination/'exports'/'report.html').is_file())
             self.assertTrue((destination/'exports'/'coordinate_units.tsv').is_file())
             self.assertEqual(len((destination/'exports'/'figures_catalog.tsv').read_text().splitlines())-1,len(figures))
             self.assertIn('QUERY: nt · REFERENCE: aa',(destination/'figures'/'23_hsp_mapping.svg').read_text())
-            self.assertIn('<strong>Units:</strong> Translated search',page)
+            self.assertIn('\"query\":\"nt\",\"subject\":\"aa\",\"aligned\":\"aa\"',page)
 
 if __name__=='__main__':unittest.main()
 

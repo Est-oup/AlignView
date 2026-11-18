@@ -18,14 +18,14 @@
 <text x="14" y="336" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
 <text x="14" y="358" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
 <text x="14" y="380" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
-<text x="14" y="402" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"></text>
-<text x="14" y="424" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ──────────────────────────────────────────────────────────────────────────────────────────────────</text>
-<text x="14" y="446" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> CONSENSUS                 │ ATGCATTACCG</text>
-<text x="14" y="468" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> VARIABLE SITES            │ ····▲····▲·</text>
-<text x="14" y="490" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> CONSERVATION              │ ████▒████▒█</text>
-<text x="14" y="512" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> Row 1/4 · seq_1 · all columns · gaps 0.0%</text>
+<text x="14" y="402" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ──────────────────────────────────────────────────────────────────────────────────────────────────</text>
+<text x="14" y="424" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> CONSENSUS                 │ ATGCATTACCG</text>
+<text x="14" y="446" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> VARIABLE SITES            │ ····▲····▲·</text>
+<text x="14" y="468" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> CONSERVATION              │ ████▒████▒█</text>
+<text x="14" y="490" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> Row 1/4 · seq_1 · all columns · gaps 0.0%</text>
+<text x="14" y="512" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> Trace: consensus · residue consensus · all columns · 0 checked</text>
 <text x="14" y="534" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ←→ columns · ↑↓ sequences · [ ] screen · PgUp/PgDn rows</text>
-<text x="14" y="556" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> g position · s sequence · / motif · v variable sites · d differences</text>
-<text x="14" y="578" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> ? all commands · Esc/q back · F2 Home</text>
+<text x="14" y="556" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> g Position · s Sequence · / Motif · f Filter · r Trace · d Differences</text>
+<text x="14" y="578" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> Space Check row · m Mark region · x Reset region · e Export selection · w HTML · q Back</text>
 <text x="14" y="600" fill="#a5b6d0" font-family="DejaVu Sans Mono,monospace" font-size="14" xml:space="preserve"> </text>
 </svg>

@@ -1,35 +1,29 @@
 # Interface review
 
-Reviewed on 12 November 2026. This describes workflow and implementation choices; it does not claim measured user satisfaction or comparative usability superiority.
+The current interaction starts with an explanatory file menu and independent completed results. It replaces both the goal-first route and the automatic sequence-table arrival. This describes implemented behavior, not measured user satisfaction.
 
-## Problems addressed
+## Core behavior
 
-| Problem | Current behavior |
-| --- | --- |
-| Results, calculations and diagnostics mixed in the same menus | Direct Home actions; additional work stays under Advanced |
-| Opening an alignment required another result-selection step | The viewer opens immediately |
-| Guided calculations returned Home before preparation | The selected task opens its preparation screen directly |
-| Multi-query comparison could hide the active query | Explicit initial choice, visible query name and a query selector before calculation |
-| Missing references led to a disabled search | Compare with references opens the reference picker |
-| Segment diagnostics cluttered ordinary result reading | Detailed quality, coverage, conservation and distances are under Advanced |
-| Changing a sensitivity preset altered the result limit | The reference limit remains independent, initially 100 |
-| Simply reading an existing file requested saving | Read-only sessions close directly; new results/settings/history remain protected |
-| Export choices exposed implementation profiles first | Choose FASTA alignment, reference TSV, tree SVG or a result folder |
-| HTML repeated composition charts and empty search counters | Overview focuses on available results; detailed charts stay under Advanced |
-| Runtime translation could leave mixed-language output | English is written directly in code, reports and the single bundled manual |
+Opening a bare FASTA shows its filename, count, type and ungapped lengths, with five explained actions. It opens no table or reader automatically. Other analyses uses small groups, and sequence operations explicitly select their target. Calculation preparation remains separate from Run.
 
-## Structure
+Completed calculations return to a result-ready summary. Open this result is an explicit reader action; Back to file actions restores the recognizable menu. Files and previous results provides file switching, completed attempts, optional exports and settings. The visible menus work with arrows/Enter, numbers or clicks; shortcuts are optional.
 
-Home exposes Results, Compare with references, Align sequences, Save and share, Files and query, and Advanced. Results follow available data. Preparation screens keep the launch action visible; engine-specific controls, command previews and profiles are in Advanced options.
+Reference comparison adds a checkbox query selector with all/clear/filter controls. A single Run can compare several selected records with the same references, grouped by query. A failure or interruption preserves completed members. The group and per-query evidence survive project saving; the group HTML explicitly describes a summary rather than pooled evidence.
 
-Advanced groups additional analyses, checks and statistics, calculation settings, tools and provenance, HPC and help. Its implementation is separated into `av_advanced.py`; ordinary navigation remains in `av_navigation.py`.
+Find matching sequences names the two input roles explicitly: queries are searched against a local target FASTA. Separate query/target lines remain visible in compact preparation menus, result summaries and Matches. Preparation offers a target change without losing query selection and a full-path/identifier review. Offline reports retain the same input direction above their result views.
 
-Project, HTML and individual exports have distinct purposes: resume, share and reuse. Output paths remain relative to the launch directory and existing destinations are refused. Session history becomes portable when the project is saved.
+Every completed interactive operation retains a separate temporary snapshot. Opening an older attempt does not remove newer ones. Tree input links point to the alignment used. Translations, ORFs, extracted regions and alignments can be reused as sequence data without export/reimport.
 
-The HTML report keeps reading and export views in its main navigation. Sequence diagnostics, dotplots, the complete atlas, parameters and method help are in Advanced. The overview retains a direct tree shortcut.
+Result-ready screens offer Rename this result. Display names persist with the project while stable result identifiers and scientific snapshots retain their original content. Reopened projects detach both current inputs and earlier results from the saved source folder.
 
-## Verification
+Esc returns to the previous screen, with per-object list and alignment-reader state retained. The catalog header and rows also accept mouse clicks. Nested calculation settings retain F2 access to the workspace. The result summary offers Try different settings for supported result kinds, preserving the earlier attempt.
 
-Pseudo-terminal tests exercise the demo, viewer, F2 return, nested settings, file selection, reference addition, query changes, history, calculation, saving and closing. The six Home actions fit an 80×24 terminal. Browser checks exercise offline navigation, filtering, horizontal and vertical alignment navigation, expandable figures, printing, tree viewing, SVG download and VSEARCH.
+## Saving and browser reading
 
-These checks establish observable behavior. They do not replace feedback on real biological datasets, terminal configurations or the target HPC environment. See [Calculation review](CALCULATION_REVIEW.md) and [Validation scope](AUDIT.md).
+Project saving is optional until the user wants to keep work after closing. A temporary HTML preview opens without asking for a destination. Durable HTML export is separate. The report uses direct view navigation and Back/Forward controls; it does not prescribe a next step or pretend to run scientific engines.
+
+## Verification and limits
+
+File-menu acceptance checks exercise loading without automatic output, explained choices on small screens, canceled preparation, explicit target selection and explicit reader opening. Exploration tests also exercise independent alignments, tree lineage, selected-record scope, failed/canceled preparation, filter changes, save/reopen, navigation/reader state, highlighted-sequence actions and preview without destination prompts. PTY checks exercise the actual terminal entry point; browser checks exercise history and linked scientific views.
+
+Catalog snapshots currently copy complete working states, which uses additional scratch storage. Completed operations are retained; failed attempts are reported by the existing error UI. Native calculations remain foreground operations. Archive/Undo, a live browser computation service and concurrent job scheduling are not implemented. Observe representative users and large datasets before claiming usability or performance improvements.

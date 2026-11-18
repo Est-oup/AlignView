@@ -1,5 +1,64 @@
 # Changelog
 
+## Unreleased — user journey review and Bioconda preparation
+
+- Make aligned-region inspection explicit, with input provenance, native coordinates, orientation, translation frames and gaps interpreted consistently in the terminal and offline report.
+- Label the native bounds of each displayed HSP page, outline its query/target intervals and export the complete selected two-row alignment as FASTA.
+- Distinguish no detected segments from matches excluded by filters; enable native VSEARCH TSV export without fabricated local-search metrics.
+- Make `--no-menu` and report commands noninteractive on real terminals, including alignment readers, result pagers, save questions and occupied destinations; stop claiming unsaved data is a saved project.
+- Prepare noarch Bioconda recipe generation against verified source bytes, installed CLI/manual/project/report smoke tests and a concrete submission handoff; source publication remains separate.
+- Run offline report checks in CI and include release reconstruction resources in the source archive.
+
+## Unreleased — clear search inputs and targets
+
+- Rename Find matching references to Find matching sequences and distinguish query sequences from the local target FASTA throughout search preparation.
+- Keep query/target filenames and scope visible before running, in Matches and in result summaries, including compact terminal menus.
+- Change the target directly from preparation while preserving selected queries, or review full paths and target-sequence previews before Run.
+- Keep the original query/target inputs visible across offline report views and in grouped comparison summaries.
+
+## Unreleased — result organization and alignment reading
+
+- Rename completed attempts from their result summary or Commands; keep display names through save/reopen without modifying scientific files or lineage.
+- Detach the complete result catalog when reopening a project, so moving or deleting the saved source folder does not lose access to earlier attempts.
+- Find exact motifs across alignment gaps in the offline report, with residue and original MSA ranges, next-hit wrapping and an option for literal aligned-text search.
+- Keep HTML view exports scoped to the displayed sequence page as well as the displayed columns; replace active local evidence only after a successful VSEARCH comparison.
+
+## Unreleased — selected query comparisons
+
+- Select one or several FASTA query records with checkboxes, all/clear controls and identifier filtering before comparing with references.
+- Run a selection against one reference dataset, retaining independent query identity/coverage, parameters, commands and results in a resumable group.
+- Preserve successful query results after a failure or cancellation; record per-query statuses and attempt logs.
+- Reopen grouped/per-query evidence without recalculation and export an honest group HTML summary. Noninteractive `--query-id` behavior remains unchanged.
+
+## Unreleased — explicit file and result menus
+
+- Loading FASTA or the demo now opens a named file summary and five explained actions; no table or alignment reader opens automatically.
+- Completed alignments/searches return to a result-ready summary; opening the actual reader is explicit.
+- Group other analyses into small menus and choose the individual sequence before a targeted operation.
+- Return to the recognizable file menu after canceled preparation or reading; expose files, previous results, optional exports and help through an explained menu.
+- Closing a file without analyses no longer requests a save.
+
+## Unreleased — free sequence exploration
+
+- Open FASTA data directly, add datasets, and choose any analysis without a goal chooser or metro route.
+- Keep each completed interactive attempt independently in Results, with frozen inputs and tree-to-alignment links; project saving stays optional.
+- Restore view filters, cursors and alignment reading positions on Back; support clicking catalog controls and entries.
+- Reuse translations, extracted regions, ORFs and alignments as data without manual export/reimport.
+- Preview HTML without a destination prompt; use direct browser navigation and Back/Forward. Durable HTML export remains separate.
+- Extend portable projects with catalog metadata and retained snapshots; preserve batch calculation behavior.
+
+## 1.0.0 — persistent analysis workspace
+
+- Added goal-first startup, a persistent workflow metro map, explicit reference-selection stage and Next step navigation in the terminal and offline report. Query/reference roles and required inputs are explained before calculations.
+
+- Replaced menu-bucket navigation with persistent Alignment, Matches, Tree and Data views, contextual primary actions, searchable commands and one Save/share sheet.
+- Added explicit view/align/compare/report/resume/tools task commands with concise common help and complete `--help-all`; retained legacy flag forms.
+- Added reference selection from evidence for targeted alignments, trace-sequence inspection and explicit aligned-region export.
+- Split CLI, session and application orchestration behind the stable entry module; replaced chained report rewrites with one payload/figure/report composition pipeline.
+- Reviewed scientific result consistency, project integrity, failure handling, sequence scopes and coordinate semantics.
+- Defined a supported release contract and one runtime inventory; deterministic portable builds, version-scoped checksums and actual installed-wheel/zipapp/portable verification.
+- Rewrote task guides around the resulting workflow, preserving one English manual and local offline operation.
+
 ## English-only application — 12 November 2026
 
 - English is the sole source language for menus, CLI help, prompts, errors, report HTML/JavaScript, SVG labels, comments, docstrings and documentation.

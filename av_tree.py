@@ -16,10 +16,11 @@ class TreeNode:
     children: list[TreeNode] = field(default_factory=list)
 
 
-def _tokens(source):
+def _tokens(source, *, spans=False):
     """Keep quoted labels intact; ignore whitespace and Newick comments."""
     i = 0
     while i < len(source):
+        start = i
         char = source[i]
         if char.isspace():
             i += 1
@@ -42,16 +43,16 @@ def _tokens(source):
                 i += 1
             else:
                 raise ValueError('Invalid Newick: unterminated quoted label.')
-            yield 'label', ''.join(label)
+            yield ('label', ''.join(label), start, i) if spans else ('label', ''.join(label))
         elif char in '(),:;':
-            yield char, char
+            yield (char, char, start, i+1) if spans else (char, char)
             i += 1
         else:
             start = i
             while i < len(source) and not source[i].isspace() and source[i] not in "[]'(),:;":
                 i += 1
             if i == start: raise ValueError('Invalid Newick: unexpected character.')
-            yield 'label', source[start:i]
+            yield ('label', source[start:i], start, i) if spans else ('label', source[start:i])
 
 
 def parse_newick(source: str) -> TreeNode:
@@ -88,7 +89,7 @@ def parse_newick(source: str) -> TreeNode:
             node = TreeNode(label=value if kind == 'label' else '')
             if parents: parents[-1].children.append(node)
             elif root is None: root = node
-            else: raise ValueError('Invalid Newick: plusieurs racines.')
+            else: raise ValueError('Invalid Newick: multiple roots.')
             if kind == '(':
                 parents.append(node)
             else:
@@ -103,6 +104,41 @@ def parse_newick(source: str) -> TreeNode:
         else:
             raise ValueError('Invalid Newick: unexpected separator or parenthesis.')
     raise ValueError('Invalid Newick: incomplete tree (parentheses or semicolon).')
+
+
+def relabel_newick(source: str, mapping: dict[str,str]) -> str:
+    """Restore exact expected tip aliases without rewriting tree information.
+
+    Names are serialized with standard Newick quoting, including doubled
+    apostrophes. Branch numbers, support labels, comments and spacing retain
+    their original text. Missing, unknown or duplicated tips are rejected.
+    """
+    if not isinstance(mapping,dict) or not mapping or any(not isinstance(key,str) or not key or not isinstance(value,str) or not value for key,value in mapping.items()):
+        raise ValueError('Tree identifier mapping must contain nonempty string aliases and labels.')
+    if len(set(mapping.values()))!=len(mapping):raise ValueError('Restored tree identifiers must be unique.')
+    if any(ord(char)<32 for label in mapping.values() for char in label):
+        raise ValueError('Tree identifiers cannot contain control characters.')
+    root=parse_newick(source)
+    tips=[];stack=[root]
+    while stack:
+        node=stack.pop()
+        if node.children:stack.extend(node.children)
+        else:tips.append(node.label)
+    if len(set(tips))!=len(tips):raise ValueError('The tree contains duplicate tip identifiers.')
+    if set(tips)!=set(mapping):
+        raise ValueError('The tree changed the expected sequence set (missing or unexpected tip identifiers).')
+    parts=[];cursor=0;expect_node=True
+    for kind,value,start,end in _tokens(source,spans=True):
+        if kind in ('(', ','):expect_node=True
+        elif kind=='label':
+            if expect_node:
+                label=mapping[value]
+                parts.extend((source[cursor:start],"'"+label.replace("'","''")+"'"))
+                cursor=end
+            expect_node=False
+        else:expect_node=False
+    parts.append(source[cursor:])
+    return ''.join(parts)
 
 
 def tree_text(source: str) -> str:
@@ -157,9 +193,9 @@ def tree_svg(source: str) -> str:
             'Cladogram: missing or all-zero branch lengths; distances are not represented.')
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
-        f'role="img" aria-label="Arbre exploratoire FastTree" data-layout="{layout}" data-leaves="{len(leaves)}">',
+        f'role="img" aria-label="Exploratory FastTree tree" data-layout="{layout}" data-leaves="{len(leaves)}">',
         '<title>Exploratory tree · FastTree</title>',
-        '<desc>Branchs and labels from the Newick file. Arbitrary drawing root, '
+        '<desc>Branches and labels from the Newick file. Arbitrary drawing root, '
         'without biological rooting. FastTree support is local (SH-like), not bootstrap support.</desc>',
         f'<rect width="{width}" height="{height}" rx="14" fill="#102039"/>',
         '<g font-family="Arial,sans-serif">',

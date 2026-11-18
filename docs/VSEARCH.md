@@ -1,15 +1,15 @@
 # VSEARCH nucleotide analyses
 
-Use **Advanced → Additional analyses → VSEARCH analyses**, or select VSEARCH as the nucleotide comparison method. Proteins are rejected before execution. The preparation screen shows the engine, version, source and executable; commands and normalized inputs can be previewed. Install with `--setup vsearch --install-tools` when needed.
+Use **Commands → VSEARCH nucleotide analyses**, or select VSEARCH as the nucleotide comparison method. Proteins are rejected before execution. The preparation screen shows the engine, version, source and executable; commands and normalized inputs can be previewed. Install with `--setup vsearch --install-tools` when needed.
 
 ## Four workflows
 
 | Action | Input | Main outputs |
 | --- | --- | --- |
-| search | Active query against the reference FASTA | vsearch/search/Matches.tsv |
-| dereplicate | All records of the first FASTA | vsearch/dereplicate/Unique sequences.fasta and dereplication.uc |
+| search | Active query against the reference FASTA | vsearch/search/matches.tsv |
+| dereplicate | All records of the first FASTA | vsearch/dereplicate/unique.fasta and dereplication.uc |
 | cluster | All records of the first FASTA | vsearch/cluster/centroids.fasta and clusters.uc |
-| Chimeras | All first-FASTA records, dereplicated before UCHIME | vsearch/Chimeras/Unique sequences.fasta, Chimeras.fasta, Non-chimeras.fasta, Borderline.fasta and uchime.tsv |
+| chimeras | All first-FASTA records, dereplicated before UCHIME | vsearch/chimeras/unique.fasta, chimeras.fasta, nonchimeras.fasta, borderline.fasta and uchime.tsv |
 
 The actions preserve source files and the active MSA. They produce their own native metrics, not BLAST HSPs. Several actions can coexist in one project. Repeating an action replaces that action's result only after successful execution and validation; logs retain separate attempts.
 
@@ -18,7 +18,7 @@ The actions preserve source files and the active MSA. They produce their own nat
 Multi-query comparison opens a searchable query selector before calculation, including guided comparison. Use Data to change the active query later. Batch selection is explicit:
 
 ```bash
-alignview queries.fna refs.fna --vsearch search --query-id chosen_id --vsearch-id 0.97 --report --save --out vsearch_01 --no-menu
+alignview compare queries.fna refs.fna --mode vsearch --query-id chosen_id --vsearch-id 0.97 --report --save --out vsearch_01 --no-menu
 ```
 
 Search uses global pairwise alignment and a word prefilter. It does not enumerate all motif occurrences inside a long target. The identity threshold is a fraction from 0 to 1. Reported identity is a percentage under iddef (default 2). qcov/tcov follow VSEARCH's coverage definitions, rather than a union of local HSPs. No nucleotide E-value or bitscore is calculated or invented; BLAST E-value/bitscore filters do not apply. `--hits` limits reported references separately from candidate acceptance/rejection limits.
@@ -44,10 +44,10 @@ Counts are written as ;size=N; annotations. By default, each FASTA record counts
 ## De novo chimera screening
 
 ```bash
-alignview reads.fna --vsearch Chimeras --report --save --out chimeras_01 --no-menu
+alignview reads.fna --vsearch chimeras --report --save --out chimeras_01 --no-menu
 ```
 
-AlignView dereplicates first and retains abundances, then runs UCHIME de novo. Reported Chimeras, non-Chimeras and Borderline sequences are separated. Counts, dataset composition, available parents, masks and thresholds affect detection. Uniform-abundance references do not substitute for abundance-bearing amplicon data. No detected chimera is not a guarantee of no Chimeras. De novo UCHIME works on the plus strand, independently of the strand setting used by other steps.
+AlignView dereplicates first and retains abundances, then runs UCHIME de novo. Reported chimeras, nonchimeras and borderline sequences are separated. Counts, dataset composition, available parents, masks and thresholds affect detection. Uniform-abundance references do not substitute for abundance-bearing amplicon data. No detected chimera is not a guarantee that chimeras are absent. De novo UCHIME works on the plus strand, independently of the strand setting used by other steps.
 
 ## Preparation and retained results
 

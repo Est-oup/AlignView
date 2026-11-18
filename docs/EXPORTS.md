@@ -2,7 +2,7 @@
 
 ## Choose a destination and profile
 
-Use **Save and share → Export results**. Batch examples:
+Use **Save/share → Export data or figures**. Batch examples:
 
 ```bash
 alignview --resume project_01 --export-profile publication --export-dir exports_01 --no-menu
@@ -12,6 +12,8 @@ alignview --resume project_01 --export-profile complete --export-dir exports_02 
 Standard exports contain FASTA, sequence quality, local-search tables, coverage, BED and provenance. Publication adds CSV, GFF3, alignment exchange formats, HTML and SVG figures. Complete adds detailed JSON/JSONL, unmatched regions and a SHA256 inventory. Conditional files require the underlying data. VSEARCH output directories are preserved in all profiles when available.
 
 An export directory is not a full resumable project. Save a project to retain every internal/auxiliary analysis and history. Browser exports use the report's embedded subset, not necessarily the complete application data.
+
+The interactive TSV matches export preserves native VSEARCH fields for a global search, including an empty header-only result. It does not substitute local HSP identity, E-values or bitscores. If the current completed search is local, its local table takes priority over an older VSEARCH result. In the offline local-segment inspector, Download this segment exports the selected HSP's two complete aligned FASTA rows with roles, ranges, units and frames.
 
 ## Main files
 
@@ -42,8 +44,12 @@ An export directory is not a full resumable project. Save a project to retain ev
 | BED | 0-based | Half-open | Native sequence unit |
 | MSA | 1-based column | Column, including gaps | Aligned nt or aa |
 
-BLASTX uses nt/aa/aa for query/reference/HSP columns; TBLASTN uses aa/nt/aa; TBLASTX uses nt/nt/aa. `coordinate_units.tsv` and `coordinate_audit.tsv` preserve these distinctions. Reverse-strand coordinates need their strand/frame context.
+BLASTX uses nt/aa/aa for query/reference/HSP columns; TBLASTN uses aa/nt/aa; TBLASTX uses nt/nt/aa. `coordinate_units.tsv` and `coordinate_audit.tsv` preserve these distinctions. Reverse-strand coordinates need their strand/frame context. Searches use prepared ungapped records (`-`/`.` removed, nucleotide U→T and ?→N/X); their native coordinates are not source MSA columns.
 
-Coverage is an interval union, not a sum of overlapping HSP lengths. Identity is local to a segment, not a recalculated whole-sequence identity. Pairwise p-distances exclude gaps/missing characters independently per pair.
+Coverage is an interval union, not a sum of overlapping HSP lengths. Displayed best identity belongs to the strongest-scoring HSP, while `max_identity` records the maximum segment identity separately. Neither is a recalculated whole-sequence identity. Pairwise p-distances exclude gaps/missing characters independently per pair.
 
-VSEARCH Matches.tsv uses native VSEARCH fields (query, target, id, alnlen, qilo/qihi, tilo/tihi, qcov/tcov, qstrand, qrow/trow). It contains no invented E-value/bitscore. Clustering/dereplication UC files map records to Representatives; size annotations retain abundances. Chimera files separate reported classifications. See [VSEARCH](VSEARCH.md).
+VSEARCH `matches.tsv` uses native VSEARCH fields (query, target, id, alnlen, qilo/qihi, tilo/tihi, qcov/tcov, qstrand, qrow/trow). It contains no invented E-value/bitscore. Clustering/dereplication UC files map records to representatives; size annotations retain abundances. Chimera files separate reported classifications. See [VSEARCH](VSEARCH.md).
+
+## Explicit aligned-region exports
+
+The terminal viewer uses r for the trace row, f for filtering, Space for row checks, m for region boundaries, x to clear and e to export. A new export folder contains `alignment.fasta`, `columns.tsv` and `selection.json`, recording original MSA columns, identifiers and a source alignment hash. The browser distinguishes filtered full rows from currently displayed rows/columns and can export a TSV map back to original MSA columns. Variable-site filters can create discontinuous column sets; the map preserves that fact. These files are views/extractions, not new engine alignments or implicit native-coordinate intervals.

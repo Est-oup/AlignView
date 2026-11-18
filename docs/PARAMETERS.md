@@ -1,12 +1,12 @@
 # Understand and adjust scientific parameters
 
-Before each calculation, use **Calculation parameters / Engine parameters**. F1 explains an option. **Inspect commands** uses the same argument builders as actual execution, without running the analysis. The complete [CLI reference](CLI.md) lists every flag and default.
+Open **Commands → Additional analyses and settings**, or use the advanced options in a calculation preparation screen. **Calculation parameters / Engine parameters** exposes the settings for that engine. F1 explains an option. **Inspect commands** uses the same argument builders as actual execution, without running the analysis. The complete [CLI reference](CLI.md) lists every flag and default.
 
 ## Calculation versus result filtering
 
 Identity, coverage, bitscore and the retained-reference limit filter calculated local-search results. E-value, seeds, masks, scores, sensitivity and search-candidate limits change the calculation and require a rerun. A filter that changes the selected references can invalidate their derived MSA/tree.
 
-The maximum retained references starts at 100. Standard/More permissive/Stricter presets use E-values 1e-5/1e-2/1e-10 and adjust DIAMOND sensitivity where applicable. These presets do not change the retained-reference maximum or MMseqs2 sensitivity. The automatic candidate limit is max(100, 10 × retained references), separately adjustable.
+The maximum retained references starts at 100. Standard, sensitive and strict presets (`--preset standard/sensitive/strict`) use E-values 1e-5/1e-2/1e-10 and adjust DIAMOND sensitivity where applicable. These presets do not change the retained-reference maximum or MMseqs2 sensitivity. The automatic candidate limit is max(100, 10 × retained references), separately adjustable.
 
 ## Engine-specific settings
 
@@ -33,7 +33,7 @@ Unset/native means the option is not sent and the installed engine owns the defa
 
 ```bash
 alignview --write-profile tuned.json --mafft local --mafft-op 2 --mafft-maxiterate 100
-alignview sequences.fasta --load-profile tuned.json --save --out run_01 --no-menu
+alignview align sequences.fasta --load-profile tuned.json --save --out run_01 --no-menu
 alignview --resume run_01 --mafft-op 3 --msa align --save --out run_02 --no-menu
 ```
 
@@ -43,4 +43,4 @@ Resuming alone does not rerun engines. Explicit settings become future settings;
 
 ## A useful comparison procedure
 
-Check inputs and alphabets first. Save a baseline and its provenance. Change one parameter or coherent group, inspect the command, rerun the relevant calculation, compare coverage/regions/gaps/MSA quality, and save a new project. More Matches alone do not establish better biological validity. Engine stderr logs remain the authority for unsupported matrix/cost combinations.
+Check inputs and alphabets first. Save a baseline and its provenance. Change one parameter or coherent group, inspect the command, rerun the relevant calculation, compare coverage/regions/gaps/MSA quality, and save a new project. More matches alone do not establish better biological validity. Engine stderr logs remain the authority for unsupported matrix/cost combinations.

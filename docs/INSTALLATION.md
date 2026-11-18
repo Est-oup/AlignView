@@ -6,7 +6,15 @@ Copy the complete `AlignView/` folder and run `/path/to/AlignView/alignview.sh -
 
 The portable ZIP extracts to one `AlignView/` folder. `python3 /path/to/alignview.pyz --demo` is the single-file alternative, including offline documentation. Neither distribution embeds scientific binaries.
 
-For an installed command, create a Python environment and install `dist/alignview-0.1.0-py3-none-any.whl` with pip. Installing the source folder is also supported with the build dependencies available. The optional `scripts/install_user.sh` copies the zipapp into `~/.local/bin/alignview`; skip it if you prefer to retain only the portable folder.
+For an installed command, create a Python environment and install the release wheel with pip:
+
+```bash
+python3 -m venv /path/to/alignview-env
+/path/to/alignview-env/bin/python -m pip install dist/alignview-1.0.0-py3-none-any.whl
+/path/to/alignview-env/bin/alignview --demo
+```
+
+Installing the source folder with `python3 -m pip install /path/to/AlignView` is also supported with the build dependencies available. The optional `scripts/install_user.sh` copies an already built zipapp into `~/.local/bin/alignview`; build it first with `python3 scripts/build_pyz.py` when working from source. The portable folder needs neither installation step.
 
 ## Scientific engines
 
@@ -20,7 +28,7 @@ For an installed command, create a Python environment and install `dist/alignvie
 | Alternative MSA | MUSCLE 5 / Clustal Omega | muscle / clustalo |
 | Global/local pairwise alignment | EMBOSS | emboss |
 | Exploratory tree | FastTree | fasttree |
-| Nucleotide global search, dereplication, clustering, Chimeras | VSEARCH | vsearch |
+| Nucleotide global search, dereplication, clustering, chimera screening | VSEARCH | vsearch |
 | Optional external viewer | ALV | alv |
 
 `minimal` includes BLAST, DIAMOND and MAFFT. `full` adds all other supported engines, including VSEARCH. The internal viewer does not need ALV. MUSCLE 3 is unsupported.

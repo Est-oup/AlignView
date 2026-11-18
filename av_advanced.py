@@ -47,7 +47,7 @@ class AdvancedActions:
                  'blastx':('blastx','diamond-blastx'),'tblastn':('tblastn',)}.get(default,())
         return self.choose('Search method',[item(mode,MODES[mode][0],MODES[mode][1],
             enabled=not allowed or mode in allowed,reason=f'Incompatible with the detected types: {qtype} → {rtype}.')
-            for mode in MODES if not mode.startswith('global-')],f'{qtype} → {rtype} · recommandation: {default or "check required"}')
+            for mode in MODES if not mode.startswith('global-')],f'{qtype} → {rtype} · recommended: {default or "check required"}')
 
     def pairwise(self):
         with self.ui.section('Two sequences'):
@@ -93,7 +93,7 @@ class AdvancedActions:
             item('1','Translate all six frames',f'Table NCBI {self.s.a.genetic_code} ; export protein sequences'),
             item('2','Find simple ORFs','Start-to-stop segments; exploratory analysis'),
             item('3','Extract a region','Choose coordinates and orientation'),
-            item('4','Choose the translation table',f'QUERY: table NCBI {self.s.a.genetic_code} · starts ORF: {self.s.a.orf_starts}'),
+            item('4','Choose the translation table',f'QUERY: NCBI table {self.s.a.genetic_code} · ORF starts: {self.s.a.orf_starts}'),
         ])
         if choice=='4':self.edit_parameters('translation')
         elif choice:self.run_action({'1':self.s.translate_frames,'2':self.s.find_orfs,'3':self.s.extract_region}[choice],changes=True)
@@ -117,7 +117,7 @@ class AdvancedActions:
                 choice=self.choose('Search settings',[
                     item('1','E-value threshold preset',self.s.a.preset+' ; DIAMOND sensitivity where applicable'),
                     item('2','Maximum number of references',str(self.s.a.hits)+' maximum retained references'),
-                    item('3','Maximum E-value',f'{self.s.a.evalue:g} ; plus petit = plus strict'),
+                    item('3','Maximum E-value',f'{self.s.a.evalue:g} ; smaller values are stricter'),
                     item('4','CPU count',str(self.s.a.threads)),
                     item('5','Result filters','Identity, coverage and bitscore without rerunning the search'),
                     item('6','Engine parameters','Seeds, masking, scores and sensitivity, depending on the method'),
@@ -135,7 +135,7 @@ class AdvancedActions:
                     if method in ('msa','global-dna','global-aa',''):
                         if not self.s.single:method=self.recommended_mode()
                         else:
-                            self.ui.page('Choose a method in Compare with references after adding references.','Search method required');continue
+                            self.ui.page('Choose a method in Find matching sequences after choosing a target dataset.','Search method required');continue
                     self.edit_parameters('search',method)
 
     def alignment_settings(self):
@@ -159,7 +159,7 @@ class AdvancedActions:
                 choice=self.choose('Calculation parameters · '+engine,
                     [item(str(i),p.label,p.display(self.s.a)+' · '+p.effect) for i,p in enumerate(fields,1)]+
                     [item('r','Restore initial values','Reset only this calculation\'s parameters')],
-                    hint=(f'Traduction: table NCBI {self.s.a.genetic_code}. ' if mode in ('blastx','diamond-blastx','tblastn','tblastx') else '')+
+                    hint=(f'Translation: NCBI table {self.s.a.genetic_code}. ' if mode in ('blastx','diamond-blastx','tblastn','tblastx') else '')+
                         'F1: parameter effect. /: search. Engine default means the option is not supplied and depends on the engine version.')
                 if choice is None:return
                 if choice=='r':
@@ -203,7 +203,7 @@ class AdvancedActions:
             if choice is None:return
             if choice=='3':
                 from av_parameters import profile
-                self.ui.page(json.dumps(profile(self.s.a),ensure_ascii=False,indent=2),'Profile actuel');continue
+                self.ui.page(json.dumps(profile(self.s.a),ensure_ascii=False,indent=2),'Current profile');continue
             filename=self.ui.ask('File JSON (q to cancel)', 'alignview-profile.json' if choice=='2' else '')
             if not filename or filename.casefold()=='q':continue
             try:
@@ -229,7 +229,7 @@ class AdvancedActions:
 
     def software(self):
         from av_setup import software_hub
-        with self.ui.section('Logiciels'):software_hub(self.ui,self.s.tools)
+        with self.ui.section('Tools'):software_hub(self.ui,self.s.tools)
 
     def help(self):
         from av_docs import read_document

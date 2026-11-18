@@ -4,15 +4,29 @@ Generated from the actual parser by `python3 scripts/generate_cli_docs.py`. Do n
 
 Use the installed `alignview` command, or replace it with `/path/to/AlignView/alignview.sh`.
 
-## Common workflows
+## Task commands
+
+Common tasks use explicit verbs. Existing positional/flag commands remain supported. `--help` is concise; `--help-all` exposes every engine option.
+
+| Command | Input | Behavior |
+| --- | --- | --- |
+| `view FILE` | Already aligned FASTA | Read the alignment; add `--no-menu` for batch actions |
+| `align FILE [REFERENCES]` | Unaligned sequences, optionally references | Prepare an MSA; compatible two-file inputs align without a similarity search |
+| `compare QUERY REFERENCES` | Query candidates and reference FASTA | Choose one query and search; mode follows types unless explicitly selected |
+| `report FILE_OR_PROJECT` | Aligned FASTA or saved project | Write standalone HTML and exit; projects rebuild without engines |
+| `resume PROJECT` | Saved project directory | Open the workspace; no scientific rerun unless explicitly requested |
+| `tools` | No dataset | Diagnose tools; `--setup PROFILE` shows an installation plan |
 
 ```bash
 alignview --demo
 alignview --docs quickstart
-alignview aligned.fasta --msa view --html-out report.html --no-menu
-alignview sequences.fasta --msa align --report --save --out project_01 --no-menu
-alignview queries.fna refs.fna --vsearch search --query-id chosen_id --report --save --out search_01 --no-menu
-alignview --resume project_01 --html-out updated.html --no-menu
+alignview view aligned.fasta
+alignview align sequences.fasta --no-menu --save --out project_01
+alignview compare queries.fna references.faa --query-id chosen_id --mode blastx --no-menu --save --out search_01
+alignview report project_01 --html-out updated.html
+alignview resume project_01
+alignview tools
+alignview --help-all
 ```
 
 ## Storage and resuming
@@ -32,6 +46,7 @@ See [Usage](USAGE.md), [Parameters](PARAMETERS.md), [VSEARCH](VSEARCH.md), [Gene
 | Option | Default | Purpose and values |
 | --- | --- | --- |
 | `-h / --help` | — | show this help message and exit |
+| `--help-all` | — | Show every engine-specific parameter |
 
 ## Input and resuming
 
@@ -54,7 +69,7 @@ See [Usage](USAGE.md), [Parameters](PARAMETERS.md), [VSEARCH](VSEARCH.md), [Gene
 | `--coverage` | 0 | Query coverage from the union of HSPs % (0) |
 | `--bitscore` | 0 | Minimum local bitscore (0) |
 | `--hits` | 100 | Maximum retained references (default: 100) |
-| `--preset` | 'standard' | Search preset: standard, sensible or strict; explicit options take priority Values: standard, sensitive, strict. |
+| `--preset` | 'standard' | Search preset: standard, sensitive or strict; explicit options take priority Values: standard, sensitive, strict. |
 | `--threads` | 4 | Number of threads (4) |
 | `--sensitivity` | 'sensitive' |  Values: fast, sensitive, more-sensitive, very-sensitive, ultra-sensitive. |
 
@@ -151,8 +166,8 @@ See [Usage](USAGE.md), [Parameters](PARAMETERS.md), [VSEARCH](VSEARCH.md), [Gene
 | `--blast-matrix` | — | BLAST protein matrix: Examples: BLOSUM62, BLOSUM45, PAM30. Gap costs must be compatible. |
 | `--blast-gapopen` | — | BLAST gap opening: BLAST-specific cost, independent of Needle/Water. TBLASTX is ungapped. |
 | `--blast-gapextend` | — | BLAST gap extension: BLAST-specific cost. Only supported matrix/cost combinations are accepted. |
-| `--blast-masking` | 'native' | Masquage DUST / SEG: Mask low complexity. Disabling masking may reveal nonspecific matches. Values: native, yes, no. |
-| `--blast-soft-masking` | 'native' | Masquage souple BLAST: true: mask seeds; false: also mask extension. The default depends on the program. Values: native, true, false. |
+| `--blast-masking` | 'native' | DUST / SEG masking: Mask low complexity. Disabling masking may reveal nonspecific matches. Values: native, yes, no. |
+| `--blast-soft-masking` | 'native' | BLAST soft masking: true: mask seeds; false: also mask extension. The default depends on the program. Values: native, true, false. |
 | `--blast-strand` | 'both' | DNA query strand: both: both strands; plus/minus: restrict the search to one strand. Values: both, plus, minus. |
 | `--blast-max-hsps` | — | Maximum HSPs per reference: Limit reported segments and potentially the coverage calculated from them. |
 | `--blast-comp-stats` | 'native' | BLAST composition statistics: 0: disabled; 1/2/3: NCBI corrections depending on the engine. Affects scores and E-values. Values: native, 0, 1, 2, 3. |

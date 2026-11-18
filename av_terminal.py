@@ -55,6 +55,9 @@ def screen(mouse=False):
     try:
         # TCSAFLUSH discards fast input typed during a menu transition.
         tty.setcbreak(fd,when=termios.TCSANOW)
+        current=termios.tcgetattr(fd)
+        current[0] &= ~(termios.IXON | termios.IXOFF)
+        termios.tcsetattr(fd,termios.TCSANOW,current)
         prefix='\x1b[?1049h\x1b[?25l' if not _screens else ''
         if mouse and not any(_screens):prefix+='\x1b[?1000h\x1b[?1006h'
         _screens.append(mouse)

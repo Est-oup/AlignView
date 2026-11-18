@@ -1,8 +1,8 @@
 """Explicit biological units: native coordinates versus translated alignment.
 
 BLASTX: QUERY nt, reference aa, alignment columns aa.
-TBLASTN: QUERY aa, sujet nt, columns aa.
-TBLASTX: QUERY nt, sujet nt, columns aa.
+TBLASTN: QUERY aa, reference nt, alignment columns aa.
+TBLASTX: QUERY nt, reference nt, alignment columns aa.
 Never equate one nucleotide position with one amino-acid column.
 """
 from __future__ import annotations
@@ -49,8 +49,8 @@ def coord_audit(hsps,mode):
     for h in hsps:
         qlen=h.qspan[1]-h.qspan[0]+1
         slen=h.sspan[1]-h.sspan[0]+1
-        qnongap=sum(c!='-' for c in h.qseq)
-        snongap=sum(c!='-' for c in h.sseq)
+        qnongap=sum(c not in '-.' for c in h.qseq)
+        snongap=sum(c not in '-.' for c in h.sseq)
         qfactor=3 if units.translated_query else 1
         sfactor=3 if units.translated_subject else 1
         rows.append(dict(subject=h.subject,qstart=h.qstart,qend=h.qend,sstart=h.sstart,send=h.send,
@@ -58,7 +58,7 @@ def coord_audit(hsps,mode):
             query_span=qlen,reference_span=slen,query_aligned_chars=qnongap,reference_aligned_chars=snongap,
             expected_query_span=qnongap*qfactor if h.qseq else None,
             expected_reference_span=snongap*sfactor if h.sseq else None,
-            query_consistent=abs(qlen-qnongap*qfactor)<=2 if h.qseq else None,
-            reference_consistent=abs(slen-snongap*sfactor)<=2 if h.sseq else None,
+            query_consistent=qlen==qnongap*qfactor if h.qseq else None,
+            reference_consistent=slen==snongap*sfactor if h.sseq else None,
             qframe=h.qframe,sframe=h.sframe))
     return rows

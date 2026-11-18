@@ -27,3 +27,11 @@ jobs:
       - run: alignview --docs files
       - run: alignview --help
       - run: alignview --demo --no-menu
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python scripts/check_report_browser.py

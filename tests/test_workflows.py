@@ -228,14 +228,16 @@ class VsearchTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):publish_directory(Path(tmp)/'missing',previous)
             self.assertEqual((previous/'result').read_text(),'previous')
 
-    def test_home_opens_explore_when_vsearch_results_are_ready(self):
+    def test_workspace_opens_native_results_when_vsearch_is_ready(self):
+        from av_workspace import Workspace
         session=Session(parse_args([str(ROOT/'examples/example_msa.fasta'),'--no-menu']),UI(False))
         try:
             session.vsearch_results={'cluster':{'summary':{'representatives':2}}}
-            workbench=Workbench(session)
-            with patch.object(workbench,'choose',return_value=None) as choose,patch.object(workbench,'confirm_exit',return_value=True):
-                workbench.run()
-            self.assertEqual(choose.call_args.kwargs['default'],'1')
+            workspace=Workspace(session)
+            self.assertEqual(workspace.tab,'Home')
+            workspace.switch('Matches')
+            self.assertEqual(workspace.primary()[0],'vsearch_results')
+            self.assertIn('representatives=2','\n'.join(workspace.render()))
         finally:session.close()
 
 

@@ -43,6 +43,35 @@ class HSP:
     qseq: str = ''
     sseq: str = ''
 
+    def __post_init__(self):
+        """Reject malformed evidence before it can enter a result or project."""
+        if not isinstance(self.query,str) or not self.query or not isinstance(self.subject,str) or not self.subject:
+            raise ValueError('HSP query and reference identifiers must be nonempty strings.')
+        if any(c.isspace() for identifier in (self.query,self.subject) for c in identifier):
+            raise ValueError('HSP identifiers cannot contain whitespace.')
+        for name in ('align_length','qstart','qend','sstart','send'):
+            value=getattr(self,name)
+            if type(value) is not int or value<1:
+                raise ValueError('HSP '+name+' must be a positive integer.')
+        for name in ('identity','evalue','bitscore'):
+            value=getattr(self,name)
+            if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value):
+                raise ValueError('HSP '+name+' must be a finite number.')
+        if not 0<=self.identity<=100:raise ValueError('HSP identity must be between 0 and 100.')
+        if self.evalue<0:raise ValueError('HSP E-value must be nonnegative.')
+        for name in ('qframe','sframe'):
+            value=getattr(self,name)
+            if type(value) is not int or value not in range(-3,4):
+                raise ValueError('HSP '+name+' must be an integer from -3 to 3.')
+        if not isinstance(self.qseq,str) or not isinstance(self.sseq,str):
+            raise ValueError('HSP aligned rows must be strings.')
+        if bool(self.qseq)!=bool(self.sseq):
+            raise ValueError('HSP aligned query and reference rows must be provided together.')
+        if self.qseq and (len(self.qseq)!=self.align_length or len(self.sseq)!=self.align_length):
+            raise ValueError('HSP aligned rows must have the reported alignment length.')
+        if self.qseq and any(not re.fullmatch(r'[A-Za-z*?.-]+',row) for row in (self.qseq,self.sseq)):
+            raise ValueError('HSP aligned rows contain invalid symbols.')
+
     @property
     def qspan(self): return tuple(sorted((self.qstart, self.qend)))
 
@@ -50,13 +79,13 @@ class HSP:
     def sspan(self): return tuple(sorted((self.sstart, self.send)))
 
     @property
-    def gap_columns(self): return sum(a == '-' or b == '-' for a,b in zip(self.qseq,self.sseq))
+    def gap_columns(self): return sum(a in '-.' or b in '-.' for a,b in zip(self.qseq,self.sseq))
 
     @property
-    def mismatches(self): return sum(a != b and a != '-' and b != '-' for a,b in zip(self.qseq,self.sseq))
+    def mismatches(self): return sum(a.upper()!=b.upper() and a not in '-.' and b not in '-.' for a,b in zip(self.qseq,self.sseq))
 
     @property
-    def matches(self): return sum(a == b and a != '-' for a,b in zip(self.qseq,self.sseq))
+    def matches(self): return sum(a.upper()==b.upper() and a not in '-.' for a,b in zip(self.qseq,self.sseq))
 
     def record(self):
         d=asdict(self)
@@ -98,9 +127,16 @@ def read_fasta(path: Path | str, max_sequences: int | None = None) -> list[Seq]:
 
 
 def write_fasta(seqs: Iterable[Seq], path: Path, width: int = 80):
+    if type(width) is not int or width<1:raise ValueError('FASTA line width must be a positive integer.')
     with open(path,'w',encoding='utf-8') as f:
         for r in seqs:
-            f.write('>'+r.description+'\n')
+            if not r.id or any(c.isspace() for c in r.id):
+                raise ValueError('FASTA identifiers must be nonempty and cannot contain whitespace.')
+            if '\n' in r.description or '\r' in r.description:
+                raise ValueError('FASTA descriptions cannot contain line breaks.')
+            description=r.description.strip()
+            header=description if description and description.split()[0]==r.id else r.id+(' '+description if description else '')
+            f.write('>'+header+'\n')
             for i in range(0,len(r.seq),width): f.write(r.seq[i:i+width]+'\n')
 
 
@@ -113,7 +149,7 @@ def sequence_type(seq: str) -> str:
 
 
 def sequence_stats(r: Seq) -> dict:
-    s=r.seq; valid=[c for c in s if c not in '-.?']; total=len(s); n=len(valid)
+    s=r.seq.upper(); valid=[c for c in s if c not in '-.?']; total=len(s); n=len(valid)
     gc=sum(x in 'GC' for x in valid)
     count=collections.Counter(valid)
     probs=[v/n for v in count.values()] if n else []
@@ -152,6 +188,11 @@ def missing_intervals(intervals, length):
 
 def parse_blast_tab(path, engine='blast') -> list[HSP]:
     """NCBI: 15 columns; DIAMOND: 13, without sframe. Each line represents one HSP."""
+    def frame(value):
+        number=float(value)
+        if not math.isfinite(number) or not number.is_integer():
+            raise ValueError('reading frames must be integers')
+        return int(number)
     result=[]
     with open(path,encoding='utf-8') as f:
         for index,line in enumerate(f,1):
@@ -161,9 +202,9 @@ def parse_blast_tab(path, engine='blast') -> list[HSP]:
             if len(a)!=expected: raise ValueError(f'HSP row {index}: {len(a)} fields instead of {expected}')
             try:
                 if engine=='blast':
-                    result.append(HSP(a[0],a[1],float(a[2]),int(a[3]),int(a[4]),int(a[5]),int(a[6]),int(a[7]),float(a[8]),float(a[9]),int(float(a[11])),int(float(a[12])),a[13],a[14]))
+                    result.append(HSP(a[0],a[1],float(a[2]),int(a[3]),int(a[4]),int(a[5]),int(a[6]),int(a[7]),float(a[8]),float(a[9]),frame(a[11]),frame(a[12]),a[13],a[14]))
                 else:
-                    result.append(HSP(a[0],a[1],float(a[2]),int(a[3]),int(a[4]),int(a[5]),int(a[6]),int(a[7]),float(a[8]),float(a[9]),int(float(a[10])),0,a[11],a[12]))
+                    result.append(HSP(a[0],a[1],float(a[2]),int(a[3]),int(a[4]),int(a[5]),int(a[6]),int(a[7]),float(a[8]),float(a[9]),frame(a[10]),0,a[11],a[12]))
             except (ValueError,IndexError) as e: raise ValueError(f'Parsing HSP row {index}: {e}') from e
     return sorted(result,key=lambda h:(-h.bitscore,h.evalue,h.subject))
 
@@ -175,11 +216,11 @@ def parse_mmseqs_tab(path) -> list[HSP]:
         for index,line in enumerate(stream,1):
             if not line.strip() or line.startswith('#'):continue
             fields=line.rstrip('\n').split('\t')
-            if len(fields)!=12:raise ValueError(f'MMseqs2 ligne {index}: expected 12 fields, received {len(fields)}')
+            if len(fields)!=12:raise ValueError(f'MMseqs2 row {index}: expected 12 fields, received {len(fields)}')
             try:
                 q,t,pid,alen,qs,qe,ts,te,e,bits,qaln,taln=fields
                 rows.append(HSP(q,t,float(pid),int(alen),int(qs),int(qe),int(ts),int(te),float(e),float(bits),0,0,qaln,taln))
-            except ValueError as exc:raise ValueError(f'MMseqs2 ligne {index}: {exc}') from exc
+            except ValueError as exc:raise ValueError(f'MMseqs2 row {index}: {exc}') from exc
     return sorted(rows,key=lambda h:(-h.bitscore,h.evalue,h.subject))
 
 def group_hsps(hsps: list[HSP]) -> dict[str,list[HSP]]:
@@ -188,8 +229,98 @@ def group_hsps(hsps: list[HSP]) -> dict[str,list[HSP]]:
     return dict(by)
 
 
+def rank_hsps(hsps):
+    """Rank local evidence deterministically, independently of input ordering."""
+    return sorted(hsps,key=lambda h:(-h.bitscore,h.evalue,-h.identity,h.subject,
+        h.qspan,h.sspan,h.qstart,h.sstart,h.qframe,h.sframe,h.qseq,h.sseq))
+
+
+def normalize_search_record(record: Seq, kind=None) -> Seq:
+    """Use ungapped biological coordinates without changing immutable input data.
+
+    Gap symbols are removed. Unknown positions remain positions (N or X), and
+    RNA U is represented as T for nucleotide search engines.
+    """
+    kind=kind or sequence_type(record.seq)
+    if kind not in ('DNA/RNA','protein'):
+        raise ValueError('Search input must have a nucleotide or protein alphabet: '+record.id)
+    sequence=record.seq.upper().replace('-','').replace('.','')
+    sequence=sequence.replace('?', 'N' if kind=='DNA/RNA' else 'X')
+    if kind=='DNA/RNA':sequence=sequence.replace('U','T')
+    if not sequence:raise ValueError('No biological residues remain after removing gaps: '+record.id)
+    return Seq(record.id,record.description,sequence)
+
+
+def validate_search_results(hsps, query: Seq, references: list[Seq], mode: str):
+    """Validate a fresh engine result before replacing a successful search.
+
+    Coordinates are 1-based in the native sequences; translated HSP rows use
+    amino acids. Partial-codon/frameshift alignment is not enabled by AlignView.
+    Empty searches are valid, but incomplete or foreign rows are not.
+    """
+    from av_units import units_for
+    units=units_for(mode,sequence_type(query.seq))
+    refmap={record.id:record for record in references}
+    if len(refmap)!=len(references):raise ValueError('Reference identifiers must be unique.')
+    result=list(hsps)
+    for hsp in result:
+        if not isinstance(hsp,HSP):raise ValueError('Search returned a row that is not an HSP.')
+        hsp.__post_init__()
+        if hsp.query!=query.id:raise ValueError('Search returned an unexpected query: '+hsp.query)
+        if hsp.subject not in refmap:raise ValueError('Search returned an unknown reference: '+hsp.subject)
+        if hsp.qspan[1]>len(query.seq) or hsp.sspan[1]>len(refmap[hsp.subject].seq):
+            raise ValueError('Search coordinates exceed the input sequence length: '+hsp.subject)
+        if not hsp.qseq:raise ValueError('Search returned HSPs without aligned query/reference rows.')
+        for name,row,span,translated,frame,start,end,length in (
+            ('query',hsp.qseq,hsp.qspan,units.translated_query,hsp.qframe,hsp.qstart,hsp.qend,len(query.seq)),
+            ('reference',hsp.sseq,hsp.sspan,units.translated_subject,hsp.sframe,hsp.sstart,hsp.send,len(refmap[hsp.subject].seq))):
+            residues=sum(c not in '-.' for c in row)
+            expected=residues*(3 if translated else 1)
+            if span[1]-span[0]+1!=expected:
+                raise ValueError('Search '+name+' coordinates disagree with its aligned residues: '+hsp.subject)
+            if translated and frame==0:
+                raise ValueError('Translated search is missing the '+name+' reading frame: '+hsp.subject)
+            if translated:
+                phase=(start-1)%3+1 if frame>0 else (length-start)%3+1
+                if abs(frame)!=phase or (frame>0 and start>end) or (frame<0 and start<end):
+                    raise ValueError('Search '+name+' reading frame disagrees with its native coordinates: '+hsp.subject)
+    return rank_hsps(result)
+
+
+def validate_alignment_results(aligned, expected, *, nucleotide=False):
+    """Accept a complete reordered MSA, never missing or changed sequences.
+
+    Gap placement may change; biological residues may not. RNA U and DNA T are
+    equivalent only when the caller explicitly declares nucleotide input.
+    Input order is restored so the query and selected references remain stable.
+    """
+    aligned=list(aligned);expected=list(expected)
+    if not expected or not aligned:raise ValueError('The alignment contains no sequences.')
+    expected_ids=[record.id for record in expected]
+    observed_ids=[record.id for record in aligned]
+    if len(set(expected_ids))!=len(expected_ids):raise ValueError('Alignment input identifiers must be unique.')
+    if len(set(observed_ids))!=len(observed_ids):raise ValueError('The alignment contains duplicate identifiers.')
+    if set(observed_ids)!=set(expected_ids):
+        missing=sorted(set(expected_ids)-set(observed_ids))
+        extra=sorted(set(observed_ids)-set(expected_ids))
+        detail=[]
+        if missing:detail.append('missing: '+', '.join(missing[:5]))
+        if extra:detail.append('unexpected: '+', '.join(extra[:5]))
+        raise ValueError('The alignment changed its sequence set ('+'; '.join(detail)+').')
+    lengths={len(record.seq) for record in aligned}
+    if len(lengths)!=1 or 0 in lengths:raise ValueError('The alignment must have equal, nonempty sequence lengths.')
+    def residues(sequence):
+        value=sequence.upper().replace('-','').replace('.','')
+        return value.replace('U','T') if nucleotide else value
+    outmap={record.id:record for record in aligned}
+    for record in expected:
+        if residues(record.seq)!=residues(outmap[record.id].seq):
+            raise ValueError('The alignment changed biological residues for '+record.id+'.')
+    return [outmap[identifier] for identifier in expected_ids]
+
+
 def select_hits(hsps,query_len,identity=0,coverage=0,max_hits=DEFAULT_HITS,min_bits=0):
-    filtered=[h for h in hsps if h.identity>=identity and h.bitscore>=min_bits]
+    filtered=rank_hsps(h for h in hsps if h.identity>=identity and h.bitscore>=min_bits)
     groups=group_hsps(filtered); selected={}
     for name,rows in groups.items():
         spans=merge_intervals([h.qspan for h in rows],query_len)
@@ -201,7 +332,7 @@ def select_hits(hsps,query_len,identity=0,coverage=0,max_hits=DEFAULT_HITS,min_b
 
 def coverage_data(hsps, query_len, ref_lengths:dict):
     out=[]
-    for subj,grp in group_hsps(hsps).items():
+    for subj,grp in group_hsps(rank_hsps(hsps)).items():
         qs=merge_intervals([h.qspan for h in grp],query_len)
         slen=ref_lengths.get(subj,0)
         ss=merge_intervals([h.sspan for h in grp],slen) if slen else []
@@ -210,6 +341,12 @@ def coverage_data(hsps, query_len, ref_lengths:dict):
             reference_length=slen,reference_segments=ss,reference_uncovered=missing_intervals(ss,slen),
             reference_coverage=interval_length(ss)/slen*100 if slen else None,
             best_identity=grp[0].identity,best_bitscore=grp[0].bitscore,best_evalue=grp[0].evalue,
+            max_identity=max(h.identity for h in grp),
+            query_aligned_length=interval_length(qs),reference_aligned_length=interval_length(ss) if slen else None,
+            query_strands=sorted(set('-' if h.qframe<0 or (not h.qframe and h.qstart>h.qend) else '+' for h in grp)),
+            reference_strands=sorted(set('-' if h.sframe<0 or (not h.sframe and h.sstart>h.send) else '+' for h in grp)),
+            query_frames=sorted(set(h.qframe for h in grp if h.qframe)),
+            reference_frames=sorted(set(h.sframe for h in grp if h.sframe)),
             frames=sorted(set(h.qframe for h in grp if h.qframe))))
     return out
 
@@ -284,6 +421,8 @@ def find_motifs(seq:Seq,motif:str,both_strands=True,regex=False):
 
 def sliding_scores(seq:str,window=101,step=25,kind='gc'):
     if window<1 or step<1: raise ValueError('Window and step must be positive')
+    if not seq:return []
+    seq=seq.upper()
     scores=[]
     if len(seq)<window: window=len(seq)
     for i in range(0,len(seq)-window+1,step):
@@ -301,7 +440,7 @@ def sliding_scores(seq:str,window=101,step=25,kind='gc'):
 
 
 def msa_metrics(seqs:list[Seq]):
-    if not seqs: raise ValueError('MSA vide')
+    if not seqs or not seqs[0].seq: raise ValueError('The alignment must contain nonempty sequences.')
     size=len(seqs[0].seq)
     if any(len(r.seq)!=size for r in seqs): raise ValueError('Different lengths: align with MAFFT')
     consensus=[]; positions=[];variable=0;info=0;gapped=0;invariant=0

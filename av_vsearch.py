@@ -39,7 +39,7 @@ def commands(action, source, references, output, options):
     from av_parameters import validate
     validate(options,context='vsearch')
     output=Path(output)
-    if action not in ACTIONS:raise ValueError('Analyse VSEARCH inconnue: '+action)
+    if action not in ACTIONS:raise ValueError('Unknown VSEARCH analysis: '+action)
     limits=['--minseqlength',str(options.vsearch_min_length),'--maxseqlength',str(options.vsearch_max_length)]
     sizein=['--sizein'] if options.vsearch_sizein else []
     common=['--threads',str(options.threads),'--strand',options.vsearch_strand]
@@ -119,7 +119,7 @@ def summarize(action, output, input_count, eligible_count):
     else:
         for name in ('unique','chimeras','nonchimeras','borderline'):
             path=output/(name+'.fasta')
-            if not path.is_file():raise ValueError('VSEARCH: sortie absente: '+path.name)
+            if not path.is_file():raise ValueError('VSEARCH: missing output: '+path.name)
             summary[name]=count_fasta(path)
         if summary['unique']!=summary['chimeras']+summary['nonchimeras']+summary['borderline']:
             raise ValueError('VSEARCH: incomplete chimera classification.')

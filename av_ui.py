@@ -64,6 +64,8 @@ class UI:
         self.positions={}
         self.route=['Home']
         self.context=()
+        self.compact_context_lines=1
+        self.workflow=()
         self.notice=''
         self.status=''; self.messages=[]
 
@@ -120,14 +122,15 @@ class UI:
     def wrapped(self, text, prefix='  ', width=None):
         for line in textwrap.wrap(str(text),max(10,(width or self.size()[0]-2)-len(prefix))):print(prefix+line)
 
-    def menu(self, title, items, subtitle='', footer='', *, hint='', default=None, shortcuts=None):
+    def menu(self, title, items, subtitle='', footer='', *, hint='', default=None, shortcuts=None, searching=False):
         entries=[item if isinstance(item,MenuItem) else MenuItem(*map(str,item)) for item in items]
         title,subtitle,footer,hint=map(str,(title,subtitle,footer,hint))
         if self.simple:return self._menu_simple(title,entries,subtitle,hint,shortcuts or {})
-        return self._menu_keys(title,entries,subtitle,footer,hint,default,shortcuts or {})
+        return self._menu_keys(title,entries,subtitle,footer,hint,default,shortcuts or {},searching=searching)
 
     def _menu_simple(self, title, items, subtitle, hint, shortcuts):
         self.banner();print('  '+' › '.join(self.route));self.heading(title)
+        for line in self.workflow:self.info(line)
         for line in self.context:self.info(line)
         if subtitle:self.wrapped(subtitle)
         if hint:self.wrapped(hint)
@@ -136,9 +139,9 @@ class UI:
             self.wrapped(item.description if item.enabled else 'Unavailable: '+item.reason,prefix='      ')
         while True:
             value=self.ask('Choice (q: back)', 'q').casefold()
+            if value in shortcuts:return shortcuts[value]
             if value in ('q','0'):return None
             if value=='home':raise HomeRequested
-            if value in shortcuts:return shortcuts[value]
             exact=next((item for item in items if item.key.casefold()==value),None)
             matches=[item for item in items if value in item.label.casefold()]
             selected=exact or (matches[0] if len(matches)==1 else None)
@@ -147,16 +150,20 @@ class UI:
                 self.warn(selected.reason)
             else:self.warn('Unknown choice; enter the displayed number.')
 
-    def _menu_frame(self,title,items,subtitle='',hint='',active=0,phrase='',typing=False,digits='',notice=''):
-        width,height=self.size()
+    def _menu_frame(self,title,items,subtitle='',hint='',active=0,phrase='',typing=False,digits='',notice='',dimensions=None):
+        width,height=dimensions or self.size()
         entries=[item for item in items if phrase.casefold() in ' '.join((item.label,item.description,item.reason,item.key)).casefold()]
         active=max(0,min(active,len(entries)-1))
         compact=height<19
         rich=len(items)<=5 and height>=22
         header=[self.c(CYAN+BOLD,'  AlignView')+'  '+self.c(GREY,VERSION),
                 '  '+self.c(GREY,' › '.join(self.route)), '  '+self.c(BOLD,title)]
+        if compact and self.context:
+            header.extend('  '+fit(line,max(10,width-4)) for line in self.context[:self.compact_context_lines])
+        workflow_lines=self.workflow if height>=30 else self.workflow[-1:]
+        header.extend('  '+self.c(CYAN,line) for line in workflow_lines)
         if not compact:
-            header.extend('  '+self.c(GREY,line) for line in self.context[:2])
+            header.extend('  '+self.c(GREY,line) for line in self.context[:1 if self.workflow else 2])
             if subtitle and hint:
                 header.extend('  '+fit(value,max(10,width-4)) for value in (subtitle,hint))
             else:
@@ -172,6 +179,7 @@ class UI:
                       else '↑↓ select · Enter open · ←/Esc back · F2 home')
         footer=['  '+self.c(YELLOW if notice or (selected and not selected.enabled) else GREY,line) for line in details]
         footer.extend(['', '  '+control, ''])
+        if rich and not notice and (not selected or selected.enabled):footer=['', '  '+control, '']
         if compact:footer=footer[:1]+['  '+control,'']
         unit=2 if rich else 1
         count=max(1,(height-1-len(header)-len(footer))//unit)
@@ -190,11 +198,11 @@ class UI:
         frame.extend(footer)
         return MenuFrame(frame,entries,active,hit_rows,count)
 
-    def _menu_keys(self,title,items,subtitle,footer,hint,default,shortcuts):
+    def _menu_keys(self,title,items,subtitle,footer,hint,default,shortcuts,searching=False):
         position_key=(*self.route,title)
         saved=self.positions.get(position_key,default)
         active=next((i for i,item in enumerate(items) if item.key==saved),0)
-        phrase='';digits='';typing=False;notice=self.notice;self.notice=''
+        phrase='';digits='';typing=searching;notice=self.notice;self.notice=''
         previous=None
         with screen(mouse=True):
             while True:
@@ -222,6 +230,7 @@ class UI:
                     elif self.route==['Home'] and title=='Project':continue
                     else:return None
                     notice='';continue
+                if typing and key in ('up','down','pageup','pagedown'):typing=False
                 if typing:
                     if key in ('\r','\n'):typing=False
                     elif key in ('\x7f','\b'):phrase=phrase[:-1];active=0;continue
@@ -229,6 +238,7 @@ class UI:
                     else:continue
                 else:
                     if key=='left' and self.route==['Home'] and title=='Project':continue
+                    if key in ('q','Q') and key in shortcuts:return shortcuts[key]
                     if key in ('q','Q','left'):return None
                     if key=='/':typing=True;phrase='';active=0;notice='';continue
                     if key in ('up','k'):active=max(0,active-1);digits=''
@@ -272,7 +282,9 @@ class UI:
         import contextlib,io
         output=io.StringIO()
         with contextlib.redirect_stdout(output):result=action()
-        self.page(output.getvalue(),RESULT_TITLES[name])
+        session=getattr(action,'__self__',None)
+        deferred=getattr(session,'library_root',None) is not None and name in ('show_stats','msa_analysis','msa_distances')
+        if not deferred:self.page(output.getvalue(),RESULT_TITLES[name])
         return result
 
     def page(self,text,title='Results'):

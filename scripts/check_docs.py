@@ -24,8 +24,9 @@ def main():
             if not (path.parent/target).exists():
                 problems.append(str(path.relative_to(ROOT))+': missing '+target)
     for filename,_,_ in TOPICS.values():
-        for relative in (filename,):
-            if not (ROOT/'docs'/relative).is_file():problems.append('Missing bundled guide: '+relative)
+        if not (ROOT/'docs'/filename).is_file():problems.append('Missing bundled guide: '+filename)
+    for obsolete in ('README_EN.md', 'av_i18n.py', 'av_locale_en.py', 'docs/en'):
+        if (ROOT/obsolete).exists():problems.append('Obsolete duplicate-language resource: '+obsolete)
     if problems:raise SystemExit('\n'.join(problems))
     print(f'{len(files)} Markdown files: local links, fences and English guides passed')
 
